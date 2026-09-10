@@ -1,0 +1,76 @@
+name: Build desktop installers
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      TEXGLOT_DATA_DIR: ${{ github.workspace }}/output/ci-data
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: '3.13.11'
+      - name: Build and test the interface
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Verify the service
+        run: |
+          uv sync --locked --group desktop
+          uv run ruff check app tests scripts
+          uv run python -m pytest -q
+      - name: Install desktop build tools
+        working-directory: desktop
+        run: |
+          npm ci
+          npm test
+      - name: Build native installer
+        run: uv run python scripts/build_desktop.py
+      - name: Verify bundled Windows engine
+        if: runner.os == 'Windows'
+        run: uv run python scripts/smoke_platform.py --engine desktop/engine-dist/texglot-engine/texglot-engine.exe --output output/desktop-smoke
+      - name: Verify bundled macOS engine
+        if: runner.os == 'macOS'
+        run: uv run python scripts/smoke_platform.py --engine desktop/engine-dist/texglot-engine/texglot-engine --output output/desktop-smoke
+      - name: Install Windows package and verify installed engine
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installer = (Get-ChildItem desktop/out/*-Setup.exe).FullName
+          $destination = Join-Path $env:RUNNER_TEMP 'TeXGlot Installed'
+          $process = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$destination" -PassThru -Wait
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          uv run python scripts/smoke_platform.py --engine "$destination/resources/engine/texglot-engine.exe" --output output/installed-smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Installed engine verification failed' }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            desktop/out/*.dmg
+            desktop/out/*-Setup.exe
+            output/desktop-smoke/report.json
+            output/installed-smoke/report.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: failure-${{ runner.os }}
+          path: |
+            output/desktop-smoke/**/*.log
+            output/installed-smoke/**/*.log
+          retention-days: 7

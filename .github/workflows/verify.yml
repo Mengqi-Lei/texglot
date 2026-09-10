@@ -1,0 +1,51 @@
+name: Verify TeXGlot
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      TEXGLOT_DATA_DIR: ${{ runner.temp }}/texglot-test-data
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: '3.13'
+      - name: Build and test the reader
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Verify the Python service
+        run: |
+          uv sync --locked
+          uv run ruff check app tests scripts
+          uv run python -m pytest -q
+      - name: Install portable compiler and verify native pipeline
+        run: uv run python scripts/smoke_platform.py --portable-compiler
+      - name: Verify Windows launcher
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          TEXGLOT_DATA_DIR: ${{ github.workspace }}/output/platform-smoke/用户 研究 & data/data
+        run: '& .\start-texglot.cmd --check'
+      - name: Verify distribution
+        run: uv build --wheel
