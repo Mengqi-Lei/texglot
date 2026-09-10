@@ -255,13 +255,15 @@ async def test_probe_adaptation_survives_final_writeback_and_export(
     async def adapted(root, main, out, engine, log):
         if out.name == "build-probe":
             path = root / main
-            path.write_text(prefix + path.read_text())
+            path.write_text(prefix + path.read_text(encoding="utf-8"), encoding="utf-8")
         return await original(root, main, out, engine, log)
 
     monkeypatch.setattr(jobs, "compile_pdf", adapted)
     await manager.pipeline(job, settings)
     output = (folder / "translated/main.tex").read_bytes()
-    assert output.startswith(prefix.encode())
+    assert (
+        (folder / "translated/main.tex").read_text(encoding="utf-8").startswith(prefix)
+    )
     with zipfile.ZipFile(folder / job["artifacts"]["source"]) as archive:
         assert archive.read("main.tex") == output
 

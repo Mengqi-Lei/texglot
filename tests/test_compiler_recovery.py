@@ -108,7 +108,7 @@ def test_recovery_preserves_explicit_unicode_mathematics(tmp_path, feature):
     (tmp_path / "main.tex").write_text(source, encoding="utf-8")
     error = CompilationError("test", "Extended mathchar used as mathchar")
     assert recover_compile_configuration(tmp_path, "main.tex", error) == ""
-    assert (tmp_path / "main.tex").read_text() == source
+    assert (tmp_path / "main.tex").read_text(encoding="utf-8") == source
 
 
 @pytest.mark.parametrize(
