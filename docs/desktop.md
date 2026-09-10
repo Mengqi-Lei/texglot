@@ -6,9 +6,9 @@ TeXGlot's desktop packages include the interface, Python service and Tectonic 0.
 
 ## Install and open
 
-- **Apple Silicon Mac:** download `TeXGlot-1.0.0-macOS-arm64.dmg`, open it, drag TeXGlot into Applications and launch TeXGlot.
-- **Intel Mac:** use `TeXGlot-1.0.0-macOS-x64.dmg` when attached to the release.
-- **Windows x64:** use `TeXGlot-1.0.0-Windows-x64-Setup.exe` when attached to the release. The installer runs for the current user and creates Start menu and desktop shortcuts; administrator access is not required.
+- **Apple Silicon Mac:** download `TeXGlot-1.0.1-macOS-arm64.dmg`, open it, drag TeXGlot into Applications and launch TeXGlot.
+- **Intel Mac:** use `TeXGlot-1.0.1-macOS-x64.dmg` when attached to the release.
+- **Windows x64:** use `TeXGlot-1.0.1-Windows-x64-Setup.exe` when attached to the release. The installer runs for the current user and creates Start menu and desktop shortcuts; administrator access is not required.
 
 Only attached, verified assets are release downloads. See the [platform table](platforms.en.md) for current validation status. The initial packages do not have an Apple Developer ID/notarization or a Windows publisher certificate. Your OS may display an unknown-publisher warning; the release hashes verify file integrity, not publisher identity. Do not disable system security settings to install the app.
 

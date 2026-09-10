@@ -12,7 +12,7 @@
 </p>
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 <p align="center">
-  <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.0.0_CN.md">版本说明</a>
+  <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.0.1_CN.md">版本说明</a>
 </p>
 
 <p align="center"><img src="docs/assets/home-zh.png" width="100%" alt="TeXGlot 首页：arXiv 输入、翻译语言和紧凑的上下文引导开关"></p>
@@ -46,16 +46,16 @@
 
 | 电脑 | 安装包 | 使用方式 |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.0.0-macOS-arm64.dmg` | 打开后拖入 Applications |
-| Mac · Intel | `TeXGlot-1.0.0-macOS-x64.dmg` | 打开后拖入 Applications |
-| Windows · x64 | `TeXGlot-1.0.0-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
+| Mac · Apple Silicon | `TeXGlot-1.0.1-macOS-arm64.dmg` | 打开后拖入 Applications |
+| Mac · Intel | `TeXGlot-1.0.1-macOS-x64.dmg` | 打开后拖入 Applications |
+| Windows · x64 | `TeXGlot-1.0.1-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
 
 安装包内置 Python、网页界面和 Tectonic，**无需安装 Python、Node.js 或 uv**。首次编译需要联网下载 TeX 宏包与字体；含 EPS 插图的论文还需要安装 Ghostscript。首批安装包尚未经过发布者签名／Apple 公证，系统可能显示未知发布者提示；平台验证状态、数据迁移与安装说明见[桌面指南](docs/desktop_CN.md)。只提供已验证的 Release 附件。
 
 <details>
 <summary>从源码安装（开发者与 CLI 用户）</summary>
 
-从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.0.0-source.zip`**，或克隆仓库：
+从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.0.1-source.zip`**，或克隆仓库：
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git

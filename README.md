@@ -12,7 +12,7 @@
 </p>
 <p align="center"><strong>English</strong> · <a href="README_CN.md">简体中文</a></p>
 <p align="center">
-  <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.0.0.md">Release notes</a>
+  <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.0.1.md">Release notes</a>
 </p>
 
 <p align="center"><img src="docs/assets/home-en.png" width="100%" alt="TeXGlot: arXiv input, target language and compact context guidance switch"></p>
@@ -46,16 +46,16 @@ Choose the **desktop installer** for your computer from [Releases](https://githu
 
 | Computer | Installer | Install |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.0.0-macOS-arm64.dmg` | Open and drag into Applications |
-| Mac · Intel | `TeXGlot-1.0.0-macOS-x64.dmg` | Open and drag into Applications |
-| Windows · x64 | `TeXGlot-1.0.0-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
+| Mac · Apple Silicon | `TeXGlot-1.0.1-macOS-arm64.dmg` | Open and drag into Applications |
+| Mac · Intel | `TeXGlot-1.0.1-macOS-x64.dmg` | Open and drag into Applications |
+| Windows · x64 | `TeXGlot-1.0.1-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
 
 Python, the interface and Tectonic are included. **No Python, Node.js or uv installation is required.** First compilation downloads TeX packages and fonts; papers with EPS figures additionally require Ghostscript. The initial packages have no publisher signing certificate / Apple notarization, so the OS may show an unknown-publisher warning. See the [desktop guide](docs/desktop.md) for installation, migration and platform validation. Only verified assets are attached to a release.
 
 <details>
 <summary>Install from source (developers and CLI users)</summary>
 
-Download and extract **`texglot-1.0.0-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
+Download and extract **`texglot-1.0.1-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git

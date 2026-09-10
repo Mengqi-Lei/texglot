@@ -15,7 +15,7 @@ This guide describes the repeatable release process for maintainers. Local prepa
 Build the frontend, then export a new directory from the project root:
 
 ```bash
-uv run python scripts/prepare_release.py --output output/release-1.0.0 --installer desktop/out/TeXGlot-1.0.0-macOS-arm64.dmg
+uv run python scripts/prepare_release.py --output output/release-1.0.1 --installer desktop/out/TeXGlot-1.0.1-macOS-arm64.dmg
 ```
 
 Repeat `--installer PATH` for each verified DMG or EXE. The output directory must not already exist. The script exports an explicit source-file list, checks documentation links and common credential/path leaks, and builds the source ZIP, wheel and sdist. It also generates SHA-256 checksums, a source manifest and bilingual release text with versioned repository links.

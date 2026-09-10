@@ -15,7 +15,7 @@
 先构建前端，再从项目根目录导出到新目录：
 
 ```bash
-uv run python scripts/prepare_release.py --output output/release-1.0.0 --installer desktop/out/TeXGlot-1.0.0-macOS-arm64.dmg
+uv run python scripts/prepare_release.py --output output/release-1.0.1 --installer desktop/out/TeXGlot-1.0.1-macOS-arm64.dmg
 ```
 
 每个已验证的 DMG 或 EXE 分别添加一次 `--installer PATH`。输出目录不能已存在。脚本按明确的源码清单导出，检查文档链接和常见凭据、私人路径泄漏，并构建源码 ZIP、wheel、sdist，同时生成 SHA-256 校验和、源码清单及带版本仓库链接的双语发布正文。

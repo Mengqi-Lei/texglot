@@ -4,12 +4,12 @@
 
 TeXGlot shares its Python service, browser UI, CLI and data format across platforms. Desktop installers bundle the runtime; source launchers remain available. Neither needs WSL.
 
-| Platform | Installer / launcher | Verification for 1.0.0 |
+| Platform | Installer / launcher | Validation coverage |
 | :--- | :--- | :--- |
 | macOS Apple Silicon | ARM64 DMG; source setup also available | DMG integrity, native desktop window, service startup/shutdown and installed frozen-engine PDF pipeline tested on macOS 26.6.2. |
 | macOS Intel | x64 DMG; source setup also available | Built on a native Intel GitHub runner; bundled-engine translation and PDF generation passed. Interactive Intel desktop testing is still pending. |
 | Windows 10/11 x64 | x64 EXE; source scripts also available | Native GitHub Windows Server 2025 runner: EXE installation, installed engine, Unicode multi-file input and Chinese PDF generation passed. Interactive Windows 10/11 client testing remains pending. |
-| Linux x64 / ARM64 | `bash scripts/setup.sh` / `uv run python scripts/start.py` | Installation resources configured; no native Linux validation for this release. |
+| Linux x64 / ARM64 | `bash scripts/setup.sh` / `uv run python scripts/start.py` | Ubuntu x64 CI checks cover the service, CLI and native Chinese PDF pipeline. Native Linux ARM64 verification is still pending. |
 
 Windows ARM64 does not have a bundled portable compiler target. The macOS version above is the tested machine, not an established minimum OS requirement.
 

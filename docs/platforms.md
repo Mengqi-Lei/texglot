@@ -4,12 +4,12 @@
 
 各平台共用 Python 服务、网页、CLI 和数据格式。桌面安装包自带运行环境，也可以继续使用源码启动入口，无需 WSL。
 
-| 平台 | 安装 / 启动入口 | 1.0.0 验证范围 |
+| 平台 | 安装 / 启动入口 | 验证范围 |
 | :--- | :--- | :--- |
 | macOS Apple Silicon | ARM64 DMG，也可源码安装 | macOS 26.6.2 实测 DMG 完整性、桌面窗口、服务启动与退出、安装后引擎和 PDF 生成。 |
 | macOS Intel | x64 DMG，也可源码安装 | Intel 原生 GitHub 主机构建成功，包内引擎翻译与 PDF 生成通过；交互式 Intel 桌面验收待补充。 |
 | Windows 10/11 x64 | x64 EXE，也可使用源码脚本 | 原生 GitHub Windows Server 2025 主机通过 EXE 安装、安装后引擎、中文路径多文件输入和中文 PDF 生成；Windows 10/11 客户端交互验收待补充。 |
-| Linux x64 / ARM64 | `bash scripts/setup.sh` / `uv run python scripts/start.py` | 已配置安装资源，本次发布尚无 Linux 原生验收结果。 |
+| Linux x64 / ARM64 | `bash scripts/setup.sh` / `uv run python scripts/start.py` | Ubuntu x64 CI 覆盖服务、CLI 与原生中文 PDF 流程；Linux ARM64 原生验证仍待完成。 |
 
 Windows ARM64 暂无专用便携编译器。以上 macOS 版本是实际测试环境，不代表已经确定的最低系统版本。
 
