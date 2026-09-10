@@ -15,7 +15,7 @@
   <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.0.1.md">Release notes</a>
 </p>
 
-<p align="center"><img src="docs/assets/home-en.png" width="100%" alt="TeXGlot: arXiv input, target language and compact context guidance switch"></p>
+https://github.com/user-attachments/assets/b7f61e0d-4f00-4b4f-99f6-f5e15863fa3c
 
 ## Overview
 
