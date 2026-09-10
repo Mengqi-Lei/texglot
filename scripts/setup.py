@@ -23,12 +23,17 @@ BUILD_TIMEOUT = 10 * 60
 
 
 async def run_command(command, *, cwd=ROOT, env=None, quiet=False, timeout=None):
+    options = process_options()
+    if os.name == "nt":
+        # Setup is a foreground console command; keep its progress/errors visible.
+        options["creationflags"] &= ~subprocess.CREATE_NO_WINDOW
     process = await asyncio.create_subprocess_exec(
         *command,
         cwd=cwd,
         env=env,
-        stdout=subprocess.DEVNULL if quiet else None,
-        **process_options(),
+        stdout=subprocess.DEVNULL if quiet else sys.stdout,
+        stderr=sys.stderr,
+        **options,
     )
     try:
         returncode = await asyncio.wait_for(process.wait(), timeout)

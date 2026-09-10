@@ -18,15 +18,26 @@ async def test_setup_command_preserves_directory_environment_and_output(
         [
             sys.executable,
             "-c",
-            "import os,pathlib; pathlib.Path('result.txt').write_text("
-            "os.environ['TEXGLOT_SETUP_TEST']); print('installed')",
+            "import os,pathlib,sys; pathlib.Path('result.txt').write_text("
+            "os.environ['TEXGLOT_SETUP_TEST']); print('installed'); "
+            "print('diagnostic', file=sys.stderr)",
         ],
         cwd=directory,
         env=dict(os.environ, TEXGLOT_SETUP_TEST="ok"),
         quiet=quiet,
     )
     assert (directory / "result.txt").read_text() == "ok"
-    assert capfd.readouterr().out == ("" if quiet else "installed\n")
+    captured = capfd.readouterr()
+    assert captured.out.splitlines() == ([] if quiet else ["installed"])
+    assert captured.err.splitlines() == ["diagnostic"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows batch entry point")
+async def test_setup_runs_windows_cmd_entry_with_spaces(tmp_path, capfd):
+    script = tmp_path / "setup step.cmd"
+    script.write_text("@echo off\necho installed\n", encoding="ascii")
+    await setup.run_command([str(script)], cwd=tmp_path, timeout=10)
+    assert capfd.readouterr().out.splitlines() == ["installed"]
 
 
 async def test_setup_command_preserves_failure_exit_code():
