@@ -1,0 +1,12 @@
+*.pdf binary
+*.png binary
+*.otf binary
+*.zip binary
+app/resources/cmaps/* -whitespace
+
+*.cmd text eol=crlf
+*.command text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+
+*.jpg binary

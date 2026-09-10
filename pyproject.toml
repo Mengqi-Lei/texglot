@@ -1,0 +1,64 @@
+[project]
+name = "texglot"
+version = "1.0.0"
+description = "Local, structure-preserving LaTeX paper translation"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
+  "httpx[socks]>=0.28,<1",
+  "python-multipart>=0.0.20",
+  "pydantic>=2.10,<3",
+  "pypdf>=6,<7",
+  "opencc-python-reimplemented>=0.1.7",
+]
+[dependency-groups]
+desktop = [
+    "pyinstaller==6.22.2",
+]
+dev = [
+    "fonttools>=4.64.0",
+    "pillow>=12.3.0",
+    "pytest>=8",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.16.6",
+]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[project.urls]
+Homepage = "https://github.com/Mengqi-Lei/texglot"
+Issues = "https://github.com/Mengqi-Lei/texglot/issues"
+Changelog = "https://github.com/Mengqi-Lei/texglot/blob/main/CHANGELOG.md"
+
+[project.scripts]
+texglot = "app.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.26,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+dev-mode-dirs = ["."]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"frontend/dist" = "app/web"
+"THIRD_PARTY.md" = "app/resources/THIRD_PARTY.md"
+
+[tool.hatch.build.targets.sdist]
+include = ["app", "frontend/src", "frontend/index.html", "frontend/package*.json", "frontend/*.ts", "frontend/tsconfig.json", "frontend/tsconfig.reader-tests.json", "frontend/tests", "scripts", "examples", "tests", "README.md", "README_CN.md", "CONTRIBUTING*.md", ".github/*.md", ".github/ISSUE_TEMPLATE/*.md", ".github/workflows/*.yml", "LICENSE", "CHANGELOG.md", "THIRD_PARTY.md", "pyproject.toml", "uv.lock", "start-texglot.command", "start-texglot.cmd", "install-texglot.cmd", ".gitattributes", ".gitignore", "docs/platforms*.md", "docs/cli*.md", "docs/reader.md", "docs/translation-context.md", "docs/troubleshooting*.md", "docs/releasing*.md", "docs/releases", "docs/assets", "docs/desktop*.md", "desktop/*.cjs", "desktop/*.html", "desktop/*.py", "desktop/package*.json", "desktop/tests", "desktop/build/TECTONIC-LICENSE", "desktop/build/PYTHON-LICENSE.txt"]
+
+[tool.hatch.build.targets.sdist.force-include]
+"frontend/dist" = "frontend/dist"

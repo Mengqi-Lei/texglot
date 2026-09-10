@@ -1,0 +1,47 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=26mm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,hyperref}
+\title{Understanding Attention: A Small Academic Example}
+\author{TeXGlot Research Notes}
+\date{}
+\begin{document}
+\maketitle
+\begin{abstract}
+Attention provides a flexible mechanism for learning relationships between elements of a sequence. This short example demonstrates structure-preserving translation with equations, references, a table, and a figure. The goal is faithful academic translation without changing the mathematical content.
+\end{abstract}
+\section{Introduction}
+Neural networks process information through a sequence of transformations. An attention mechanism allows each element to selectively aggregate information from other elements. In particular, the relationship between a query $q$ and a key $k$ determines how much information is retrieved from the corresponding value. The formulation is given in Equation~\ref{eq:attention}.
+
+\section{Mathematical formulation}
+Let $Q\in\mathbb{R}^{n\times d_k}$, $K\in\mathbb{R}^{m\times d_k}$, and $V\in\mathbb{R}^{m\times d_v}$ denote query, key, and value matrices, respectively. Scaled dot-product attention is defined as
+\begin{equation}
+\label{eq:attention}
+\operatorname{Attention}(Q,K,V)=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.
+\end{equation}
+Here $d_k$ is the dimension of the keys. The scaling factor prevents the dot products from becoming too large. Note that \textbf{the normalization is applied independently to each query}, so the resulting weights sum to one.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrr}
+\toprule
+Method & Accuracy & Parameters \\
+\midrule
+Baseline & 82.4 & 1.2 \\
+Attention model & 89.7 & 1.8 \\
+\bottomrule
+\end{tabular}
+\caption{Illustrative results. Accuracy is reported as a percentage and parameter counts are in millions.}
+\label{tab:results}
+\end{table}
+
+\section{Discussion and limitations}
+Table~\ref{tab:results} illustrates how results can be summarized while preserving the table structure. These numbers are synthetic examples and should not be interpreted as experimental evidence. There are two practical considerations:
+\begin{itemize}
+\item The computational cost grows quadratically with the sequence length.
+\item Translation should retain technical terms consistently across paragraphs.
+\end{itemize}
+For a complete treatment of attention-based architectures, see the original Transformer paper~\cite{vaswani2017attention}.
+\begin{thebibliography}{9}
+\bibitem{vaswani2017attention} Ashish Vaswani et al. Attention Is All You Need. NeurIPS, 2017.
+\end{thebibliography}
+\end{document}

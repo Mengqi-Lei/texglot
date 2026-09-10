@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "outDir": "../tmp/reader-tests",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "src/readerGeometry.ts",
+    "src/readerTypes.ts",
+    "src/annotationDrafts.ts",
+    "src/readerNavigation.ts",
+    "src/providers.ts"
+  ]
+}

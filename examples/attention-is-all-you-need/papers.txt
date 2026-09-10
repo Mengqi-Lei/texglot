@@ -1,0 +1,2 @@
+# Attention Is All You Need — pinned arXiv source version
+https://arxiv.org/abs/1706.03762v7
