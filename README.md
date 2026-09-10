@@ -15,7 +15,11 @@
   <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.0.1.md">Release notes</a>
 </p>
 
-https://github.com/user-attachments/assets/b7f61e0d-4f00-4b4f-99f6-f5e15863fa3c
+
+
+https://github.com/user-attachments/assets/0f7d9dbb-3daf-412e-b3db-6f328421c396
+
+
 
 ## Overview
 
