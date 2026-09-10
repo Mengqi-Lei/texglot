@@ -143,6 +143,51 @@ async def test_settings_failure_is_terminal_and_cancel_recovers_orphaned_active(
     assert job["status"] == "cancelled"
 
 
+async def test_inconsistent_source_map_stops_before_paid_requests(
+    pipeline, translator, monkeypatch
+):
+    manager, job, _, _, _ = pipeline
+    original = jobs.segments
+
+    def corrupt(text, **kwargs):
+        items = original(text, **kwargs)
+        if items:
+            items[-1].masked += " corrupted source"
+        return items
+
+    monkeypatch.setattr(jobs, "segments", corrupt)
+    await manager.run(job["id"])
+    assert job["status"] == "failed"
+    assert "源码分段还原检查失败（body.tex:" in job["error"]
+    assert translator.calls == []
+
+
+async def test_layout_transform_failure_is_caught_before_paid_requests(
+    pipeline, translator, monkeypatch
+):
+    manager, job, _, _, calls = pipeline
+    original = jobs.fit_tables
+
+    def broken_layout(text):
+        text, count = original(text)
+        return text + r"\InvalidLayoutCommand", count
+
+    compile_original = jobs.compile_pdf
+
+    async def compile_with_realistic_failure(root, main, out, engine, log):
+        if any(r"\InvalidLayoutCommand" in p.read_text() for p in root.rglob("*.tex")):
+            raise ValueError("Layout transformation did not compile")
+        return await compile_original(root, main, out, engine, log)
+
+    monkeypatch.setattr(jobs, "fit_tables", broken_layout)
+    monkeypatch.setattr(jobs, "compile_pdf", compile_with_realistic_failure)
+    await manager.run(job["id"])
+    assert job["status"] == "failed"
+    assert "Layout transformation did not compile" in job["error"]
+    assert calls == ["build-original"]
+    assert translator.calls == []
+
+
 async def test_partial_retries_only_failed_segments_and_keeps_deliverable(
     pipeline, translator
 ):
@@ -162,6 +207,85 @@ async def test_partial_retries_only_failed_segments_and_keeps_deliverable(
     assert len(translator.calls) == 1 and "second" in translator.calls[0]
     assert job["warnings"] == []
     assert calls.count("build-original") == 1
+
+
+async def test_compiler_adapted_original_is_reused_with_its_warnings(
+    pipeline, translator, monkeypatch
+):
+    manager, job, folder, settings, calls = pipeline
+    original = jobs.compile_pdf
+
+    async def adapted(root, main, out, engine, log):
+        if out.name == "build-original":
+            path = root / main
+            path.write_text("% compiler configuration repair\n" + path.read_text())
+        pdf, warnings = await original(root, main, out, engine, log)
+        return pdf, warnings + (
+            ["Original source warning"] if out.name == "build-original" else []
+        )
+
+    monkeypatch.setattr(jobs, "compile_pdf", adapted)
+    translator.bad = "second"
+    await manager.pipeline(job, settings)
+    translator.bad = ""
+    await manager.pipeline(job, settings)
+    assert calls.count("build-original") == 1
+    assert job["warnings"] == ["Original source warning"]
+    assert (
+        (folder / "prepared-source/main.tex")
+        .read_text()
+        .startswith("% compiler configuration repair")
+    )
+    (folder / "source/body.tex").write_text(
+        "A changed scientific result needs fresh source preparation."
+    )
+    await manager.pipeline(job, settings)
+    assert calls.count("build-original") == 2
+
+
+async def test_probe_adaptation_survives_final_writeback_and_export(
+    pipeline, translator, monkeypatch
+):
+    import zipfile
+
+    manager, job, folder, settings, _ = pipeline
+    original = jobs.compile_pdf
+    prefix = "\\PassOptionsToPackage{table}{xcolor}\n"
+
+    async def adapted(root, main, out, engine, log):
+        if out.name == "build-probe":
+            path = root / main
+            path.write_text(prefix + path.read_text())
+        return await original(root, main, out, engine, log)
+
+    monkeypatch.setattr(jobs, "compile_pdf", adapted)
+    await manager.pipeline(job, settings)
+    output = (folder / "translated/main.tex").read_bytes()
+    assert output.startswith(prefix.encode())
+    with zipfile.ZipFile(folder / job["artifacts"]["source"]) as archive:
+        assert archive.read("main.tex") == output
+
+
+async def test_failed_final_compile_exports_the_last_repaired_source(
+    pipeline, translator, monkeypatch
+):
+    import zipfile
+
+    manager, job, folder, _, _ = pipeline
+    original = jobs.compile_pdf
+
+    async def fails_after_edit(root, main, out, engine, log):
+        if out.name == "build-translated":
+            path = root / main
+            path.write_text("% final compiler repair\n" + path.read_text())
+            raise ValueError("Still cannot compile")
+        return await original(root, main, out, engine, log)
+
+    monkeypatch.setattr(jobs, "compile_pdf", fails_after_edit)
+    await manager.run(job["id"])
+    assert job["status"] == "failed" and len(translator.calls) == 3
+    with zipfile.ZipFile(folder / job["artifacts"]["source"]) as archive:
+        assert archive.read("main.tex") == (folder / "translated/main.tex").read_bytes()
 
 
 async def test_provider_failure_preserves_successful_cache_and_resume(

@@ -1,8 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.0.2 — 2026-09-11
 
-- Preserve mixed-case model-name components and decimal sizes as one protected identifier, avoiding false translation failures in prose and tables. Unaffected paragraph caches remain reusable. / 完整保护含混合大小写组件和小数规模的模型名，避免正文与表格中的翻译误报；其他段落缓存继续复用。
+- Validate source reconstruction and target-language layout before model requests. / 在模型请求前验证源码还原及目标语言排版。
+- Repair diagnosed template, package, bibliography and font incompatibilities; retain prepared sources across retries. / 修复诊断明确的模板、宏包、参考文献及字体兼容问题，重试时复用预处理源码。
+- Convert compiler-selected EPS assets without confusing scoped paths or duplicate filenames; preserve complete table wrappers. / 按编译器实际选择转换 EPS，避免局部路径和同名文件混淆，保留完整表格边界。
+- Protect source identifiers, drawing regions and custom delimited math; render generated Unicode math with standard TeX encodings. / 保护源码标识符、绘图区域与自定义分隔符公式，以标准 TeX 编码显示生成的 Unicode 数学符号。
+- Preserve macOS compiler isolation for data directories outside the home directory. / 自定义数据目录位于用户主目录之外时，仍保持 macOS 编译器的数据隔离。
+- Discard stale TeX auxiliary files before a new compilation. / 新一轮编译前清理旧 TeX 辅助文件。
+- Export final repaired sources, report only final-pass reference warnings, and detect unsupported PSTricks drawing operations. / 导出最终修复源码，仅报告最后一遍引用警告，识别不支持的 PSTricks 绘图操作。
+
+[Release notes](docs/releases/v1.0.2.md) · [中文版本说明](docs/releases/v1.0.2_CN.md)
 
 ## 1.0.1 — 2026-09-10
 

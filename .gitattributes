@@ -10,3 +10,5 @@ app/resources/cmaps/* -whitespace
 *.py text eol=lf
 
 *.jpg binary
+app/resources/tex/aastex.cls text eol=lf -whitespace linguist-vendored
+app/resources/tex/AASTeX-LICENSE text eol=lf -whitespace linguist-vendored

@@ -35,6 +35,7 @@ SOURCE = r"""\documentclass{article}
 \begin{abstract}We verify a formula and a reference.\end{abstract}
 \section{Method}\label{sec:method}
 We preserve $E=mc^2$ and see Section~\ref{sec:method}.
+The Greek letter alpha is a parameter.
 \end{document}
 """
 
@@ -48,6 +49,7 @@ def translate(text):
         " and see Section": "，并参见章节",
         "Native description.": "本地说明。",
         "Native table.": "本地表格。",
+        "The Greek letter alpha is a parameter.": "希腊字母 α 是参数。",
     }.items():
         text = text.replace(original, target)
     return text
@@ -242,6 +244,7 @@ $b$ & 2 \\
                 text = "\n".join(p.extract_text() for p in pdf.pages)
                 assert "平台检查" in re.sub(r"\s+", "", text)
                 assert "我们保留" in re.sub(r"\s+", "", text)
+                assert "α" in text
                 assert not paper["warnings"]
                 pages.append(len(pdf.pages))
             if eps:
@@ -268,6 +271,7 @@ $b$ & 2 \\
                 "unicode_paths": True,
                 "compiler_recorded_dynamic_input": True,
                 "legacy_unicode_fonts": True,
+                "generated_unicode_math": True,
                 "custom_prose_arguments": True,
                 "booktabs_column_rules": True,
                 "model": "local stub (no paid API)",

@@ -20,6 +20,7 @@ from .platforms import WINDOWS
 MAX_UPLOAD = 80 * 1024 * 1024
 MAX_EXPANDED = 300 * 1024 * 1024
 MAX_FILES = 4000
+TEX_SOURCE_SUFFIXES = {".tex", ".sty", ".cls", ".cfg", ".def", ".clo", ".fd", ".ltx"}
 ARXIV_ID = re.compile(r"(?:\d{4}\.\d{4,5}|[a-z][a-z.\-]+/\d{7})(?:v[1-9]\d*)?", re.I)
 
 
@@ -243,20 +244,35 @@ def retry_delay(value: str | None, fallback: float) -> float:
 
 def find_main(root: Path, selected: str = "") -> tuple[str, list[str]]:
     candidates = []
+    bodies = {}
     for p in sorted(root.rglob("*.tex")):
         text = visible_tex(p.read_text(encoding="utf-8"))
         if re.search(r"\\(?:documentclass|documentstyle)\b", text) and re.search(
             r"\\begin\s*\{document\}", text
         ):
             candidates.append(p.relative_to(root).as_posix())
+            bodies[p.relative_to(root).as_posix()] = text.split(r"\begin{document}", 1)[
+                -1
+            ]
     if not candidates:
         raise ValueError("未找到包含 documentclass 和 begin{document} 的主文件")
     if selected:
         if selected not in candidates:
             raise ValueError("指定的主文件不存在或不是完整文档")
         return selected, candidates
+
+    def language_rank(path):
+        # Multiple language editions must not be ranked by UTF-8 byte length:
+        # that systematically favors multibyte scripts over the English paper.
+        # The translation extractor currently targets Latin-script source prose.
+        body = bodies[path]
+        letters = sum(char.isalpha() for char in body)
+        latin = len(re.findall(r"[A-Za-z]", body))
+        return letters > 0 and latin < letters / 2
+
     candidates.sort(
         key=lambda p: (
+            language_rank(p),
             Path(p).name not in ("main.tex", "paper.tex", "ms.tex"),
             len(Path(p).parts),
             -(root / p).stat().st_size,

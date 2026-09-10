@@ -249,6 +249,21 @@ def test_table_width_and_pdftex_compatibility():
     assert fit_tables(fixed) == (fixed, 0)
 
 
+def test_main_selection_does_not_prefer_multibyte_language_edition(tmp_path):
+    from app.sources import find_main
+
+    for filename, prose in [
+        ("english.tex", "The scientific result is useful. " * 10),
+        ("russian.tex", "Научный результат полезен. " * 20),
+    ]:
+        (tmp_path / filename).write_text(
+            r"\documentclass{article}\begin{document}" + prose + r"\end{document}",
+            encoding="utf-8",
+        )
+    assert find_main(tmp_path)[0] == "english.tex"
+    assert find_main(tmp_path, "russian.tex")[0] == "russian.tex"
+
+
 def test_author_names_stay_but_contribution_note_is_translated():
     source = r"\documentclass{article}\title{A Paper}\author{Alice\thanks{A research contribution.}}\begin{document}Some text.\end{document}"
     items = segments(source)

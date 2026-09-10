@@ -152,18 +152,23 @@ async def test_failed_retry_downloads_latest_log_including_dependency_discovery(
         assert response.text == "build-translated"
 
 
-def test_macos_compiler_isolation(tmp_path):
+@pytest.mark.parametrize("temporary_data", [False, True])
+def test_macos_compiler_isolation(tmp_path, monkeypatch, temporary_data):
     import subprocess
     import sys
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
 
     from app.compiler import sandbox_command
 
     if sys.platform != "darwin":
         pytest.skip("macOS sandbox verification")
-    # Create the sentinel under home, outside both allowed job paths and system temp.
     from app.config import DATA
 
-    sentinel = DATA / "isolation-test-sentinel.txt"
+    data = tmp_path / "private-data" if temporary_data else DATA
+    data.mkdir(exist_ok=True)
+    monkeypatch.setattr("app.compiler.DATA", data)
+    sentinel = data / "isolation-test-sentinel.txt"
     sentinel.write_text("TEXGLOT_PRIVATE_SENTINEL", encoding="utf-8")
     try:
         cmd = sandbox_command(
@@ -172,5 +177,18 @@ def test_macos_compiler_isolation(tmp_path):
         result = subprocess.run(cmd, capture_output=True, text=True)
         assert result.returncode != 0
         assert "TEXGLOT_PRIVATE_SENTINEL" not in result.stdout
+        with TemporaryDirectory(dir=data, prefix="isolation-test-") as folder:
+            source = Path(folder) / "source"
+            source.mkdir()
+            allowed = source / "main.tex"
+            allowed.write_text("ALLOWED_PROJECT_SOURCE")
+            command = sandbox_command(
+                ["/bin/cat", str(allowed)], source, tmp_path / "out"
+            )
+            permitted = subprocess.run(command, capture_output=True, text=True)
+            assert (
+                permitted.returncode == 0
+                and permitted.stdout == "ALLOWED_PROJECT_SOURCE"
+            )
     finally:
         sentinel.unlink()

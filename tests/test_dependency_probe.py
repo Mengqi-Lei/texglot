@@ -23,6 +23,47 @@ async def notify(_):
     pass
 
 
+async def test_cfg_sources_and_input_paths_participate_in_eps_preparation(tmp_path):
+    if not find_compiler("tectonic") or not find_ghostscript():
+        pytest.skip("Optional native Tectonic and Ghostscript not installed")
+    root = tmp_path / "source"
+    (root / "figures").mkdir(parents=True)
+    (root / "figures/chart.eps").write_bytes(EPS)
+    (root / "layout.cfg").write_text(
+        r"\makeatletter\def\input@path{{figures/}{}}\makeatother"
+        r"\newcommand{\chartname}{chart}"
+        r"\AtBeginDocument{\includegraphics{\chartname}}",
+        encoding="utf-8",
+    )
+    (root / "main.tex").write_text(
+        r"\input{layout.cfg}\documentclass{article}\usepackage{graphicx}"
+        r"\begin{document}The plotted evidence remains.\end{document}",
+        encoding="utf-8",
+    )
+    prepare_engine_sources(root, "tectonic")
+    documents, images = await probe_source_dependencies(
+        root, "main.tex", tmp_path / "probe", notify
+    )
+    assert "layout.cfg" in documents and images == ["figures/chart.eps"]
+    assert (
+        await prepare_eps(
+            root,
+            "main.tex",
+            notify,
+            source_files=documents,
+            used_images=[root / p for p in images],
+        )
+        == 1
+    )
+    pdf, warnings = await compile_pdf(
+        root, "main.tex", tmp_path / "final", "tectonic", notify
+    )
+    assert not warnings
+    page = PdfReader(pdf).pages[0]
+    assert "The plotted evidence remains." in page.extract_text()
+    assert page["/Resources"]["/XObject"]
+
+
 async def test_xdv_discovers_dynamic_unicode_input_and_only_the_used_eps(tmp_path):
     if not find_compiler("tectonic") or not find_ghostscript():
         pytest.skip("Optional native Tectonic and Ghostscript not installed")
@@ -63,7 +104,8 @@ async def test_xdv_discovers_dynamic_unicode_input_and_only_the_used_eps(tmp_pat
         )
         == 1
     )
-    assert r"\includegraphics{figure.pdf}" in child.read_text(encoding="utf-8")
+    assert r"\includegraphics{figure.eps}" in child.read_text(encoding="utf-8")
+    assert len(list((root / "texglot-eps").glob("*.pdf"))) == 1
     assert r"\includegraphics{unused.eps}" in child.read_text(encoding="utf-8")
     assert not (root / "unused.pdf").exists()
     assert (root / "figure.eps").read_bytes() == EPS
@@ -128,17 +170,44 @@ async def test_unused_eps_engineering_assets_do_not_require_ghostscript(
     assert not (root / "unused.pdf").exists()
 
 
-async def test_used_image_filter_does_not_guess_an_ambiguous_search_path(tmp_path):
+@pytest.mark.parametrize("complete_trace", [True, False])
+async def test_compiler_selected_assets_keep_scoped_parameterized_paths(
+    tmp_path, complete_trace
+):
+    if not find_compiler("tectonic") or not find_ghostscript():
+        pytest.skip("Optional native Tectonic and Ghostscript not installed")
     for name in ("a", "b"):
         (tmp_path / name).mkdir()
-        (tmp_path / name / "plot.eps").write_bytes(EPS)
+        data = (
+            EPS
+            if name == "a"
+            else EPS.replace(b"0 0 moveto 100 80", b"0 80 moveto 100 0")
+        )
+        (tmp_path / name / "plot.eps").write_bytes(data)
     (tmp_path / "main.tex").write_text(
-        r"\graphicspath{{a/}}\includegraphics{plot.eps}"
-        r"\graphicspath{{b/}}\includegraphics{plot.eps}",
+        r"\documentclass{article}\usepackage{graphicx}"
+        r"\newcommand{\plotasset}[1]{\includegraphics[width=100pt]{#1}}"
+        r"\begin{document}Two different plots:"
+        r"{\graphicspath{{./a/}}\plotasset{plot.eps}}"
+        r"{\graphicspath{{b/}}\plotasset{plot.eps}}\end{document}",
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="无法安全"):
-        await prepare_eps(
-            tmp_path, "main.tex", notify, used_images=[tmp_path / "a/plot.eps"]
+    used = [tmp_path / "a/plot.eps"]
+    if complete_trace:
+        used.append(tmp_path / "b/plot.eps")
+    assert await prepare_eps(tmp_path, "main.tex", notify, used_images=used) == len(
+        used
+    )
+    if complete_trace:
+        pdf, warnings = await compile_pdf(
+            tmp_path, "main.tex", tmp_path / "build", "tectonic", notify
         )
-    assert not list(tmp_path.rglob("*.pdf"))
+        assert not warnings
+        assert len(PdfReader(pdf).pages[0]["/Resources"]["/XObject"]) == 2
+    else:
+        # An unobserved, different image must never borrow the converted image.
+        with pytest.raises(ValueError, match="编译未通过"):
+            await compile_pdf(
+                tmp_path, "main.tex", tmp_path / "build", "tectonic", notify
+            )
+    assert r"\plotasset{plot.eps}" in (tmp_path / "main.tex").read_text()

@@ -17,6 +17,57 @@ from .runtime import child_environment
 from .sources import visible_tex
 
 
+def redirect_compiled_eps(root: Path, main: str, conversions: dict[Path, Path]) -> None:
+    """Route the exact EPS selected by graphicx, after macro/path resolution.
+
+    The driver hashes the file it actually opened. This works with parameterized
+    figure macros, scoped paths and identical basenames without evaluating TeX
+    in Python. MD5 is only a lookup key; reject ambiguous keys before compiling.
+    Generated destinations use ASCII names under the document directory.
+    """
+    mappings = {}
+    for source, target in conversions.items():
+        data = source.read_bytes()
+        key = hashlib.md5(data, usedforsecurity=False).hexdigest().upper()
+        fingerprint = hashlib.sha256(data).hexdigest()
+        if key in mappings and mappings[key][0] != fingerprint:
+            raise ValueError("EPS 图片校验值冲突，无法安全映射插图")
+        relative = target.relative_to((root / main).parent).with_suffix("").as_posix()
+        mappings[key] = (fingerprint, relative)
+    entries = "\n".join(
+        rf"\prop_gput:Nnn \g_texglot_eps_prop {{{key}}}{{{relative}}}"
+        for key, (_, relative) in sorted(mappings.items())
+    )
+    block = (
+        r"""% texglot: redirect only compiler-observed EPS assets
+\makeatletter
+\ExplSyntaxOn
+\prop_new:N \g_texglot_eps_prop
+"""
+        + entries
+        + r"""
+\AddToHook{package/graphics/after}{
+  \cs_new_eq:NN \texglot_eps_setfile:nnn \Gin@setfile
+  \cs_set_protected:Npn \Gin@setfile #1#2#3 {
+    \str_if_eq:eeTF {#1}{eps} {
+      \exp_args:NNx \prop_get:NnNTF \g_texglot_eps_prop
+        {\file_mdfive_hash:n{#3}} \l_tmpa_tl {
+        \edef\Gin@base{\l_tmpa_tl}
+        \def\Gin@ext{.pdf}
+        \texglot_eps_setfile:nnn{pdf}{.pdf}{\Gin@base.pdf}
+      }{\texglot_eps_setfile:nnn{#1}{#2}{#3}}
+    }{\texglot_eps_setfile:nnn{#1}{#2}{#3}}
+  }
+}
+\ExplSyntaxOff
+\makeatother
+% texglot: end EPS redirection
+"""
+    )
+    document = root / main
+    document.write_text(block + document.read_text(encoding="utf-8"), encoding="utf-8")
+
+
 def find_ghostscript():
     for name in ("gs", "gswin64c", "gswin32c"):
         found = find_compiler(name)
@@ -201,7 +252,7 @@ def resolve_context_eps(value, document, root, main, context, *, known_sources=(
     if Path(value).suffix and Path(value).suffix.lower() != ".eps":
         return None
     cwd = root / Path(main).parent
-    states, extension_states = set(), set()
+    states, input_states, extension_states = set(), set(), set()
     default_extensions = (".pdf", ".png", ".jpg", ".jpeg", ".eps")
     for text in context["texts"].values():
         groups = list(
@@ -216,6 +267,22 @@ def resolve_context_eps(value, document, root, main, context, *, known_sources=(
             states.add(paths)
             if group.start() in scoped:
                 states.add(())
+        inputs = list(
+            re.finditer(
+                r"(?:\\(?:gdef|def)\s*\\input@path|\\(?:csdef|csgdef)\s*\{input@path\})\s*\{((?:\s*\{[^{}]*\}\s*)+)\}",
+                text,
+            )
+        )
+        scoped_inputs = scoped_positions(text, [match.start() for match in inputs])
+        for group in inputs:
+            input_states.add(
+                tuple(
+                    expand_graphic_path(item, context["macros"])
+                    for item in re.findall(r"\{([^{}]*)\}", group[1])
+                )
+            )
+            if group.start() in scoped_inputs:
+                input_states.add(())
         extensions = list(
             re.finditer(r"\\DeclareGraphicsExtensions\s*\{([^}]+)\}", text)
         )
@@ -226,8 +293,10 @@ def resolve_context_eps(value, document, root, main, context, *, known_sources=(
             extension_states.add(tuple(item.strip() for item in match[1].split(",")))
             if match.start() in scoped_extensions:
                 extension_states.add(default_extensions)
-    if not states:
-        states.add(())
+    # graphicx uses input@path unless graphicspath supplies an override.
+    if not states or () in states:
+        states.discard(())
+        states.update(input_states or {()})
     if not extension_states:
         extension_states.add(default_extensions)
     candidates = set()
@@ -324,14 +393,21 @@ def rewrite_eps_references(text, document, root, main, conversions, context=None
 async def prepare_eps(
     root: Path, main: str, notify, timeout=120, source_files=None, used_images=None
 ):
-    if used_images is not None:
-        used_images = {Path(path).resolve() for path in used_images}
-        if not used_images:
-            return 0
-    documents = [root / value for value in (source_files or [main])]
-    context = graphics_context(root, main, documents)
-    context["used_images"] = used_images
-    images = sorted(referenced_eps(root, main, documents, context))
+    context = None
+    if used_images is None:
+        # External engines without an XDV trace retain conservative static handling.
+        documents = [root / value for value in (source_files or [main])]
+        context = graphics_context(root, main, documents)
+        images = sorted(referenced_eps(root, main, documents, context))
+    else:
+        images = sorted({Path(path).resolve() for path in used_images})
+        if any(
+            not path.is_relative_to(root.resolve())
+            or not path.is_file()
+            or path.suffix.lower() != ".eps"
+            for path in images
+        ):
+            raise ValueError("编译记录包含无效的 EPS 图片路径")
     if not images:
         return 0
     executable = find_ghostscript()
@@ -349,9 +425,26 @@ async def prepare_eps(
     # Scratch files obey the same write boundary as the converted figures.
     env.update(TMPDIR=str(root), TEMP=str(root), TMP=str(root))
     conversions = {}
+    target_dir = None
+    if context is None:
+        parent = (root / main).parent
+        target_dir = parent / "texglot-eps"
+        index = 1
+        while target_dir.exists():
+            target_dir = parent / f"texglot-eps-{index}"
+            index += 1
+        target_dir.mkdir()
     for index, source in enumerate(images, 1):
-        target = source.with_suffix(".pdf")
-        if target.exists():
+        if target_dir is not None:
+            target = target_dir / (
+                hashlib.sha256(source.read_bytes()).hexdigest() + ".pdf"
+            )
+            if target.exists():
+                conversions[source] = target
+                continue
+        else:
+            target = source.with_suffix(".pdf")
+        if target_dir is None and target.exists():
             digest = hashlib.sha256(source.read_bytes()).hexdigest()[:16]
             target = source.with_name(source.stem + f".texglot-{digest}.pdf")
             if target.exists():
@@ -414,10 +507,15 @@ async def prepare_eps(
             conversions[source.resolve()] = target
         finally:
             temp.unlink(missing_ok=True)
-    for document in context["texts"]:
-        text = document.read_text(encoding="utf-8")
-        document.write_text(
-            rewrite_eps_references(text, document, root, main, conversions, context),
-            encoding="utf-8",
-        )
+    if context is None:
+        redirect_compiled_eps(root, main, conversions)
+    else:
+        for document in context["texts"]:
+            text = document.read_text(encoding="utf-8")
+            document.write_text(
+                rewrite_eps_references(
+                    text, document, root, main, conversions, context
+                ),
+                encoding="utf-8",
+            )
     return len(images)

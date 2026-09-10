@@ -8,6 +8,7 @@ TeXGlot translates **LaTeX source**, not arbitrary uploaded PDFs or scanned docu
 | :--- | :--- |
 | arXiv import fails | Confirm that the paper has downloadable TeX source and that arXiv is reachable. |
 | EPS figures | Install optional Ghostscript and resume. Original EPS files are retained; PDF copies are generated for compilation. See the [desktop guide](desktop.md). |
+| PSTricks / PostScript drawings | The default Tectonic bundle does not provide a full PostScript toolchain. Prefer pre-converted PDF figures. A separate full TeX setup needs the matching driver and external tools; verify the drawings as well as the exit status. |
 | Compilation fails | Include missing `.sty`, images and bibliography files; inspect the compile log. Templates needing shell escape or unavailable external tools may not work. An installed XeLaTeX/LuaLaTeX can be selected in settings. |
 | API errors | Check the endpoint, region, model access, balance and rate limits. Reduce concurrency or increase timeout when needed. |
 | Some prose stays untranslated | Review task warnings and resume to retry failed segments. Unknown macros, authors and bibliography entries may intentionally remain unchanged. |

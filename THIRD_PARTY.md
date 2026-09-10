@@ -6,6 +6,7 @@
 - HTTPX — BSD-3-Clause — https://github.com/encode/httpx
 - Pydantic — MIT — https://github.com/pydantic/pydantic
 - pypdf — BSD-3-Clause — https://github.com/py-pdf/pypdf
+- pylatexenc — MIT — https://github.com/phfaist/pylatexenc ; standard Unicode-to-LaTeX math encodings for generated prose.
 - PDF.js (`pdfjs-dist`) — Apache-2.0 — https://github.com/mozilla/pdf.js
 - Lucide — ISC — https://github.com/lucide-icons/lucide
 - Vite — MIT — https://github.com/vitejs/vite
@@ -13,6 +14,7 @@
 - PyInstaller (desktop build tool) — GPL-2.0-or-later with bootloader exception permitting distributed applications — https://pyinstaller.org/
 - Python (bundled desktop engine) — PSF License — https://www.python.org/
 - Tectonic (bundled desktop / external compiler) — MIT — https://github.com/tectonic-typesetting/tectonic
+- AASTeX 5.2 compatibility class — LPPL-1.3c — https://github.com/AASJournals/AASTeX52 ; unmodified class, license and pinned provenance in `app/resources/tex/`.
 - Fandol fonts (downloaded by compiler bundle) — GPL with font exception — https://ctan.org/pkg/fandol
 - Noto Serif CJK SC Regular (bundled fallback font) — SIL Open Font License 1.1 — https://github.com/notofonts/noto-cjk ; license retained in `app/resources/fonts/LICENSE`.
 - OpenCC Python reimplementation — Apache-2.0 — https://github.com/yichen0831/opencc-python ; used to normalize generated Chinese prose to the selected writing system.

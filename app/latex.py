@@ -10,9 +10,31 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
+
+from pylatexenc.latexencode import get_builtin_uni2latex_dict
 
 COMMAND = re.compile(r"\\(?:[a-zA-Z@]+\*?|.)", re.S)
 MARKER = re.compile(r"⟪P\d{4,}⟫")
+UNICODE_MATH = {
+    chr(code): latex
+    for code, latex in get_builtin_uni2latex_dict().items()
+    if code > 127 and latex.startswith(r"\ensuremath{")
+}
+
+
+@lru_cache(maxsize=1024)
+def render_text_symbol(char: str) -> str:
+    """Render mathematical Unicode using established TeX encodings, not text fonts."""
+    encoded = UNICODE_MATH.get(char)
+    if encoded is None:
+        return char
+    # Some less common encodings need optional packages. An unavailable command
+    # must leave the original character visible to glyph diagnostics, not cause
+    # a new compilation failure. Only backend-generated TeX passes this path.
+    for command in sorted(set(COMMAND.findall(encoded))):
+        encoded = rf"\ifdefined{command}{encoded}\else {char}\fi"
+    return "{" + encoded + "}"
 
 
 def normalize_generated_prose(text: str) -> str:
@@ -44,10 +66,11 @@ NAMED_IDENTIFIER = re.compile(
     r"(?:-(?:[A-Z][A-Za-z0-9]*|\d[A-Za-z0-9]*)(?:\.\d[A-Za-z0-9]*)*)*"
     r"(?![A-Za-z0-9_])"
 )
+WORD_RUN = re.compile(r"[A-Za-z0-9_.-]+")
 
 
 def named_identifier(value: str) -> bool:
-    """Recognize compact names, without freezing ordinary numeric modifiers."""
+    """A grouping hint for technical text, not a source-validity rule."""
     if not NAMED_IDENTIFIER.fullmatch(value):
         return False
     prefix = re.split(r"\d", value, maxsplit=1)[0]
@@ -158,8 +181,11 @@ def movable_token(value: str) -> bool:
     )
 
 
-OPAQUE_ENV = set(
-    "equation equation* align align* alignat alignat* gather gather* multline multline* flalign flalign* eqnarray eqnarray* IEEEeqnarray IEEEeqnarray* IEEEeqnarraybox dmath dmath* dgroup dgroup* mathpar displaymath math tikzpicture pgfpicture axis forest verbatim verbatim* Verbatim lstlisting minted filecontents filecontents* comment CCSXML thebibliography CJK CJK*".split()
+MATH_ENV = set(
+    "equation equation* align align* alignat alignat* gather gather* multline multline* flalign flalign* eqnarray eqnarray* IEEEeqnarray IEEEeqnarray* IEEEeqnarraybox dmath dmath* dgroup dgroup* mathpar displaymath math".split()
+)
+OPAQUE_ENV = MATH_ENV | set(
+    "tikzpicture pgfpicture picture pspicture pspicture* psmatrix axis forest verbatim verbatim* Verbatim lstlisting minted filecontents filecontents* comment CCSXML thebibliography CJK CJK*".split()
 )
 TEXT_COMMAND = set(
     "title subtitle section subsection subsubsection chapter part paragraph subparagraph caption captionof footnote footnotetext thanks textbf textit textsl textsc textrm textsf texttt textnormal textup emph underline uline sout mbox makebox parbox fbox framebox shorttitle abstract keywords highlight hl foreignlanguage texorpdfstring".split()
@@ -356,17 +382,24 @@ class Segment:
         actual = MARKER.findall(translation)
         if sorted(actual) != sorted(expected):
             raise ValueError("公式或格式标记被修改、遗漏或重复")
-        for marker in MARKER.finditer(translation):
-            value = self.protected[int(marker[0][2:-1])]
-            if not named_identifier(value.lstrip("~")):
-                continue
-            left, right = translation[: marker.start()], translation[marker.end() :]
-            if (
-                not value.startswith("~")
-                and re.search(r"[A-Za-z0-9_-]\Z", left)
-                or re.match(r"[A-Za-z0-9_]|-[A-Z0-9]", right)
+        source_joins = self.word_joins(self.masked)
+        for token, (left, right) in self.word_joins(translation).items():
+            original_left, original_right = source_joins[token]
+            value = self.protected[int(token[2:-1])].lstrip("~")
+            # Original connections are authoritative even when extraction only
+            # protected part of an unfamiliar word. Do not classify its name.
+            # New grammatical affixes are allowed; joined digits or a repeated
+            # piece of the protected spelling must not silently alter its value.
+            for added, original, duplicate in (
+                (left, original_left, value.startswith(left)),
+                (right, original_right, value.endswith(right)),
             ):
-                raise ValueError("命名标识符与相邻文字错误拼接")
+                if (
+                    added
+                    and added != original
+                    and (duplicate or any(c.isdigit() for c in added))
+                ):
+                    raise ValueError("受保护文字被错误拼接")
         fixed = {
             token
             for token, value in zip(expected, self.protected)
@@ -433,19 +466,20 @@ class Segment:
 
         # Escape only generated prose, never the protected original slices.
         def escape(s):
+            special = {
+                "\\": r"\textbackslash{}",
+                "{": r"\{",
+                "}": r"\}",
+                "$": r"\$",
+                "&": r"\&",
+                "%": r"\%",
+                "#": r"\#",
+                "_": r"\_",
+                "^": r"\textasciicircum{}",
+                "~": r"\textasciitilde{}",
+            }
             return "".join(
-                {
-                    "\\": r"\textbackslash{}",
-                    "{": r"\{",
-                    "}": r"\}",
-                    "$": r"\$",
-                    "&": r"\&",
-                    "%": r"\%",
-                    "#": r"\#",
-                    "_": r"\_",
-                    "^": r"\textasciicircum{}",
-                    "~": r"\textasciitilde{}",
-                }.get(c, c)
+                render_text_symbol(c) if c in UNICODE_MATH else special.get(c, c)
                 for c in s
             )
 
@@ -460,6 +494,82 @@ class Segment:
         lead = re.match(r"\s*", self.masked).group()
         tail = re.search(r"\s*$", self.masked).group()
         return lead + join_tex(out) + tail
+
+    def word_joins(self, masked: str) -> dict[str, tuple[str, str]]:
+        """Find actual text attached to protected words, across token boundaries."""
+        parts, spans = [], []
+        cursor = offset = 0
+        for match in MARKER.finditer(masked):
+            plain = masked[cursor : match.start()]
+            parts.append(plain)
+            offset += len(plain)
+            value = self.protected[int(match[0][2:-1])]
+            # TeX syntax is a boundary, not literal letters in a displayed word.
+            visible = (
+                value.replace("~", " ")
+                if re.fullmatch(r"[A-Za-z0-9_.~\s-]+", value)
+                else " "
+            )
+            word = value.lstrip("~")
+            if (
+                WORD_RUN.fullmatch(word)
+                and any(c.isalpha() for c in word)
+                and any(c.isdigit() for c in word)
+            ):
+                spans.append(
+                    (match[0], offset + len(value) - len(word), offset + len(visible))
+                )
+            parts.append(visible)
+            offset += len(visible)
+            cursor = match.end()
+        parts.append(masked[cursor:])
+        surface = "".join(parts)
+        runs = iter(WORD_RUN.finditer(surface))
+        run = next(runs, None)
+        joins = {}
+        for token, start, end in spans:
+            while run is not None and run.end() <= start:
+                run = next(runs, None)
+            assert run is not None and run.start() <= start < end <= run.end()
+            joins[token] = (surface[run.start() : start], surface[end : run.end()])
+        return joins
+
+    def validate_source_map(self):
+        """Reject an inconsistent source map before spending any model requests."""
+        expected = [f"⟪P{i:04d}⟫" for i in range(len(self.protected))]
+        if (
+            MARKER.findall(self.masked) != expected
+            or MARKER.sub(
+                lambda match: self.protected[int(match[0][2:-1])], self.masked
+            )
+            != self.source
+        ):
+            raise ValueError("源码分段映射与原文不一致")
+        return self.restore(self.masked)
+
+    def target_probe(self, language: str) -> str:
+        """Exercise target fonts in the same slots that the model may translate."""
+        if language == "English":
+            return self.restore(self.masked)
+        sample = "譯文" if language == "繁體中文" else "译文"
+        parts, cursor = [], 0
+        for match in MARKER.finditer(self.masked):
+            plain = self.masked[cursor : match.start()]
+            parts.append(
+                re.sub(
+                    r"[A-Za-z]+", lambda word: sample * max(1, len(word[0]) // 6), plain
+                )
+            )
+            parts.append(match[0])
+            cursor = match.end()
+        parts.append(
+            re.sub(
+                r"[A-Za-z]+",
+                lambda word: sample * max(1, len(word[0]) // 6),
+                self.masked[cursor:],
+            )
+        )
+        return self.restore("".join(parts))
 
 
 def group_end(s: str, pos: int) -> int:
@@ -517,11 +627,31 @@ def args_end(s: str, pos: int, required: int | None = None) -> int:
             return end
 
 
-def math_end(text: str, pos: int, opening: str, aliases: dict[str, str]) -> int:
+@dataclass(frozen=True)
+class DelimitedMath:
+    """A literal one-argument TeX macro with an explicit closing token."""
+
+    opening: str
+    closing: str
+
+
+MathAlias = str | DelimitedMath
+
+
+def math_opening(alias: MathAlias) -> str:
+    return alias.opening if isinstance(alias, DelimitedMath) else alias
+
+
+def math_end(
+    text: str, pos: int, opening: MathAlias, aliases: dict[str, MathAlias]
+) -> int:
     """Find the matching math delimiter in TeX tokens, not substring prefixes."""
-    environment = re.fullmatch(r"\\begin\{([^}]+)\}", opening)
+    custom = isinstance(opening, DelimitedMath)
+    environment = None if custom else re.fullmatch(r"\\begin\{([^}]+)\}", opening)
     closing = (
-        r"\end{" + environment[1] + "}"
+        opening.closing
+        if custom
+        else r"\end{" + environment[1] + "}"
         if environment
         else {r"\(": r"\)", r"\[": r"\]", "$": "$", "$$": "$$"}[opening]
     )
@@ -542,7 +672,9 @@ def math_end(text: str, pos: int, opening: str, aliases: dict[str, str]) -> int:
                     value = "\\" + name + text[argument:end]
                     pos = end
             else:
-                value = aliases.get(name, value)
+                value = (
+                    value if custom and value == closing else aliases.get(name, value)
+                )
             if name in {"bgroup", "begingroup"}:
                 groups += 1
                 continue
@@ -572,7 +704,7 @@ def math_end(text: str, pos: int, opening: str, aliases: dict[str, str]) -> int:
 
 
 def opaque_environment_end(
-    text: str, pos: int, env: str, aliases: dict[str, str]
+    text: str, pos: int, env: str, aliases: dict[str, MathAlias]
 ) -> int:
     # Verbatim-style environments use literal end markers, even inside what
     # looks like a comment. Math uses ordinary TeX comment/token semantics.
@@ -590,6 +722,20 @@ def opaque_environment_end(
         ending = re.search(r"\\end\s*\{" + re.escape(env) + r"\}", text[pos:])
         return pos + ending.end() if ending else len(text)
     return math_end(text, pos, r"\begin{" + env + "}", aliases)
+
+
+def math_regions(text: str):
+    """Yield visible math ranges, excluding comments and literal code."""
+    from .sources import visible_tex
+
+    visible = visible_tex(text)
+    position = 0
+    for opening in re.finditer(r"(?<!\\)\$\$?|\\[\[(]|\\begin\s*\{([^{}]+)\}", visible):
+        if opening.start() < position or opening[1] and opening[1] not in MATH_ENV:
+            continue
+        token = r"\begin{" + opening[1] + "}" if opening[1] else opening[0]
+        position = math_end(visible, opening.end(), token, {})
+        yield opening.start(), position
 
 
 def inline_literal_end(text: str, pos: int, name: str) -> int:
@@ -744,16 +890,40 @@ def collect_text_macros(text: str) -> set[str]:
     return wrappers
 
 
-def collect_math_aliases(text: str) -> dict[str, str]:
+def collect_math_aliases(text: str) -> dict[str, MathAlias]:
     from .sources import visible_tex
 
-    return {
+    visible = visible_tex(text)
+    aliases = {
         m.group(1): re.sub(r"(\\(?:begin|end))\s+\{", r"\1{", m.group(2))
         for m in re.finditer(
             r"\\(?:newcommand|renewcommand|def)\s*\{?\\([A-Za-z]+)\}?\s*\{(\\(?:begin|end)\s*\{[^}]+\}|\\[\[\]()])\}",
-            visible_tex(text),
+            visible,
         )
     }
+    # TeX accepts delimited arguments, e.g. \def\formula#1\stop{$#1$}.
+    # Recognize literal, single-argument math wrappers from their definition;
+    # the command spelling carries no meaning. Do not infer computed macros.
+    pattern = re.compile(
+        r"\\def\s*(\\(?:[A-Za-z@]+|.))\s*#1\s*(\\(?:[A-Za-z@]+|.))\s*\{"
+    )
+    for match in pattern.finditer(visible):
+        start = match.end() - 1
+        body = visible[start + 1 : group_end(visible, start) - 1].strip()
+        for opening, closing in [
+            ("$", "$"),
+            ("$$", "$$"),
+            (r"\(", r"\)"),
+            (r"\[", r"\]"),
+        ] + [(rf"\begin{{{env}}}", rf"\end{{{env}}}") for env in MATH_ENV]:
+            if (
+                body.startswith(opening)
+                and body.endswith(closing)
+                and body[len(opening) : -len(closing)].strip() == "#1"
+            ):
+                aliases[match[1][1:]] = DelimitedMath(opening, match[2])
+                break
+    return aliases
 
 
 def collect_literal_macros(text: str) -> dict[str, str]:
@@ -805,10 +975,11 @@ def _title_source_parts(text: str):
             continue
         name, pos = match[0][1:].rstrip("*"), match.end()
         expansion = aliases.get(name, match[0])
-        if expansion in (r"\(", r"\["):
+        opening = math_opening(expansion)
+        if opening in (r"\(", r"\[", "$", "$$"):
             pos = math_end(visible, pos, expansion, aliases)
             continue
-        if aliased_env := re.fullmatch(r"\\begin\{([^}]+)\}", expansion):
+        if aliased_env := re.fullmatch(r"\\begin\{([^}]+)\}", opening):
             if aliased_env[1] in OPAQUE_ENV:
                 pos = math_end(visible, pos, expansion, aliases)
                 continue
@@ -898,6 +1069,18 @@ def extract_paper_title(
         value = without_comments(text[a:b]).strip()
         if match := COMMAND.fullmatch(value):
             value = macros.get(match[0][1:], "")
+        # Graphics belong to typesetting, not the library's display title.
+        # Consume their declared arguments without swallowing a following group.
+        for match in reversed(
+            list(re.finditer(r"\\includegraphics\*?(?![A-Za-z@])", value))
+        ):
+            pos = skip_tex_space(value, match.end())
+            for _ in range(2):
+                if pos < len(value) and value[pos] == "[":
+                    pos = skip_tex_space(value, group_end(value, pos))
+            if pos < len(value) and value[pos] == "{":
+                end = group_end(value, pos)
+                value = value[: match.start()] + value[end:]
         value = re.sub(r"\\[A-Za-z]+|[{}]", "", value.replace(r"\\", " "))
         value = re.sub(r"\s+", " ", without_comments(value)).strip()
         if value:
@@ -1071,7 +1254,7 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
 
 
 def input_references(
-    text: str, math_aliases: dict[str, str] | None = None
+    text: str, math_aliases: dict[str, MathAlias] | None = None
 ) -> list[tuple[str, bool]]:
     """Read literal input edges together with their TeX math/graphics context.
 
@@ -1114,9 +1297,12 @@ def input_references(
             pos = definition_end(visible, pos, name)
             continue
         expansion = aliases.get(name, match[0])
-        aliased_env = re.fullmatch(r"\\begin\{([^}]+)\}", expansion)
+        opening = math_opening(expansion)
+        aliased_env = re.fullmatch(r"\\begin\{([^}]+)\}", opening)
         if not opaque and (
-            expansion in (r"\(", r"\[") or aliased_env and aliased_env[1] in OPAQUE_ENV
+            opening in (r"\(", r"\[", "$", "$$")
+            or aliased_env
+            and aliased_env[1] in OPAQUE_ENV
         ):
             opaque_until = math_end(visible, pos, expansion, aliases)
         if name in {"begin", "end"}:
@@ -1211,7 +1397,7 @@ def classify_source_contexts(
 def segments(
     text: str,
     max_chars=4500,
-    math_aliases: dict[str, str] | None = None,
+    math_aliases: dict[str, MathAlias] | None = None,
     text_macros: set[str] | None = None,
     literal_macros: dict[str, str] | None = None,
     numeric_registers: dict[str, str] | None = None,
@@ -1363,7 +1549,9 @@ def segments(
                 i = end
                 continue
             if in_body and name in aliases:
-                environment = re.fullmatch(r"\\(begin|end)\{([^}]+)\}", aliases[name])
+                environment = re.fullmatch(
+                    r"\\(begin|end)\{([^}]+)\}", math_opening(aliases[name])
+                )
                 if environment and environment[2] not in OPAQUE_ENV:
                     # Theorem/proof/list aliases are structural, not mathematics.
                     flush()
@@ -1372,8 +1560,8 @@ def segments(
                 in_body
                 and name in aliases
                 and (
-                    aliases[name].startswith(r"\begin{")
-                    or aliases[name] in (r"\[", r"\(")
+                    math_opening(aliases[name]).startswith(r"\begin{")
+                    or math_opening(aliases[name]) in (r"\[", r"\(", "$", "$$")
                 )
             ):
                 i = math_end(text, i, aliases[name], aliases)

@@ -107,10 +107,23 @@ MESSAGES = {
     "排版结构标记被重排": "Layout structure markers were reordered",
     "数字、公式或引用跨越了原来的格式边界或表格单元格": "A number, equation, or citation crossed a formatting boundary or table cell",
     "模型生成了额外的 LaTeX 指令": "The model generated extra LaTeX commands",
+    "受保护文字被错误拼接": "Protected text was incorrectly joined to neighboring text",
+    "EPS 图片校验值冲突，无法安全映射插图": "EPS fingerprints conflict; figures cannot be mapped safely",
+    "当前受限编译器不支持内嵌 PSTricks 绘图，图形可能缺失；请先将图形转换为 PDF 后重新上传源码": "The restricted compiler cannot render embedded PSTricks drawings reliably. Convert the figures to PDF and upload the source again",
+    "编译记录包含无效的 EPS 图片路径": "The compiler recorded an invalid EPS image path",
+    "已按编译诊断调整 模板提供的传统数学排版模式，正在重试": "Retrying with the template's classic math configuration",
     "模型返回了无效格式": "The model returned an invalid format",
     "译文异常短，可能遗漏正文": "Translation is unusually short and may omit content",
 }
 RULES = [
+    (
+        r"已按编译诊断调整 (.+) 宏包选项，正在重试",
+        r"Retrying with compiler-guided options for \1",
+    ),
+    (
+        r"已将错位的父目录引用定位到源码包内的同路径文件：(.+)",
+        r"Rebased misplaced parent references to matching files in the source archive: \1",
+    ),
     (r"正在转换 EPS 插图 · (\d+) / (\d+)", r"Converting EPS figures · \1 / \2"),
     (r"EPS 插图转换超时：(.+)", r"EPS conversion timed out: \1"),
     (r"EPS 插图转换失败：([\s\S]+)", r"EPS conversion failed: \1"),
@@ -137,6 +150,10 @@ RULES = [
     (
         r"主文件 (.+) · 使用 (.+) 检查原文编译",
         r"Main file \1 · Checking original with \2",
+    ),
+    (
+        r"源码分段还原检查失败（(.+)）",
+        r"Source round-trip validation failed (\1)",
     ),
     (
         r"已提取 (\d+) 个段落，公式、引用和排版指令已保护",

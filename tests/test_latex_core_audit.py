@@ -979,7 +979,7 @@ def test_capitalized_natural_modifier_is_not_promoted_by_letter_before_number():
 )
 def test_named_literal_cannot_be_spliced_into_a_different_model_name(translation):
     item = segments("The model ResNet-101-FPN uses 44 samples.")[0]
-    with pytest.raises(ValueError, match="命名标识符"):
+    with pytest.raises(ValueError, match="受保护文字被错误拼接"):
         item.restore(translation)
 
 
@@ -996,3 +996,131 @@ def test_named_literal_after_line_break_is_not_glued_to_previous_word():
     source = "We thank the developers of\nPylearn2 and others."
     item = segments(source)[0]
     assert item.restore(item.masked) == source
+
+
+def test_unseen_compound_words_round_trip_independently_of_name_recognition():
+    import random
+    import string
+
+    rng = random.Random(20260911)
+    for _ in range(500):
+        parts = [
+            "".join(rng.choices(string.ascii_letters, k=rng.randint(1, 12)))
+            + str(rng.randrange(1000))
+            for _ in range(rng.randint(2, 5))
+        ]
+        name = rng.choice(["-", ".", "+", "/"]).join(parts)
+        for source in (
+            f"We evaluate {name}-based methods using 12 samples.",
+            rf"\textbf{{{name}}} & 12 \\ Other methods & 24 \\",
+        ):
+            for item in segments(source):
+                item.validate_source_map()
+                assert item.restore(item.masked) == item.source
+
+
+def test_word_connections_follow_source_even_with_partial_tokenization():
+    from app.latex import Segment
+
+    # A deliberately unfamiliar name split across multiple protected spans.
+    item = Segment(
+        0,
+        0,
+        "The zY7-lowercase-0.8b approach is useful.",
+        "The ⟪P0000⟫-lowercase-⟪P0001⟫ approach is useful.",
+        ["zY7", "0.8b"],
+    )
+    item.validate_source_map()
+    assert (
+        item.restore("⟪P0000⟫-lowercase-⟪P0001⟫ 方法很有用。")
+        == "zY7-lowercase-0.8b 方法很有用。"
+    )
+    # Changing the order while retaining the same numeric pieces is not enough.
+    with pytest.raises(ValueError, match="错误拼接"):
+        item.restore("⟪P0001⟫-lowercase-⟪P0000⟫ 方法很有用。")
+
+
+def test_translated_prose_may_attach_an_english_unit_to_a_protected_value():
+    item = segments("The V100 GPU processes the input.")[0]
+    assert item.restore("⟪P0000⟫GPU处理输入。") == "V100GPU处理输入。"
+
+
+def test_target_font_probe_covers_title_and_table_slots_without_touching_values():
+    source = r"\title{A scientific title}\begin{document}\begin{table}\begin{tabular}{ll}Method & Value\\ Model & $E=mc^2$\\\end{tabular}\end{table}\end{document}"
+    items = segments(source)
+    title = next(item for item in items if item.role == "title")
+    assert "译文" in title.target_probe("简体中文")
+    outputs = "\n".join(item.target_probe("简体中文") for item in items)
+    assert "$E=mc^2$" in outputs
+    assert "Method" not in outputs and "Value" not in outputs
+
+
+def test_display_title_omits_graphic_options_but_keeps_following_title_group():
+    from app.latex import extract_paper_title
+
+    title = r"\title{\includegraphics[scale=.05,bb=0 50 230 0]{logo.png} {A Scientific Tool}}"
+    assert extract_paper_title(title) == "A Scientific Tool"
+
+
+@pytest.mark.parametrize(
+    "environment", ["picture", "pspicture", "pspicture*", "psmatrix"]
+)
+def test_drawing_environments_remain_opaque_while_captions_translate(environment):
+    drawing = (
+        rf"\begin{{{environment}}}(0,0)(100,80)"
+        r"\rput(20,30){A scientific node label}"
+        rf"\end{{{environment}}}"
+    )
+    source = drawing + r"\caption{An informative scientific caption.}"
+    items = segments(source)
+    exposed = " ".join(MARKER.sub("", item.masked) for item in items)
+    assert "scientific node" not in exposed
+    assert "informative scientific caption" in exposed
+    assert all(item.restore(item.masked) == item.source for item in items)
+
+
+@pytest.mark.parametrize(
+    "opener,closer,body",
+    [
+        (r"\#", r"\#", r"\begin{align}#1\end{align}"),
+        (r"\formula", r"\finish", "$#1$"),
+        (r"\startmath", r"\endmath", r"\[ #1 \]"),
+    ],
+)
+def test_delimited_math_definitions_protect_exact_argument(opener, closer, body):
+    from app.compiler import break_long_code_identifiers
+    from app.latex import collect_math_aliases, input_references, segments
+
+    definition = rf"\def{opener}#1{closer}{{{body}}}"
+    formula = (
+        opener
+        + r" x_1 = \text{source words} + {a "
+        + closer
+        + r" b} \input{formula}"
+        + closer
+    )
+    source = "Before prose " + formula + " after prose."
+    aliases = collect_math_aliases(definition)
+    item = segments(source, math_aliases=aliases)[0]
+    assert formula in item.protected
+    assert "source words" not in item.masked
+    assert "after prose" in item.masked
+    item.validate_source_map()
+    assert input_references(source, aliases) == [("formula", True)]
+    assert break_long_code_identifiers(source, math_aliases=aliases) == source
+    restored = item.restore(
+        item.masked.replace("Before prose", "前文").replace("after prose", "后文")
+    )
+    assert formula in restored
+
+
+def test_delimited_prose_or_computed_macros_are_not_classified_as_math():
+    from app.latex import collect_math_aliases
+
+    assert collect_math_aliases(r"\def\start#1\stop{\textbf{#1}}") == {}
+    assert (
+        collect_math_aliases(
+            r"\def\start#1\stop{\begin{align}\computed{#1}\end{align}}"
+        )
+        == {}
+    )

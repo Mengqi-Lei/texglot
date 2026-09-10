@@ -1,6 +1,6 @@
 [project]
 name = "texglot"
-version = "1.0.1"
+version = "1.0.2"
 description = "Local, structure-preserving LaTeX paper translation"
 readme = "README.md"
 license = "Apache-2.0"
@@ -12,6 +12,7 @@ dependencies = [
   "python-multipart>=0.0.20",
   "pydantic>=2.10,<3",
   "pypdf>=6,<7",
+  "pylatexenc>=2.10,<3",
   "opencc-python-reimplemented>=0.1.7",
 ]
 [dependency-groups]

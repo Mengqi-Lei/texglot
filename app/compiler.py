@@ -12,7 +12,7 @@ from pathlib import Path
 from .config import CONFIG, DATA
 from .platforms import process_options, terminate_process_tree
 from .runtime import bundled_tools, child_environment
-from .sources import decode_tex, visible_tex, without_comments
+from .sources import TEX_SOURCE_SUFFIXES, decode_tex, visible_tex, without_comments
 
 
 def available_compilers():
@@ -57,6 +57,43 @@ PIXEL_COMPATIBILITY = r"""% texglot: pdfTeX pixel dimensions for XeTeX
 """
 
 
+XETEX_COMPATIBILITY = r"""% texglot: native XeTeX font and PDF-driver capabilities
+\AddToHook{package/microtype/after}{%
+\DeclareMicrotypeSet{texglot-native}{encoding={TU,EU1,EU2}}%
+\UseMicrotypeSet[protrusion]{texglot-native}%
+}
+% breakurl already has a native-PDF branch; limit its PDF-mode override to loading.
+\AddToHook{package/breakurl/before}{%
+\RequirePackage{xkeyval,ifpdf}%
+\let\TeXGlotSavedIfpdf\ifpdf\let\ifpdf\iftrue
+}
+\AddToHook{package/breakurl/after}{\let\ifpdf\TeXGlotSavedIfpdf}
+% This class's optional arXiv check assumes every non-pdfTeX engine writes DVI.
+\PassOptionsToClass{nopdfoutputerror,allowfontchageintitle}{quantumarticle}
+% Embedded PostScript can silently disappear with restricted XeTeX drivers.
+% Record actual drawing operations; merely loading an unused package is harmless.
+\AddToHook{package/pstricks/after}{%
+\ifcsname pst@object\endcsname
+\expandafter\let\expandafter\TeXGlotPstObject\csname pst@object\endcsname
+\expandafter\def\csname pst@object\endcsname#1{%
+\typeout{TeXGlot-PostScript-object: #1}\TeXGlotPstObject{#1}}%
+\fi
+}
+"""
+
+
+TECTONIC_FONT_COMPATIBILITY = r"""% texglot: vector double-stroke fonts; Tectonic cannot generate PK fonts
+\AddToHook{package/bbm/after}{%
+\SetMathAlphabet{\mathbbm}{normal}{U}{dsrom}{m}{n}%
+\SetMathAlphabet{\mathbbm}{bold}{U}{dsrom}{m}{n}%
+\SetMathAlphabet{\mathbbmss}{normal}{U}{dsss}{m}{n}%
+\SetMathAlphabet{\mathbbmss}{bold}{U}{dsss}{m}{n}%
+\SetMathAlphabet{\mathbbmtt}{normal}{U}{dsrom}{m}{n}%
+\SetMathAlphabet{\mathbbmtt}{bold}{U}{dsrom}{m}{n}%
+}
+"""
+
+
 FLOAT_SIZING = r"""% texglot: fit complete oversized float boxes v1
 \usepackage{graphicx}
 \begingroup
@@ -96,7 +133,8 @@ def prepare_float_sizing(root: Path) -> None:
     }
     visible = {path: visible_tex(text) for path, text in sources.items()}
     if not any(
-        re.search(r"\\begin\s*\{(?:figure|table)\*?\}", text) for text in visible.values()
+        re.search(r"\\begin\s*\{(?:figure|table)\*?\}", text)
+        for text in visible.values()
     ):
         return
     for path, text in sources.items():
@@ -132,7 +170,7 @@ def prepare_legacy_latin_fonts(root: Path, engine: str) -> None:
     sources = {
         path: path.read_text(encoding="utf-8")
         for path in root.rglob("*")
-        if path.is_file() and path.suffix.lower() in {".tex", ".sty", ".cls"}
+        if path.is_file() and path.suffix.lower() in TEX_SOURCE_SUFFIXES
     }
     visible = {path: visible_tex(text) for path, text in sources.items()}
     documents = {
@@ -280,6 +318,7 @@ def normalize_engine(text: str, engine: str) -> str:
     text = normalize_comment_terminators(text)
     text = normalize_float_positions(text)
     if engine in ("tectonic", "xelatex"):
+        text = normalize_pdftex_features(text, engine)
         text = normalize_pixel_dimensions(text)
         visible = visible_tex(text)
         if (
@@ -289,6 +328,17 @@ def normalize_engine(text: str, engine: str) -> str:
         ):
             text = PIXEL_COMPATIBILITY + text
             visible = visible_tex(text)
+        if (
+            re.search(r"\\begin\s*\{document\}", visible)
+            and XETEX_COMPATIBILITY not in text
+        ):
+            text = XETEX_COMPATIBILITY + text
+        if (
+            engine == "tectonic"
+            and re.search(r"\\begin\s*\{document\}", visible)
+            and TECTONIC_FONT_COMPATIBILITY not in text
+        ):
+            text = TECTONIC_FONT_COMPATIBILITY + text
         if (
             re.search(r"\\begin\s*\{document\}", visible)
             and r"\PassOptionsToPackage{no-math}{fontspec}" not in visible
@@ -323,13 +373,6 @@ def normalize_engine(text: str, engine: str) -> str:
         ):
             text = text[: match.start()] + " " + text[match.end() :]
 
-        def driver(match):
-            options = [
-                "xetex" if v.strip() == "pdftex" else v
-                for v in match.group(2).split(",")
-            ]
-            return match.group(1) + "[" + ",".join(options) + "]" + match.group(3)
-
         for match in reversed(
             list(
                 re.finditer(
@@ -338,22 +381,14 @@ def normalize_engine(text: str, engine: str) -> str:
                 )
             )
         ):
-            text = text[: match.start()] + driver(match) + text[match.end() :]
-        visible = visible_tex(text)
-        if (
-            r"\usepackage{microtype}" in visible
-            and r"\begin{verbatim}" in without_comments(text)
-        ):
-            # The bundled microtype's TS1 quote protrusion data cannot be used
-            # with native XeTeX fonts. Set options before font hooks register.
-            for match in reversed(
-                list(re.finditer(r"\\usepackage\{microtype\}", visible))
+            # A masked view locates tokens; copying it back would turn comment
+            # lines into blank lines and break multiline package arguments.
+            for option in reversed(
+                list(re.finditer(r"(?:^|,)\s*(pdftex)\s*(?=,|$)", match[2]))
             ):
-                text = (
-                    text[: match.start()]
-                    + r"\usepackage[protrusion=false,expansion=false]{microtype}"
-                    + text[match.end() :]
-                )
+                start = match.start(2) + option.start(1)
+                end = match.start(2) + option.end(1)
+                text = text[:start] + "xetex" + text[end:]
         visible = visible_tex(text)
         if (
             re.search(r"\\usepackage(?:\[[^]]*\])?\{(?:times|mathptmx)\}", visible)
@@ -385,11 +420,68 @@ def normalize_engine(text: str, engine: str) -> str:
     return text
 
 
+def normalize_pdftex_features(text: str, engine: str) -> str:
+    """Drop unsupported output/typography controls, retaining document content.
+
+    XeTeX writes through xdvipdfmx; pdfTeX compression and glyph-map settings
+    cannot configure that backend. Microtype's ligature control likewise has no
+    XeTeX implementation. The bundled 2022 microtype also lacks XeTeX tracking.
+    Apply the same capability policy in documents and author-supplied packages.
+    """
+    from .latex import group_end
+
+    visible = visible_tex(text)
+    edits = []
+    for match in re.finditer(
+        r"(?:\\global\s*)?\\pdf(?:compresslevel|objcompresslevel|minorversion|majorversion|optionpdfminorversion|gentounicode)\s*=?\s*\d+\b"
+        r"|\\input\s*(?:\{glyphtounicode(?:\.tex)?\}|glyphtounicode(?:\.tex)?\b)",
+        visible,
+    ):
+        edits.append((match.start(), match.end(), ""))
+    for match in re.finditer(r"\\DisableLigatures\s*(?:\[[^]]*\]\s*)?\{", visible):
+        end = group_end(text, match.end() - 1)
+        edits.append((match.start(), end, ""))
+    unsupported = {"expansion", "spacing", "kerning"}
+    if engine == "tectonic":
+        unsupported.add("tracking")
+    for pattern in (
+        r"\\(?:usepackage|RequirePackage)\s*\[([^]]*)\]\s*\{microtype\}",
+        r"\\PassOptionsToPackage\s*\{([^{}]*)\}\s*\{microtype\}",
+        r"\\microtypesetup\s*\{([^{}]*)\}",
+    ):
+        for match in re.finditer(pattern, visible):
+            options = text[match.start(1) : match.end(1)]
+            for option in re.finditer(
+                r"(?:^|,)\s*([A-Za-z]+)(?:\s*=\s*([^,]*))?", options
+            ):
+                if option[1] in unsupported and (option[2] or "").strip() != "false":
+                    start = match.start(1) + option.start(1)
+                    end = match.start(1) + option.end()
+                    edits.append((start, end, option[1] + "=false"))
+    for start, end, replacement in sorted(edits, reverse=True):
+        # Keep source line numbers stable for diagnostics and content mapping.
+        replacement += "\n" * (text[start:end].count("\n") - replacement.count("\n"))
+        text = text[:start] + replacement + text[end:]
+    return text
+
+
 def prepare_engine_sources(root: Path, engine: str) -> None:
     """Adapt author-supplied TeX packages as well as the document entry points."""
+    if engine == "tectonic":
+        # Prefer the author's classes. Supply complete, pinned upstream runtime
+        # classes only where the fixed Tectonic bundle ships an obsolete alias.
+        for resource in (Path(__file__).parent / "resources/tex").glob("*.cls"):
+            if any(root.rglob(resource.name)):
+                continue
+            for document in root.rglob("*.tex"):
+                if re.search(
+                    rf"\\documentclass\s*(?:\[[^]]*\]\s*)?\{{{re.escape(resource.stem)}\}}",
+                    visible_tex(document.read_text(encoding="utf-8")),
+                ):
+                    (document.parent / resource.name).write_bytes(resource.read_bytes())
     normalized = {}
     for path in root.rglob("*"):
-        if path.is_file() and path.suffix.lower() in {".tex", ".sty", ".cls"}:
+        if path.is_file() and path.suffix.lower() in TEX_SOURCE_SUFFIXES:
             original = path.read_bytes()
             text = normalize_engine(decode_tex(original), engine)
             normalized[path] = (original, text)
@@ -464,29 +556,35 @@ def normalize_legacy_cjk(text: str, engine: str) -> str:
 
 
 def fit_tables(text: str) -> tuple[str, int]:
-    """Shrink only oversized tabulars within floats; never enlarge a table."""
+    """Fit complete table boxes, preserving caption/notes measurement scopes."""
     count = 0
-
-    def table(match):
-        nonlocal count
-        body = match.group()
-        if r"\resizebox" in body or r"\begin{adjustbox}" in body:
-            return body
+    visible = visible_tex(text)
+    for match in reversed(
+        list(re.finditer(r"\\begin\s*\{(table\*?)\}.*?\\end\s*\{\1\}", visible, re.S))
+    ):
+        body = text[match.start() : match.end()]
+        shown = visible[match.start() : match.end()]
+        if re.search(r"\\resizebox\b|\\begin\s*\{adjustbox\}", shown):
+            continue
         pairs = []
         start = None
-        depth = 0
-        for token in re.finditer(r"(?<!%)\\(begin|end)\{tabular\*?\}", body):
-            # Ignore commented-out environment tokens.
-            line = body[body.rfind("\n", 0, token.start()) + 1 : token.start()]
-            if re.search(r"(?<!\\)%", line):
-                continue
+        stack = []
+        for token in re.finditer(
+            r"\\(begin|end)\s*\{(tabular\*?|threeparttable)\}", shown
+        ):
             if token.group(1) == "begin":
-                if depth == 0:
+                if not stack:
                     start = token.start()
-                depth += 1
-            else:
-                depth -= 1
-                if depth == 0 and start is not None:
+                stack.append(token.group(2))
+            elif stack and stack[-1] == token.group(2):
+                stack.pop()
+                if (
+                    not stack
+                    and start is not None
+                    and re.search(
+                        r"\\begin\s*\{tabular\*?\}", shown[start : token.end()]
+                    )
+                ):
                     pairs.append((start, token.end()))
         for a, b in reversed(pairs):
             body = (
@@ -497,9 +595,7 @@ def fit_tables(text: str) -> tuple[str, int]:
                 + body[b:]
             )
         count += len(pairs)
-        return body
-
-    text = re.sub(r"\\begin\{table\*?\}.*?\\end\{table\*?\}", table, text, flags=re.S)
+        text = text[: match.start()] + body + text[match.end() :]
     return text, count
 
 
@@ -524,6 +620,7 @@ def break_long_code_identifiers(
         definition_end,
         group_end,
         math_end,
+        math_opening,
         opaque_environment_end,
         skip_tex_space,
     )
@@ -568,14 +665,13 @@ def break_long_code_identifiers(
         name = match[0][1:].rstrip("*")
         position = match.end()
         value = aliases.get(name, match[0])
-        if value in (r"\(", r"\["):
+        opening = math_opening(value)
+        if opening in (r"\(", r"\[", "$", "$$"):
             position = math_end(visible, position, value, aliases)
             continue
-        if alias_env := re.fullmatch(r"\\begin\{([^{}]+)\}", value):
+        if alias_env := re.fullmatch(r"\\begin\{([^{}]+)\}", opening):
             if alias_env[1] in opaque:
-                position = opaque_environment_end(
-                    visible, position, alias_env[1], aliases
-                )
+                position = math_end(visible, position, value, aliases)
                 continue
         if name in {"begin", "end"}:
             start = skip_tex_space(visible, position)
@@ -713,7 +809,7 @@ def prepare_chinese(text: str, language: str, engine: str) -> str:
             )
             + "}\n"
         )
-    block += "\\AtBeginDocument{\\ifdefined\\hypersetup\\hypersetup{hidelinks}\\fi}\n"
+    block += "\\AtBeginDocument{\\ifdefined\\hypersetup\\hypersetup{colorlinks=false,pdfborder={0 0 0}}\\fi}\n"
     return inject_preamble(text, block)
 
 
@@ -732,10 +828,49 @@ def choose_compiler(preferred: str):
 
 
 def validate_sources(root: Path, main: str | None = None):
+    for path, _, message in source_path_violations(root, main):
+        raise ValueError(f"{path.name} {message}")
+
+
+def rebase_project_paths(root: Path, main: str) -> list[str]:
+    """Recover misplaced parent prefixes only when the exact asset is in the archive."""
+    root = root.resolve()
+    cwd = (root / main).parent
+    changes = {}
+    for path, match, _ in source_path_violations(root, main):
+        if not match[0].startswith((r"\input", r"\include")):
+            continue
+        group = 1 if match[1] is not None else 2
+        name = match[group].strip()
+        if not name.startswith("../") or re.search(r"[\\#{}~]", name):
+            continue
+        while name.startswith("../"):
+            name = name[3:]
+        candidate = (root / name).resolve()
+        if candidate.is_relative_to(root) and candidate.is_file():
+            relative = Path(os.path.relpath(candidate, cwd)).as_posix()
+            changes.setdefault(path, []).append((*match.span(group), relative))
+    locations = []
+    for path, edits in changes.items():
+        text = path.read_text(encoding="utf-8")
+        for start, end, relative in reversed(edits):
+            locations.append(
+                f"{path.relative_to(root)}:{text.count(chr(10), 0, start) + 1}"
+            )
+            text = text[:start] + relative + text[end:]
+        path.write_text(text, encoding="utf-8")
+    return sorted(locations)
+
+
+def source_path_violations(root: Path, main: str | None = None):
     root = root.resolve()
     cwd = (root / main).parent if main else root
     for p in root.rglob("*"):
-        if p.suffix.lower() not in (".tex", ".sty", ".cls", ".bib", ".bst"):
+        if not p.is_file() or p.suffix.lower() not in TEX_SOURCE_SUFFIXES | {
+            ".bib",
+            ".bst",
+            ".bbl",
+        }:
             continue
         text = visible_tex(p.read_text(errors="replace", encoding="utf-8"))
         # The compiler itself additionally runs in untrusted/no-shell-escape mode.
@@ -750,12 +885,13 @@ def validate_sources(root: Path, main: str | None = None):
             outside = ".." in Path(name).parts and not (
                 cwd / name
             ).resolve().is_relative_to(root)
-            if absolute or outside:
-                raise ValueError(
-                    f"{p.name} 引用了工程目录外的路径，请将依赖文件放入源码包并使用相对路径"
+            if absolute or outside or name.startswith("|"):
+                message = (
+                    "源码包含外部命令输入，当前本地编译不支持"
+                    if name.startswith("|")
+                    else "引用了工程目录外的路径，请将依赖文件放入源码包并使用相对路径"
                 )
-        if re.search(r"\\(?:input|include)\s*\{?\s*\|", text):
-            raise ValueError("源码包含外部命令输入，当前本地编译不支持")
+                yield p, match, message
 
 
 def sandbox_command(cmd: list[str], root: Path, out: Path) -> list[str]:
@@ -791,6 +927,19 @@ def sandbox_command(cmd: list[str], root: Path, out: Path) -> list[str]:
         "(allow file-write* "
         + " ".join("(subpath " + json.dumps(p, ensure_ascii=False) + ")" for p in write)
         + ")\n"
+    )
+    # An explicitly configured data directory may live outside the user's home,
+    # including inside system temp. Keep other jobs and credentials private even
+    # there, while allowing this compilation and installed compiler resources.
+    profile += (
+        "(deny file-read* (require-all (subpath "
+        + json.dumps(str(DATA), ensure_ascii=False)
+        + ") "
+        + " ".join(
+            "(require-not (subpath " + json.dumps(str(p), ensure_ascii=False) + "))"
+            for p in (root, out, DATA / "tools")
+        )
+        + "))\n"
     )
     return ["/usr/bin/sandbox-exec", "-p", profile, *cmd]
 
@@ -883,7 +1032,7 @@ def compiled_dependencies(
         if not names:
             return None
     files = set()
-    extensions = {".tex", ".sty", ".cls"} | ({".eps"} if include_eps else set())
+    extensions = TEX_SOURCE_SUFFIXES | ({".eps"} if include_eps else set())
     for name in names:
         path = Path(name)
         candidates = [path] if path.is_absolute() else [cwd / path]
@@ -910,14 +1059,16 @@ def compiled_dependencies(
 async def compile_pdf(
     root: Path, main: str, out: Path, engine: str, notify, timeout=420
 ) -> tuple[Path, list[str]]:
-    return await _compile_document(root, main, out, engine, notify, timeout=timeout)
+    return await _compile_with_recovery(
+        root, main, out, engine, notify, timeout=timeout
+    )
 
 
 async def probe_source_dependencies(
     root: Path, main: str, out: Path, notify, timeout=420
 ) -> tuple[list[str], list[str]]:
     """Run TeX without its PDF driver to discover macro-selected EPS sources."""
-    await _compile_document(
+    await _compile_with_recovery(
         root, main, out, "tectonic", notify, timeout=timeout, output_format="xdv"
     )
     inputs = compiled_dependencies(root, main, out, "tectonic", include_eps=True)
@@ -926,6 +1077,97 @@ async def probe_source_dependencies(
     documents = [value for value in inputs if Path(value).suffix.lower() != ".eps"]
     images = [value for value in inputs if Path(value).suffix.lower() == ".eps"]
     return documents, images
+
+
+class CompilationError(ValueError):
+    def __init__(self, message: str, log: str):
+        super().__init__(message)
+        self.log = log
+
+
+def recover_compile_configuration(
+    root: Path, main: str, error: CompilationError
+) -> str:
+    """Use concrete compiler diagnostics to repair a late package configuration."""
+    from .latex import math_regions
+
+    document = root / main
+    source = document.read_text(encoding="utf-8")
+    visible = visible_tex(source)
+    # Some dual-engine templates offer classic pdfTeX mathematics but
+    # automatically load unicode-math on XeTeX. If the latter fails on legacy
+    # math macros, retain the author's classic math route and Unicode text.
+    # Explicit Unicode math fonts, commands, and input are never downgraded.
+    if (
+        "__um_group_begin:" in error.log
+        or "Extended mathchar used as mathchar" in error.log
+    ):
+        branch = re.search(
+            r"\\ifPDFTeX\b(?:(?!\\(?:else|fi|if[A-Za-z]*)\b).)*\\else\b"
+            r"\s*\\usepackage\s*\{(unicode-math)\}",
+            visible,
+            re.S,
+        )
+        context = "\n".join(
+            visible_tex(p.read_text(encoding="utf-8"))
+            for p in root.rglob("*")
+            if p.is_file() and p.suffix.lower() in TEX_SOURCE_SUFFIXES
+        )
+        explicit = re.search(
+            r"\\(?:setmathfont\w*|unimathsetup|sym[A-Za-z]+|Umath[A-Za-z]*)\b", context
+        )
+        native_symbols = any(
+            ord(c) > 127 for a, b in math_regions(context) for c in context[a:b]
+        )
+        if branch and not explicit and not native_symbols:
+            start, end = branch.span(1)
+            document.write_text(
+                source[:start] + "fontspec" + source[end:], encoding="utf-8"
+            )
+            return "模板提供的传统数学排版模式"
+    package, options = "", ""
+    if "Bibliography not compatible with author-year citations" in error.log:
+        package, options = "natbib", "numbers"
+    elif clash := re.search(r"Option clash for package ([A-Za-z0-9_-]+)", error.log):
+        package = clash[1]
+        locations = re.findall(r"(?:^|\n)error: (.+?):\d+:", error.log)
+        for filename in locations:
+            path = ((root / main).parent / filename).resolve()
+            if not path.is_relative_to(root.resolve()) or not path.is_file():
+                continue
+            original = path.read_text(encoding="utf-8")
+            for match in re.finditer(
+                rf"\\(?:usepackage|RequirePackage)\s*\[([^]]*)\]\s*\{{{re.escape(package)}\}}",
+                visible_tex(original),
+            ):
+                option = " ".join(match[1].split())
+                if option and re.fullmatch(r"[A-Za-z0-9_,=.+ -]+", option):
+                    options = ",".join(filter(None, [options, option]))
+    if not package or not options:
+        return ""
+    command = rf"\PassOptionsToPackage{{{options}}}{{{package}}}"
+    if command in visible_tex(source):
+        return ""
+    document.write_text(
+        "% texglot: package options resolved from compiler diagnostics\n"
+        + command
+        + "\n"
+        + source,
+        encoding="utf-8",
+    )
+    return f"{package} 宏包选项"
+
+
+async def _compile_with_recovery(root, main, out, engine, notify, **options):
+    for attempt in range(3):
+        try:
+            return await _compile_document(root, main, out, engine, notify, **options)
+        except CompilationError as exc:
+            if attempt == 2 or not (
+                change := recover_compile_configuration(root, main, exc)
+            ):
+                raise
+            await notify(f"已按编译诊断调整 {change}，正在重试")
 
 
 async def _compile_document(
@@ -940,6 +1182,27 @@ async def _compile_document(
     out.mkdir(parents=True, exist_ok=True)
     path = root / main
     validate_sources(root, main)
+    # Auxiliary files contain executable TeX tied to a particular template and
+    # driver. A new compilation must not load leftovers from a previous run;
+    # keep them only between passes of this invocation.
+    for generated in out.rglob("*"):
+        if generated.is_file() and (
+            generated.suffix
+            in {
+                ".aux",
+                ".toc",
+                ".lof",
+                ".lot",
+                ".out",
+                ".bbl",
+                ".blg",
+                ".bcf",
+                ".nav",
+                ".snm",
+            }
+            or generated.name.endswith(".run.xml")
+        ):
+            generated.unlink()
     # A successful no-page compile must not accidentally return an old PDF or
     # an old dependency graph left by an earlier attempt with the same basename.
     for stale in (
@@ -1054,7 +1317,7 @@ async def _compile_document(
                 ):
                     hints.append(line)
             detail = "\n".join(hints[-5:])[:1000] or log[-800:]
-            raise ValueError("LaTeX 编译未通过：" + detail)
+            raise CompilationError("LaTeX 编译未通过：" + detail, log)
         if (
             engine != "tectonic"
             and run == 0
@@ -1099,19 +1362,24 @@ async def _compile_document(
 
     embed_cjk_mappings(pdf)
     warnings = []
-    # Tectonic's console omits citation details; its final TeX log is authoritative.
+    # Earlier passes normally contain unresolved references. Report only the
+    # final pass; keep every pass in compile.log for debugging.
     tex_log = out / (path.stem + ".log")
-    all_logs = "\n".join(logs) + (
+    final_log = (
         tex_log.read_text(errors="replace", encoding="utf-8")
         if tex_log.exists()
-        else ""
+        else logs[-1]
     )
-    if "Missing character:" in all_logs:
+    if engine in {"tectonic", "xelatex"} and "TeXGlot-PostScript-object:" in final_log:
+        raise ValueError(
+            "当前受限编译器不支持内嵌 PSTricks 绘图，图形可能缺失；请先将图形转换为 PDF 后重新上传源码"
+        )
+    if "Missing character:" in final_log:
         warnings.append("编译日志报告缺失字形，请检查 PDF 中的特殊字符")
-    if re.search(r"undefined references|Citation .+ undefined", all_logs, re.I):
+    if re.search(r"undefined references|Citation .+ undefined", final_log, re.I):
         warnings.append("存在未解析的引用，请检查参考文献文件")
-    if "TeXGlot-Float-Fit:" in all_logs:
+    if "TeXGlot-Float-Fit:" in final_log:
         warnings.append("部分图表超出页高，已整体缩放以保留全部内容、标签和图表说明")
-    if "Float too large for page" in all_logs:
+    if "Float too large for page" in final_log:
         warnings.append("存在超出页高的浮动体，内容可能被裁切；请检查图表及编译日志")
     return pdf, warnings

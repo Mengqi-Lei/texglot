@@ -150,7 +150,7 @@ def parser():
     p.add_argument(
         "--test", action="store_true", help="test API connection after --configure"
     )
-    p.add_argument("--version", action="version", version="TeXGlot 1.0.1")
+    p.add_argument("--version", action="version", version="TeXGlot 1.0.2")
     return p
 
 

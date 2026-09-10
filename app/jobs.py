@@ -23,6 +23,7 @@ from .compiler import (
     prepare_chinese,
     prepare_engine_sources,
     probe_source_dependencies,
+    rebase_project_paths,
     use_bundled_bibliography,
 )
 from .config import DATA, ROOT, Settings, atomic_json, load_settings, public_settings
@@ -53,6 +54,7 @@ from .sources import download_arxiv, extract_source, find_main
 JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
+SOURCE_PREPARATION_VERSION = "native-source-v3"
 
 
 def project_signature(source: Path, main: str, engine: str) -> str:
@@ -253,33 +255,50 @@ class JobManager:
                 "这篇论文的 arXiv 源码只是 PDF 包装文件，没有可翻译的 LaTeX 正文。请上传作者提供的真实 LaTeX 工程"
             )
         prepared_source = folder / "prepared-source"
-        if prepared_source.exists():
-            shutil.rmtree(prepared_source)
-        shutil.copytree(source, prepared_source)
-        prepare_engine_sources(prepared_source, engine)
-        for p in prepared_source.rglob("*.tex"):
-            p.write_text(
-                use_bundled_bibliography(p.read_text(encoding="utf-8"), p),
-                encoding="utf-8",
-            )
-        eps_dependencies = reachable
-        eps_images = None
-        if engine == "tectonic" and any(
-            path.is_file() and path.suffix.lower() == ".eps"
-            for path in prepared_source.rglob("*")
-        ):
-            await log("检查 EPS 插图的实际源码依赖")
-            eps_dependencies, used_eps = await probe_source_dependencies(
-                prepared_source, main, folder / "build-dependencies", log
-            )
-            eps_images = [prepared_source / value for value in used_eps]
-        await prepare_eps(
-            prepared_source,
-            main,
-            log,
-            source_files=eps_dependencies,
-            used_images=eps_images,
+        preparation = [
+            SOURCE_PREPARATION_VERSION,
+            project_signature(source, main, engine),
+        ]
+        reusable_source = (
+            prepared_source.is_dir()
+            and job.get("preparation_signature") == preparation
+            and job.get("original_signature")
+            == project_signature(prepared_source, main, engine)
         )
+        if not reusable_source:
+            if prepared_source.exists():
+                shutil.rmtree(prepared_source)
+            shutil.copytree(source, prepared_source)
+            prepare_engine_sources(prepared_source, engine)
+            relocated = rebase_project_paths(prepared_source, main)
+            if relocated:
+                await log(
+                    "已将错位的父目录引用定位到源码包内的同路径文件："
+                    + "、".join(relocated)
+                )
+            for p in prepared_source.rglob("*.tex"):
+                p.write_text(
+                    use_bundled_bibliography(p.read_text(encoding="utf-8"), p),
+                    encoding="utf-8",
+                )
+            eps_dependencies = reachable
+            eps_images = None
+            if engine == "tectonic" and any(
+                path.is_file() and path.suffix.lower() == ".eps"
+                for path in prepared_source.rglob("*")
+            ):
+                await log("检查 EPS 插图的实际源码依赖")
+                eps_dependencies, used_eps = await probe_source_dependencies(
+                    prepared_source, main, folder / "build-dependencies", log
+                )
+                eps_images = [prepared_source / value for value in used_eps]
+            await prepare_eps(
+                prepared_source,
+                main,
+                log,
+                source_files=eps_dependencies,
+                used_images=eps_images,
+            )
         if work.exists():
             shutil.rmtree(work)
         shutil.copytree(prepared_source, work)
@@ -307,11 +326,13 @@ class JobManager:
                 prepared_source, main, folder / "build-original", engine, log
             )
             shutil.copy2(pdf, original_path)
-            job["original_signature"] = signature
-            job["warnings"].extend(warns)
+            job["original_signature"] = project_signature(prepared_source, main, engine)
+            job["original_warnings"] = warns
             dependencies = compiled_dependencies(
                 prepared_source, main, folder / "build-original", engine
             )
+        job["preparation_signature"] = preparation
+        job["warnings"].extend(job.get("original_warnings", []))
         if not dependencies or main not in dependencies:
             dependencies = reachable
             warning = "编译依赖记录不可用，已按静态引用识别正文；请检查是否存在遗漏"
@@ -330,14 +351,10 @@ class JobManager:
         if job["kind"] == "arxiv":
             if name := extract_paper_title(main_text, title_macros=title_macros):
                 job["name"] = name
-        prepared = prepare_chinese(main_text, settings.target_language, engine)
-        (work / main).write_text(prepared, encoding="utf-8")
-        await log("检查目标语言字体与论文模板的兼容性")
-        await compile_pdf(work, main, folder / "build-probe", engine, log)
         # Translate the TeX files the original compilation actually consumed.
         # Macro-driven includes and inactive conditionals cannot be determined
         # reliably by matching input/include strings alone.
-        files, all_items, locations = {}, [], {}
+        files, all_items, locations, source_outputs = {}, [], {}, {}
         text_macros = collect_text_macros(macro_context)
         math_aliases = collect_math_aliases(macro_context)
         literal_macros = collect_literal_macros(macro_context)
@@ -375,12 +392,52 @@ class JobManager:
             all_items.extend(items)
             line_starts = [0] + [m.end() for m in re.finditer("\n", text)]
             for item in items:
-                locations.setdefault(
-                    item.key, (rel, bisect_right(line_starts, item.start))
-                )
+                line = bisect_right(line_starts, item.start)
+                try:
+                    item.validate_source_map()
+                    source_outputs[item.key] = item.target_probe(
+                        settings.target_language
+                    )
+                except ValueError:
+                    raise ValueError(f"源码分段还原检查失败（{rel}:{line}）") from None
+                locations.setdefault(item.key, (rel, line))
         unique = {s.key: s for s in all_items}
         if not unique:
             raise ValueError("没有找到可翻译的正文，请检查主文件或自定义宏")
+
+        compatibility_prefix = ""
+
+        def write_sources(outputs):
+            # Preflight and final output must run exactly the same transformations.
+            # Otherwise a layout-only change can first fail after paid translation.
+            table_count = 0
+            for rel, (text, items) in files.items():
+                output = apply_translations(text, items, outputs)
+                output = break_long_code_identifiers(output, math_aliases=math_aliases)
+                output, fitted = fit_tables(output)
+                table_count += fitted
+                if rel == main:
+                    output = prepare_chinese(output, settings.target_language, engine)
+                    output = compatibility_prefix + output
+                (work / rel).write_text(output, encoding="utf-8")
+            if table_count:
+                main_path = work / main
+                main_path.write_text(
+                    inject_preamble(
+                        main_path.read_text(encoding="utf-8"),
+                        r"\usepackage{adjustbox}" + "\n",
+                    ),
+                    encoding="utf-8",
+                )
+            return table_count
+
+        write_sources(source_outputs)
+        probe_source = (work / main).read_text(encoding="utf-8")
+        await log("检查目标语言字体与论文模板的兼容性")
+        await compile_pdf(work, main, folder / "build-probe", engine, log)
+        probe_output = (work / main).read_text(encoding="utf-8")
+        if probe_output.endswith(probe_source):
+            compatibility_prefix = probe_output[: len(probe_output) - len(probe_source)]
         self.update(
             job, status="translating", progress=25, total=len(unique), done=0, cached=0
         )
@@ -500,40 +557,27 @@ class JobManager:
             job["tokens"] = job["previous_tokens"]
             await client.close()
             self.persist(job)
-        table_count = 0
-        for rel, (text, items) in files.items():
-            output = apply_translations(text, items, translated)
-            output = break_long_code_identifiers(output, math_aliases=math_aliases)
-            output, fitted = fit_tables(output)
-            table_count += fitted
-            if rel == main:
-                output = prepare_chinese(output, settings.target_language, engine)
-            (work / rel).write_text(output, encoding="utf-8")
+        table_count = write_sources(translated)
         if table_count:
-            main_path = work / main
-            main_path.write_text(
-                inject_preamble(
-                    main_path.read_text(encoding="utf-8"),
-                    r"\usepackage{adjustbox}" + "\n",
-                ),
-                encoding="utf-8",
-            )
             await log(f"为 {table_count} 个表格设置页宽上限，避免译文溢出页边距")
-        archive = folder / "translated-source.zip"
-        with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as z:
-            for p in work.rglob("*"):
-                if p.is_file():
-                    z.write(p, p.relative_to(work))
-        job["artifacts"]["source"] = archive.name
         if failed:
             job["warnings"].append(
                 f"{len(failed)} / {len(unique)} 段落未通过翻译检查，PDF 对应位置保留了原文，可点击继续重试"
             )
         self.update(job, status="compiling", progress=90)
         await log("译文已保存，正在编译 PDF 并解析交叉引用")
-        pdf, warns = await compile_pdf(
-            work, main, folder / "build-translated", engine, log
-        )
+        try:
+            pdf, warns = await compile_pdf(
+                work, main, folder / "build-translated", engine, log
+            )
+        finally:
+            # Include compiler adaptations in the source export, even on failure.
+            archive = folder / "translated-source.zip"
+            with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as z:
+                for p in work.rglob("*"):
+                    if p.is_file():
+                        z.write(p, p.relative_to(work))
+            job["artifacts"]["source"] = archive.name
         job["warnings"].extend(warns)
         job["warnings"] = list(dict.fromkeys(job["warnings"]))
         shutil.copy2(pdf, folder / "translated.pdf")

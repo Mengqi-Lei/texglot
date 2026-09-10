@@ -24,6 +24,139 @@ def test_legacy_encoding_metadata_and_math_fonts_keep_paper_content():
     assert normalize_engine(output, "tectonic") == output
 
 
+def test_pdftex_capabilities_do_not_rewrite_prose_or_supported_engine():
+    source = r"""% \pdfcompresslevel=0 \DisableLigatures[f]{family=sf*}
+\RequirePackage[tracking=smallcaps,protrusion=true,expansion=true]{microtype}
+\DisableLigatures[f]{family=sf*}
+\microtypesetup{spacing=true,kerning=true,protrusion=true}
+\pdfcompresslevel=0
+\pdfoptionpdfminorversion=6
+\input{glyphtounicode}
+\pdfgentounicode=1
+\verb|\pdfcompresslevel=0|
+The value remains 6 and the equation is $x=1$."""
+    output = normalize_engine(source, "tectonic")
+    assert "[tracking=false,protrusion=true,expansion=false]" in output
+    assert "{spacing=false,kerning=false,protrusion=true}" in output
+    assert output.count(r"\DisableLigatures") == 1  # Only the comment.
+    assert output.count(r"\pdfcompresslevel=0") == 2  # Comment and literal example.
+    assert r"\input{glyphtounicode}" not in output
+    assert output.splitlines()[-1] == source.splitlines()[-1]
+    assert output.count("\n") == source.count("\n")
+    assert normalize_engine(output, "tectonic") == output
+    assert normalize_engine(source, "lualatex") == source
+
+
+@pytest.mark.asyncio
+async def test_real_compiler_preserves_threepart_table_and_notes(tmp_path):
+    from pypdf import PdfReader
+
+    from app.compiler import compile_pdf, find_compiler, fit_tables
+
+    if not find_compiler("tectonic"):
+        pytest.skip("Optional native Tectonic not installed")
+    root = tmp_path / "source"
+    root.mkdir()
+    source = r"""\documentclass{article}
+\usepackage{threeparttable,booktabs,adjustbox}
+\begin{document}
+\begin{table}\begin{threeparttable}
+\caption{A measured table}\begin{tabular}{ll}
+\toprule Method & Result\\\midrule Baseline\tnote{a} & 42\\\bottomrule
+\end{tabular}
+\begin{tablenotes}\item[a] Notes survive the table measurement.\end{tablenotes}
+\end{threeparttable}\end{table}
+\begin{verbatim}\begin{table}\begin{tabular}{l}Example\end{tabular}\end{table}\end{verbatim}
+\end{document}"""
+    fixed, count = fit_tables(source)
+    assert count == 1
+    assert r"\begin{adjustbox}{max width=\linewidth}\begin{threeparttable}" in fixed
+    assert fit_tables(fixed) == (fixed, 0)
+    (root / "main.tex").write_text(fixed, encoding="utf-8")
+
+    async def notify(_):
+        pass
+
+    pdf, warnings = await compile_pdf(
+        root, "main.tex", tmp_path / "build", "tectonic", notify
+    )
+    assert not warnings
+    rendered = "".join(p.extract_text() for p in PdfReader(pdf).pages)
+    import re
+
+    rendered = re.sub(r"-\s*\n\s*", "", rendered)
+    rendered = " ".join(rendered.split())
+    assert all(
+        s in rendered for s in ("A measured table", "Baseline", "42", "Notes survive")
+    )
+
+
+@pytest.mark.asyncio
+async def test_real_native_font_microtype_keeps_quotes_and_math(tmp_path):
+    from pypdf import PdfReader
+
+    from app.compiler import compile_pdf, find_compiler
+
+    if not find_compiler("tectonic"):
+        pytest.skip("Optional native Tectonic not installed")
+    root = tmp_path / "source"
+    root.mkdir()
+    source = r"""\documentclass{article}
+\usepackage[tracking=smallcaps,expansion=true]{microtype}
+\DisableLigatures[f]{family=sf*}
+\usepackage{fontspec,textcomp}
+\begin{document}
+Native text and legacy symbols: \textquotedbl. Math stays $E=mc^2$.
+\begin{verbatim}"Literal quotes stay visible."\end{verbatim}
+\end{document}"""
+    (root / "main.tex").write_text(
+        normalize_engine(source, "tectonic"), encoding="utf-8"
+    )
+
+    async def notify(_):
+        pass
+
+    pdf, warnings = await compile_pdf(
+        root, "main.tex", tmp_path / "build", "tectonic", notify
+    )
+    assert not warnings
+    rendered = "".join(p.extract_text() for p in PdfReader(pdf).pages)
+    assert "Native text" in rendered and "Literal quotes stay visible." in rendered
+
+
+@pytest.mark.asyncio
+async def test_generated_unicode_math_is_visible_without_rewriting_source_math(
+    tmp_path,
+):
+    from pypdf import PdfReader
+
+    from app.compiler import compile_pdf, find_compiler
+
+    if not find_compiler("tectonic"):
+        pytest.skip("Optional native Tectonic not installed")
+    item = segments(
+        r"The comparison uses $x+y=1$ and conventional scientific symbols."
+    )[0]
+    output = item.restore("The symbols σ δ ζ α ≤ ≥ ∞ coexist with ⟪P0000⟫.")
+    assert "$x+y=1$" in output
+    root = tmp_path / "source"
+    root.mkdir()
+    (root / "main.tex").write_text(
+        r"\documentclass{article}\begin{document}" + output + r"\end{document}",
+        encoding="utf-8",
+    )
+
+    async def notify(_):
+        pass
+
+    pdf, warnings = await compile_pdf(
+        root, "main.tex", tmp_path / "build", "tectonic", notify
+    )
+    assert not warnings
+    text = "".join(p.extract_text() for p in PdfReader(pdf).pages)
+    assert all(symbol in text for symbol in "σδζα≤≥∞")
+
+
 def test_legacy_cjk_wrappers_become_groups_and_expose_english_prose():
     source = r"""\documentclass{article}
 \usepackage{CJKutf8,booktabs}
