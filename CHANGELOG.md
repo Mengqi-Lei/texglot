@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Preserve mixed-case model-name components and decimal sizes as one protected identifier, avoiding false translation failures in prose and tables. Unaffected paragraph caches remain reusable. / 完整保护含混合大小写组件和小数规模的模型名，避免正文与表格中的翻译误报；其他段落缓存继续复用。
+
 ## 1.0.1 — 2026-09-10
 
 - Validate generated LaTeX and formatting before accepting repair slots; retry only invalid slots once, preserving accepted text and existing caches. / 在接收修复片段前校验新增 LaTeX 与格式，只重试不合规片段一次，保留已通过文字及已有缓存。

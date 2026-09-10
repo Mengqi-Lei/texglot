@@ -853,6 +853,11 @@ def test_title_command_inside_math_alias_is_not_a_prose_entry():
         "L2",
         "A-10",
         "VGG-16",
+        "Qwen3-Embedding-0.6B",
+        "Qwen3-Emb-0.6B",
+        "Qwen3-Emb-4B",
+        "Qwen2.5-0.5B-Instruct",
+        "LLaMA-3.1-8B-Instruct",
     ],
 )
 def test_compact_named_identifiers_keep_their_digits_as_one_literal(name):
@@ -908,6 +913,23 @@ def test_named_identifier_does_not_freeze_following_english_modifier():
         item.restore("该方法基于 ⟪P0000⟫，权重在 ⟪P0001⟫ 上训练。")
         == "该方法基于 ResNet-101-FPN，权重在 COCO2017 上训练。"
     )
+
+
+def test_mixed_case_decimal_model_names_preserve_table_cells_and_prose_modifiers():
+    source = (
+        r"\begin{tabular}{llr} Base LLM & Emb. Model & Dim. \\ "
+        r"Qwen3-8B & Qwen3-Emb-0.6B & 1024 \\ \end{tabular}"
+    )
+    items = segments(source)
+    restored = apply_translations(
+        source, items, {item.key: item.restore(item.masked) for item in items}
+    )
+    assert restored == source
+    assert any("Qwen3-Emb-0.6B" in item.protected for item in items)
+    item = segments("We compare Qwen3-Embedding-0.6B-based features on 44 samples.")[0]
+    assert item.protected == ["Qwen3-Embedding-0.6B", "44"]
+    assert "-based features" in item.masked
+    assert item.restore(item.masked) == item.source
 
 
 def test_named_identifiers_remain_opaque_in_math_code_and_command_arguments():

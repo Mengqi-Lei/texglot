@@ -40,7 +40,8 @@ QUANTITY = NUMBER + "(?:" + MAGNITUDE + ")?"
 NAMED_IDENTIFIER = re.compile(
     r"(?<![A-Za-z0-9_.-])"
     r"(?:[A-Za-z][A-Za-z0-9]*\d[A-Za-z0-9]*|[A-Za-z]+-[A-Za-z]*\d[A-Za-z0-9]*)"
-    r"(?:\.\d[A-Za-z0-9]*)*(?:-(?:[A-Z][A-Z0-9]*|\d[A-Za-z0-9]*))*"
+    r"(?:\.\d[A-Za-z0-9]*)*"
+    r"(?:-(?:[A-Z][A-Za-z0-9]*|\d[A-Za-z0-9]*)(?:\.\d[A-Za-z0-9]*)*)*"
     r"(?![A-Za-z0-9_])"
 )
 
