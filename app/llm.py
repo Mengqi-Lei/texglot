@@ -14,7 +14,13 @@ import httpx
 from opencc import OpenCC
 
 from .config import Settings
-from .latex import COMMAND, MARKER, Segment
+from .latex import (
+    COMMAND,
+    MARKER,
+    Segment,
+    normalize_generated_prose,
+    validate_generated_prose,
+)
 from .paper_context import limit_context
 from .providers import provider_for_url
 
@@ -511,6 +517,8 @@ class Translator:
                 # Number slots across batches, without logging generated text.
                 number = int(key) + 1
                 value = translated.get(key)
+                if isinstance(value, str):
+                    value = normalize_generated_prose(value)
                 if key not in translated:
                     failures[key] = ("missing", f"结构修复片段 {number} 未返回")
                 elif not isinstance(value, str):
@@ -529,7 +537,15 @@ class Translator:
                         f"结构修复片段 {number} 包含保护标记",
                     )
                 else:
-                    accepted[key] = value
+                    try:
+                        validate_generated_prose(value)
+                    except ValueError:
+                        failures[key] = (
+                            "invalid_syntax",
+                            f"结构修复片段 {number} 包含无效的 LaTeX 或格式",
+                        )
+                    else:
+                        accepted[key] = value
             return accepted, failures
 
         # Repair dense mathematical paragraphs in small maps. At most one

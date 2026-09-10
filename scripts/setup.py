@@ -1,6 +1,7 @@
 """Build and install this checkout on Windows, macOS, or Linux."""
 
 import argparse
+import asyncio
 import os
 import re
 import shutil
@@ -11,7 +12,33 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from app.platforms import configure_stdio, venv_python  # noqa: E402
+from app.platforms import (  # noqa: E402
+    configure_stdio,
+    process_options,
+    terminate_process_tree,
+    venv_python,
+)
+
+BUILD_TIMEOUT = 10 * 60
+
+
+async def run_command(command, *, cwd=ROOT, env=None, quiet=False, timeout=None):
+    process = await asyncio.create_subprocess_exec(
+        *command,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.DEVNULL if quiet else None,
+        **process_options(),
+    )
+    try:
+        returncode = await asyncio.wait_for(process.wait(), timeout)
+    except (TimeoutError, asyncio.CancelledError) as exc:
+        await terminate_process_tree(process)
+        if isinstance(exc, TimeoutError):
+            raise subprocess.TimeoutExpired(command, timeout) from None
+        raise
+    if returncode:
+        raise subprocess.CalledProcessError(returncode, command)
 
 
 def main():
@@ -37,17 +64,23 @@ def main():
         raise SystemExit(f"Node.js 22.12+ is required; found {version}.")
     env = dict(os.environ, PYTHONUTF8="1")
 
-    def run(*args, cwd=ROOT, quiet=False):
-        subprocess.run(
-            [str(a) for a in args],
-            cwd=cwd,
-            env=env,
-            check=True,
-            stdout=subprocess.DEVNULL if quiet else None,
+    def run(*args, cwd=ROOT, quiet=False, timeout=None):
+        asyncio.run(
+            run_command(
+                [str(a) for a in args], cwd=cwd, env=env, quiet=quiet, timeout=timeout
+            )
         )
 
     run(npm, "ci", cwd=ROOT / "frontend")
-    run(npm, "run", "build", cwd=ROOT / "frontend")
+    try:
+        run(npm, "run", "build", cwd=ROOT / "frontend", timeout=BUILD_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise SystemExit(
+            "Frontend build exceeded 10 minutes; its processes were stopped. "
+            "Check the output above. If file access is hanging, extract TeXGlot into "
+            "a normal local folder (for example ~/Projects/TeXGlot or C:\\TeXGlot) "
+            "and run setup again."
+        ) from None
     run(uv, "sync", "--locked", "--python", "3.13")
     python = venv_python(ROOT)
     run(python, "scripts/install_workspace_cli.py")
@@ -89,4 +122,8 @@ if __name__ == "__main__":
     except subprocess.CalledProcessError as exc:
         raise SystemExit(
             f"Installation stopped (exit {exc.returncode}). Fix the error above and run setup again."
+        ) from None
+    except KeyboardInterrupt:
+        raise SystemExit(
+            "Installation cancelled; setup processes were stopped."
         ) from None

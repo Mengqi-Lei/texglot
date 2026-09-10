@@ -602,6 +602,14 @@ async def test_opaque_graphic_fragments_are_preserved_and_excluded_from_translat
         (None, "返回了非字符串", "returned a non-string value"),
         (" \n ", "返回了空白正文", "returned empty text"),
         ("PRIVATE_MODEL_OUTPUT ⟪P0000⟫", "包含保护标记", "included a protected token"),
+        (
+            r"\textbf{PRIVATE_MODEL_OUTPUT}",
+            "包含无效的 LaTeX 或格式",
+            "included invalid LaTeX or formatting",
+        ),
+        ("$x$", "包含无效的 LaTeX 或格式", "included invalid LaTeX or formatting"),
+        ("```latex", "包含无效的 LaTeX 或格式", "included invalid LaTeX or formatting"),
+        (r"\n\t", "返回了空白正文", "returned empty text"),
     ],
 )
 async def test_repair_diagnostics_identify_slot_and_category_without_response_text(
@@ -670,7 +678,8 @@ async def test_final_fallback_log_locates_first_duplicate_source_occurrence(
 
 
 @pytest.mark.parametrize(
-    "kind", ["empty_text", "not_a_string", "protected_token", "missing"]
+    "kind",
+    ["empty_text", "not_a_string", "protected_token", "missing", "invalid_syntax"],
 )
 async def test_slot_recovery_requests_only_bad_slots_once_and_keeps_good_text(kind):
     from app.latex import segments
@@ -691,6 +700,7 @@ async def test_slot_recovery_requests_only_bad_slots_once_and_keeps_good_text(ki
                     "empty_text": " ",
                     "not_a_string": None,
                     "protected_token": "⟪P0000⟫",
+                    "invalid_syntax": r"\textbf{middle}",
                 }[kind]
             return json.dumps(values)
         assert set(payload["slots"]) == {"1"}
@@ -709,6 +719,65 @@ async def test_slot_recovery_requests_only_bad_slots_once_and_keeps_good_text(ki
         )
         assert restored.count("$x$") == restored.count("$y$") == 1
         assert len(payloads) == 2
+    finally:
+        await client.close()
+
+
+@pytest.mark.parametrize("invalid", [r"\textbf{训练}", "$x$", "⟪broken", "```latex"])
+async def test_table_repair_retries_invalid_prose_before_final_restore(invalid):
+    from app.latex import segments
+
+    item = segments(
+        r"\begin{tabular}{ll}{\bf Parser} & {\bf Training} \\ \end{tabular}"
+    )[0]
+    client = Translator(Settings())
+    payloads = []
+
+    async def complete(messages, **kwargs):
+        payload = json.loads(messages[1]["content"])
+        payloads.append(payload)
+        if len(payloads) == 1:
+            assert [v.strip() for v in payload["slots"].values()] == [
+                "Parser",
+                "Training",
+            ]
+            return json.dumps({"0": "解析器", "1": invalid})
+        assert set(payload["slots"]) == {"1"}
+        assert payload["slot_validation_failures"] == {"1": "invalid_syntax"}
+        return json.dumps({"1": "训练"})
+
+    client.complete = complete
+    try:
+        output = await client.translate_slots(item)
+        restored = item.restore(output)
+        assert restored == item.source.replace("Parser", "解析器").replace(
+            "Training", "训练"
+        )
+        assert len(payloads) == 2
+    finally:
+        await client.close()
+
+
+@pytest.mark.parametrize(
+    "value", ["训练\n有效", r"训练\n\t有效", "训练\n\n有效", "% & _ # $ { } ^ ~"]
+)
+async def test_valid_slot_prose_uses_existing_normalization_without_retry(value):
+    from app.latex import Segment, normalize_generated_prose
+
+    item = Segment(0, 8, "Training", "Training", [])
+    client = Translator(Settings())
+    calls = []
+
+    async def complete(messages, **kwargs):
+        calls.append(messages)
+        return json.dumps({"0": value})
+
+    client.complete = complete
+    try:
+        output = await client.translate_slots(item)
+        assert output == normalize_generated_prose(value)
+        assert item.restore(output) == item.restore(value)
+        assert len(calls) == 1
     finally:
         await client.close()
 

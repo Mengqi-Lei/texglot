@@ -13,6 +13,27 @@ from dataclasses import dataclass, field
 
 COMMAND = re.compile(r"\\(?:[a-zA-Z@]+\*?|.)", re.S)
 MARKER = re.compile(r"⟪P\d{4,}⟫")
+
+
+def normalize_generated_prose(text: str) -> str:
+    text = re.sub(
+        r"\\([nt])(?=[^A-Za-z]|$)",
+        lambda m: "\n" if m.group(1) == "n" else "\t",
+        text,
+    )
+    # Blank lines would inject \par into short title/caption/format arguments.
+    # Original paragraph breaks inside protected code remain untouched.
+    return re.sub(r"\n[ \t\r]*\n(?:[ \t\r]*\n)*", " ", text)
+
+
+def validate_generated_prose(text: str):
+    """Apply the same syntax checks to a repair slot and final unmasked prose."""
+    if chr(92) in text or re.search(r"\$[^$]+\$", text):
+        raise ValueError("模型生成了额外的 LaTeX 指令")
+    if "⟪" in text or "⟫" in text or "```" in text:
+        raise ValueError("模型返回了无效格式")
+
+
 NUMBER = r"\d+(?:,\d{3})*(?:\.\d+)*(?:[eE][+-]?\d+)?"
 MAGNITUDE = r"(?:[ \t]+(?:thousand|million|billion|trillion)\b|[KMBT]\b)"
 QUANTITY = NUMBER + "(?:" + MAGNITUDE + ")?"
@@ -329,16 +350,7 @@ class Segment:
         ), expansion
 
     def restore(self, translation: str) -> str:
-        translation = translation.strip()
-        translation = re.sub(
-            r"\\([nt])(?=[^A-Za-z]|$)",
-            lambda m: "\n" if m.group(1) == "n" else "\t",
-            translation,
-        )
-        # A segment is one prose paragraph. Model-created blank lines would
-        # inject \par into short title/caption/format arguments and break TeX.
-        # Original paragraph breaks inside protected code remain untouched.
-        translation = re.sub(r"\n[ \t\r]*\n(?:[ \t\r]*\n)*", " ", translation)
+        translation = normalize_generated_prose(translation.strip())
         expected = [f"⟪P{i:04d}⟫" for i in range(len(self.protected))]
         actual = MARKER.findall(translation)
         if sorted(actual) != sorted(expected):
@@ -414,10 +426,7 @@ class Segment:
             if not re.search(adjacent, translation):
                 raise ValueError("表格结构、空单元格或空格式组中不能插入正文")
         plain = MARKER.sub("", translation)
-        if chr(92) in plain or re.search(r"\$[^$]+\$", plain):
-            raise ValueError("模型生成了额外的 LaTeX 指令")
-        if "⟪" in plain or "⟫" in plain or "```" in plain:
-            raise ValueError("模型返回了无效格式")
+        validate_generated_prose(plain)
         if len(plain.strip()) < max(1, len(MARKER.sub("", self.masked).strip()) * 0.10):
             raise ValueError("译文异常短，可能遗漏正文")
 

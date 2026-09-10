@@ -167,6 +167,10 @@ RULES = [
         r"Structure repair slot \1 included a protected token",
     ),
     (
+        r"结构修复片段 (\d+) 包含无效的 LaTeX 或格式",
+        r"Structure repair slot \1 included invalid LaTeX or formatting",
+    ),
+    (
         r"结构修复片段 (\d+) 未返回",
         r"Structure repair slot \1 was missing",
     ),

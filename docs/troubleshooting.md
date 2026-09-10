@@ -12,6 +12,7 @@ TeXGlot translates **LaTeX source**, not arbitrary uploaded PDFs or scanned docu
 | API errors | Check the endpoint, region, model access, balance and rate limits. Reduce concurrency or increase timeout when needed. |
 | Some prose stays untranslated | Review task warnings and resume to retry failed segments. Unknown macros, authors and bibliography entries may intentionally remain unchanged. |
 | Different page counts | Translation changes text length and pagination. Synchronization uses shared content landmarks where available; otherwise it falls back to page-local positions. It is not sentence-level alignment. |
+| Source installation times out during frontend build | The local build stops after 10 minutes. Inspect the output; if directory access is hanging, extract the source into an ordinary local project folder and rerun setup. Dependency downloads are not subject to this build timeout. |
 | `texglot` is missing | Reopen the terminal after `uv tool update-shell`, or use `uv run python -m app.cli` in the checkout. |
 
 Text embedded in images is not OCR-translated or redrawn. Model output still needs human review for research use. No automatic check proves semantic correctness for every sentence.
