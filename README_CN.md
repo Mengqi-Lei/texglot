@@ -15,7 +15,11 @@
   <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.0.1_CN.md">版本说明</a>
 </p>
 
-https://github.com/user-attachments/assets/aebc2ea1-82e0-44d5-9086-4001dbf2f217
+
+
+https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
+
+
 
 ## 简介
 
