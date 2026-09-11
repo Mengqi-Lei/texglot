@@ -55,6 +55,52 @@ JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
 SOURCE_PREPARATION_VERSION = "native-source-v3"
+TITLE_METADATA_VERSION = 1
+
+
+def refresh_title_metadata(job: dict, folder: Path):
+    """Upgrade display-only metadata once, without reordering or rerunning jobs."""
+    if (
+        job.get("kind") != "arxiv"
+        or job.get("title_metadata_version") == TITLE_METADATA_VERSION
+    ):
+        return
+    try:
+        source = folder / "prepared-source"
+        if not source.is_dir():
+            source = folder / "source"
+        source = source.resolve()
+        main = job.get("main", "")
+        dependencies = job.get("source_dependencies", job.get("source_files", []))
+        if not isinstance(main, str) or not isinstance(dependencies, list):
+            raise ValueError("Invalid source metadata")
+        names = list(dict.fromkeys([main, *dependencies]))
+        if not main or len(names) > 256:
+            raise ValueError("Source metadata limit")
+        remaining, texts = 4 * 1024 * 1024, {}
+        for name in names:
+            path = (source / name).resolve()
+            if not path.is_relative_to(source):
+                raise ValueError("Invalid source path")
+            with path.open("rb") as stream:
+                blob = stream.read(remaining + 1)
+            remaining -= len(blob)
+            if remaining < 0:
+                raise ValueError("Source metadata limit")
+            texts[name] = blob.decode("utf-8")
+        if title := extract_paper_title(
+            texts[main], macro_context="\n".join(texts.values())
+        ):
+            job["name"] = title
+    except (OSError, ValueError, TypeError, RecursionError):
+        # Missing or malformed old sources must not block loading their PDFs.
+        pass
+    job["title_metadata_version"] = TITLE_METADATA_VERSION
+    try:
+        # persist() updates updated_at; a metadata migration must preserve it.
+        atomic_json(folder / "job.json", job)
+    except OSError:
+        pass
 
 
 def project_signature(source: Path, main: str, engine: str) -> str:
@@ -86,6 +132,7 @@ class JobManager:
                     or not isinstance(data.get("status"), str)
                 ):
                     continue
+                refresh_title_metadata(data, path.parent)
                 if data["status"] in ACTIVE:
                     data.update(
                         status="interrupted",
@@ -349,8 +396,11 @@ class JobManager:
         title_macros = collect_title_macros(macro_context)
         main_text = (work / main).read_text(encoding="utf-8")
         if job["kind"] == "arxiv":
-            if name := extract_paper_title(main_text, title_macros=title_macros):
+            if name := extract_paper_title(
+                main_text, title_macros=title_macros, macro_context=macro_context
+            ):
                 job["name"] = name
+            job["title_metadata_version"] = TITLE_METADATA_VERSION
         # Translate the TeX files the original compilation actually consumed.
         # Macro-driven includes and inactive conditionals cannot be determined
         # reliably by matching input/include strings alone.

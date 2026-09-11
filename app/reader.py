@@ -13,7 +13,7 @@ from typing import Literal
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pypdf import PdfReader
-from pypdf.errors import PdfReadError
+from pypdf.errors import PyPdfError
 
 from .alignment import cached_alignment
 from .config import atomic_json
@@ -141,7 +141,7 @@ class ReaderStore:
                     IndexError,
                     RecursionError,
                     NotImplementedError,
-                    PdfReadError,
+                    PyPdfError,
                 ):
                     # A PDF without usable destinations still supports page-local sync.
                     alignment = None

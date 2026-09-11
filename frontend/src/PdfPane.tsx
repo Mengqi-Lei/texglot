@@ -25,6 +25,19 @@ import {
 import { captureViewport, scrollToPosition } from "./readerNavigation";
 pdfjs.GlobalWorkerOptions.workerSrc = workerURL;
 
+type PageFrame = {
+  surface: HTMLDivElement;
+  canvas: HTMLCanvasElement;
+  width: number;
+};
+const releaseFrame = (frame: PageFrame | null) => {
+  if (!frame) return;
+  frame.surface.remove();
+  frame.surface.replaceChildren();
+  frame.canvas.width = 0;
+  frame.canvas.height = 0;
+};
+
 function PageCanvas({
   doc,
   page,
@@ -37,22 +50,52 @@ function PageCanvas({
   height: number;
 }) {
   const { t } = useI18n(),
-    canvas = useRef<HTMLCanvasElement>(null),
-    text = useRef<HTMLDivElement>(null);
+    host = useRef<HTMLDivElement>(null),
+    displayed = useRef<PageFrame | null>(null),
+    latest = useRef({ doc, page, width, height });
+  latest.current = { doc, page, width, height };
   const [loading, setLoading] = useState(true),
     [error, setError] = useState(false);
+  // A new document/page must never briefly display the previous one's pixels.
+  useLayoutEffect(() => {
+    setLoading(true);
+    setError(false);
+    return () => {
+      releaseFrame(displayed.current);
+      displayed.current = null;
+    };
+  }, [doc, page]);
+  useLayoutEffect(() => {
+    const frame = displayed.current;
+    if (frame) frame.surface.style.transform = `scale(${width / frame.width})`;
+  }, [width]);
   useEffect(() => {
     let alive = true,
+      committed = false,
       render: pdfjs.RenderTask | undefined,
       layer: pdfjs.TextLayer | undefined;
-    const element = canvas.current!,
-      textElement = text.current!;
-    setLoading(true);
+    const surface = document.createElement("div"),
+      element = document.createElement("canvas"),
+      textElement = document.createElement("div"),
+      next = { surface, canvas: element, width };
+    surface.className = "pdf-page-frame";
+    surface.style.width = element.style.width = `${width}px`;
+    surface.style.height = element.style.height = `${height}px`;
+    element.setAttribute("aria-hidden", "true");
+    textElement.className = "textLayer";
+    surface.append(element, textElement);
+    const current = () =>
+      alive &&
+      !!host.current &&
+      latest.current.doc === doc &&
+      latest.current.page === page &&
+      latest.current.width === width &&
+      latest.current.height === height;
     setError(false);
     (async () => {
       try {
         const p = await doc.getPage(page);
-        if (!alive) return;
+        if (!current()) return;
         const scale = width / p.getViewport({ scale: 1 }).width,
           viewport = p.getViewport({ scale });
         // Limit backing-store memory on Retina displays and large zoom levels.
@@ -69,19 +112,28 @@ function PageCanvas({
           transform: [ratio, 0, 0, ratio, 0, 0],
         });
         await render.promise;
-        if (!alive) return;
+        if (!current()) return;
+        const textContent = await p.getTextContent();
+        if (!current()) return;
         textElement.style.setProperty("--total-scale-factor", String(scale));
         layer = new pdfjs.TextLayer({
-          textContentSource: await p.getTextContent(),
+          textContentSource: textContent,
           container: textElement,
           viewport,
         });
-        if (!alive) return;
         await layer.render();
-        if (alive) setLoading(false);
+        if (!current()) return;
+        // Keep the complete previous frame visible until both new pixels and
+        // selectable text are ready, then replace them together before paint.
+        const previous = displayed.current;
+        host.current!.replaceChildren(surface);
+        displayed.current = next;
+        committed = true;
+        releaseFrame(previous);
+        setLoading(false);
       } catch (e) {
         if (
-          alive &&
+          current() &&
           !(e instanceof Error && e.name === "RenderingCancelledException")
         ) {
           setError(true);
@@ -93,15 +145,12 @@ function PageCanvas({
       alive = false;
       render?.cancel();
       layer?.cancel();
-      textElement.replaceChildren();
-      element.width = 0;
-      element.height = 0;
+      if (!committed) releaseFrame(next);
     };
   }, [doc, page, width, height]);
   return (
     <>
-      <canvas ref={canvas} style={{ width, height }} aria-hidden="true" />
-      <div ref={text} className="textLayer" />
+      <div ref={host} className="pdf-page-render" />
       {loading && (
         <div className="pdf-loading">
           <LoaderCircle size={17} className="spin" />

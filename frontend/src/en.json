@@ -118,6 +118,7 @@
   "下一页": "Next page",
   "缩小": "Zoom out",
   "放大": "Zoom in",
+  "Ctrl + 滚轮缩放": "Ctrl + mouse wheel to zoom",
   "← → 翻页": "← → Navigate pages",
   "译文与原文可能因语言长度产生分页差异；对照按页码同步。": "Pagination may differ between languages. Views sync by page number.",
   "下载 LaTeX 源码": "Download LaTeX source",

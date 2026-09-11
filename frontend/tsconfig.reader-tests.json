@@ -16,6 +16,7 @@
     "src/readerTypes.ts",
     "src/annotationDrafts.ts",
     "src/readerNavigation.ts",
+    "src/readerZoom.ts",
     "src/providers.ts"
   ]
 }

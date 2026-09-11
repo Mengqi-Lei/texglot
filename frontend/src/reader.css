@@ -171,6 +171,16 @@
   inset: 0;
   display: block;
 }
+.pdf-page-render {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.pdf-page-frame {
+  position: absolute;
+  inset: 0 auto auto 0;
+  transform-origin: 0 0;
+}
 .continuous-paper .textLayer {
   z-index: 2;
 }

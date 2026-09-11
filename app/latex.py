@@ -1056,36 +1056,118 @@ def collect_title_macros(text: str) -> dict[str, str]:
 
 
 def extract_paper_title(
-    text: str, *, title_macros: dict[str, str] | None = None
+    text: str,
+    *,
+    title_macros: dict[str, str] | None = None,
+    macro_context: str | None = None,
 ) -> str:
-    """Read a display title, resolving only explicitly approved literal macros."""
+    """Read metadata without changing which source spans may be translated.
+
+    Display titles may contain constants embedded in prose and nested formatting.
+    Only unambiguous, parameterless declarations are expanded; this never runs
+    TeX, evaluates conditionals, or changes the translation macro policy.
+    """
     from .sources import without_comments
 
-    macros = collect_title_macros(text) if title_macros is None else title_macros
+    context = text if macro_context is None else macro_context
+    declarations, _ = _title_source_parts(context)
+    macros: dict[str, str | None] = dict(title_macros or {})
+    declared = set()
+    for name, a, b, literal in declarations:
+        macros[name] = (
+            without_comments(context[a:b]) if literal and name not in declared else None
+        )
+        declared.add(name)
     _, titles = _title_source_parts(text)
     for name, a, b in titles:
-        if name not in {"title", "icmltitle"}:
+        if name not in {"title", "icmltitle"} or b >= len(text) or text[b] != "}":
             continue
         value = without_comments(text[a:b]).strip()
-        if match := COMMAND.fullmatch(value):
-            value = macros.get(match[0][1:], "")
-        # Graphics belong to typesetting, not the library's display title.
-        # Consume their declared arguments without swallowing a following group.
-        for match in reversed(
-            list(re.finditer(r"\\includegraphics\*?(?![A-Za-z@])", value))
-        ):
-            pos = skip_tex_space(value, match.end())
-            for _ in range(2):
-                if pos < len(value) and value[pos] == "[":
-                    pos = skip_tex_space(value, group_end(value, pos))
-            if pos < len(value) and value[pos] == "{":
-                end = group_end(value, pos)
-                value = value[: match.start()] + value[end:]
-        value = re.sub(r"\\[A-Za-z]+|[{}]", "", value.replace(r"\\", " "))
-        value = re.sub(r"\s+", " ", without_comments(value)).strip()
+        try:
+            value = _display_title_text(_expand_display_title(value, macros))
+        except (ValueError, RecursionError):
+            # Keep the existing metadata/fallback instead of silently dropping an
+            # unresolved macro and presenting a plausible but incomplete title.
+            continue
         if value:
             return value[:200]
     return ""
+
+
+def _expand_display_title(value: str, macros: dict[str, str | None]) -> str:
+    budget = 16_384
+
+    def expand(fragment: str, stack: tuple[str, ...]) -> str:
+        nonlocal budget
+        budget -= len(fragment)
+        if budget < 0 or len(stack) > 16:
+            raise ValueError("Title expansion limit")
+
+        def replace(match):
+            name = match[0][1:]
+            if name not in macros:
+                return match[0]
+            body = macros[name]
+            if body is None or name in stack or re.search(r"(?<!\\)#", body):
+                raise ValueError("Unresolved title macro")
+            return "{" + expand(body, (*stack, name)) + "}"
+
+        return COMMAND.sub(replace, fragment)
+
+    return expand(value, ())
+
+
+def _display_title_text(value: str) -> str:
+    from pylatexenc import latex2text, latexwalker
+    from pylatexenc.macrospec import MacroSpec
+
+    # Use the existing LaTeX text decoder for accents, math, and formatting.
+    # These overrides describe display-only adornments, not arbitrary macros.
+    ignored = {
+        "includegraphics": "*[[{",
+        "thanks": "{",
+        "footnote": "[{",
+        "label": "{",
+        "color": "[{",
+        "fontsize": "{{",
+    }
+    parser_context = latexwalker.get_default_latex_context_db()
+    text_context = latex2text.get_default_latex_context_db()
+    parser_context.add_context_category(
+        "title-metadata",
+        macros=[MacroSpec(name, args) for name, args in ignored.items()]
+        + [MacroSpec("href", "{{")],
+        prepend=True,
+    )
+    text_context.add_context_category(
+        "title-metadata",
+        macros=[latex2text.MacroTextSpec(name, discard=True) for name in ignored]
+        + [
+            latex2text.MacroTextSpec("href", simplify_repl="%(2)s"),
+            latex2text.MacroTextSpec("xspace", simplify_repl=" "),
+            latex2text.MacroTextSpec("LaTeX", simplify_repl="LaTeX"),
+            latex2text.MacroTextSpec("TeX", simplify_repl="TeX"),
+        ]
+        + [
+            latex2text.MacroTextSpec(name, discard=True)
+            for name in FONT_SWITCHES | TEXT_DECLARATIONS | {"selectfont"}
+        ],
+        prepend=True,
+    )
+    for match in COMMAND.finditer(value):
+        name = match[0][1:].rstrip("*")
+        if name in {"input", "include"} or text_context.get_macro_spec(name) is None:
+            raise ValueError("Unsupported title command")
+    try:
+        nodes, _, _ = latexwalker.LatexWalker(
+            value, latex_context=parser_context, tolerant_parsing=False
+        ).get_latex_nodes()
+    except latexwalker.LatexWalkerError as exc:
+        raise ValueError("Malformed display title") from exc
+    rendered = latex2text.LatexNodes2Text(latex_context=text_context).nodelist_to_text(
+        nodes
+    )
+    return re.sub(r"\s+", " ", rendered).strip()
 
 
 def collect_numeric_registers(text: str) -> dict[str, str]:

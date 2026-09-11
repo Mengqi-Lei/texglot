@@ -14,21 +14,35 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from scripts.install_compiler import VERSION, install  # noqa: E402
 
 
-def prepare_assets():
-    folder = ROOT / "desktop/build"
-    folder.mkdir(parents=True, exist_ok=True)
-    image = Image.open(ROOT / "frontend/src/assets/texglot-logo.png").convert("RGBA")
+def prepare_icons(folder: Path):
+    # Supply the native icon's white tile explicitly instead of leaving the OS
+    # to place the transparent web logo on its own tinted background.
+    image = Image.new("RGBA", (2048, 2048))
+    ImageDraw.Draw(image).rounded_rectangle(
+        (160, 160, 1887, 1887), radius=384, fill="white"
+    )
+    with Image.open(ROOT / "frontend/src/assets/texglot-logo.png") as source:
+        logo = source.convert("RGBA")
+    logo = ImageOps.contain(logo, (1680, 1680), Image.Resampling.LANCZOS)
+    image.alpha_composite(logo, ((2048 - logo.width) // 2, (2048 - logo.height) // 2))
+    image = image.resize((1024, 1024), Image.Resampling.LANCZOS)
     image.save(folder / "icon.png")
     image.save(folder / "icon.ico", sizes=[(s, s) for s in (16, 32, 48, 64, 128, 256)])
     if sys.platform == "darwin":
         image.save(folder / "icon.icns")
+
+
+def prepare_assets():
+    folder = ROOT / "desktop/build"
+    folder.mkdir(parents=True, exist_ok=True)
+    prepare_icons(folder)
     notices = [
         (ROOT / "LICENSE").read_text(encoding="utf-8"),
         (ROOT / "THIRD_PARTY.md").read_text(encoding="utf-8"),

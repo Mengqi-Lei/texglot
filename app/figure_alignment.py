@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+from io import BytesIO
 
-from pypdf.errors import PdfReadError
+from pypdf.errors import PyPdfError
+from pypdf.generic import ArrayObject, DictionaryObject, IndirectObject, StreamObject
 
 
 def multiply(first, second):
@@ -18,6 +20,41 @@ def multiply(first, second):
         e * aa + f * cc + ee,
         e * bb + f * dd + ff,
     )
+
+
+def direct_metadata(value):
+    if isinstance(value, (IndirectObject, StreamObject)):
+        # Object numbers only identify resources within one PDF, not across two.
+        raise NotImplementedError("Image metadata requires external resources")
+    if isinstance(value, DictionaryObject):
+        return DictionaryObject(
+            {key: direct_metadata(item) for key, item in sorted(value.items())}
+        )
+    if isinstance(value, ArrayObject):
+        return ArrayObject(direct_metadata(item) for item in value)
+    return value
+
+
+def graphic_signature(obj):
+    """Match forms by drawing commands and images without pixel decompression."""
+    if obj.get("/Subtype") == "/Form":
+        # Form streams contain drawing commands, not their referenced bitmaps.
+        # Resource object numbers change when the translated PDF is compiled.
+        return hashlib.sha256(obj.get_data()).hexdigest()
+    metadata = DictionaryObject(
+        {
+            key: direct_metadata(value)
+            for key, value in sorted(obj.items())
+            if key != "/Length"
+        }
+    )
+    stream = BytesIO()
+    metadata.write_to_stream(stream)
+    signature = hashlib.sha256(stream.getbuffer())
+    # The base accessor returns stored bytes; EncodedStreamObject.get_data would
+    # decompress large images. Including metadata distinguishes their rendering.
+    signature.update(StreamObject.get_data(obj))
+    return signature.hexdigest()
 
 
 def graphic_regions(page):
@@ -73,9 +110,14 @@ def graphic_regions(page):
             top, bottom = max(0, min(values)), min(1, max(values))
             if bottom <= top:
                 continue
-            # Match stream bytes only alongside the same named figure destination.
+            # Match artwork only alongside the same named figure destination.
             # This avoids confusing repeated logos or unrelated same-sized figures.
-            signature = hashlib.sha256(obj.get_data()).hexdigest()
+            try:
+                signature = graphic_signature(obj)
+            except (PyPdfError, NotImplementedError):
+                # Figure matching is optional. Keep the decoder's resource limits
+                # and skip only this artwork, not other figures or the reader.
+                continue
             result.append({"signature": signature, "start": top, "end": bottom})
     return result
 
@@ -101,7 +143,7 @@ def match_figure_regions(readers, candidates):
                     AttributeError,
                     RecursionError,
                     NotImplementedError,
-                    PdfReadError,
+                    PyPdfError,
                 ):
                     # Unsupported artwork must not disable the section map.
                     cache[key] = []

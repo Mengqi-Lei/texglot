@@ -52,6 +52,13 @@ import {
 } from "./readerTypes";
 import "./reader.css";
 import { readDrafts, writeDraft, clearDraft } from "./annotationDrafts";
+import {
+  attachWheelZoom,
+  clampZoom,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  zoomFromWheel,
+} from "./readerZoom";
 
 export default function PdfReader({
   job,
@@ -87,6 +94,7 @@ export default function PdfReader({
     [positionError, setPositionError] = useState(false);
   const original = useRef<PaneHandle>(null),
     translated = useRef<PaneHandle>(null),
+    pdfContent = useRef<HTMLDivElement>(null),
     positions = useRef<ReadingState["positions"]>({}),
     requested = useRef<Positions>({}),
     dataRef = useRef(data),
@@ -144,6 +152,24 @@ export default function PdfReader({
       pane(side)?.jump(position);
     }
   };
+  const changeZoom = (value: number) => {
+    const next = clampZoom(value);
+    if (next === preferences.current.zoom) return;
+    capturePositions();
+    preferences.current.zoom = next;
+    setZoom(next);
+    setPopup(null);
+  };
+  const wheelZoom = useRef<(delta: number) => void>(() => {});
+  wheelZoom.current = (delta) =>
+    changeZoom(zoomFromWheel(preferences.current.zoom, delta));
+  const loaded = !!data;
+  useEffect(() => {
+    if (loaded && pdfContent.current)
+      return attachWheelZoom(pdfContent.current, (delta) =>
+        wheelZoom.current(delta),
+      );
+  }, [loaded]);
   const changeMode = (next: ReaderMode) => {
     const previous = preferences.current.mode;
     if (previous === next) return;
@@ -756,36 +782,27 @@ export default function PdfReader({
           </button>
         </div>
         <div className="reader-view-tools">
-          <div className="zoom-control">
+          <div className="zoom-control" title={t("Ctrl + 滚轮缩放")}>
             <button
               className="icon-button"
               title={t("缩小")}
-              disabled={zoom <= 0.5}
-              onClick={() => {
-                capturePositions();
-                setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10));
-              }}
+              disabled={zoom <= MIN_ZOOM}
+              onClick={() => changeZoom(Math.round((zoom - 0.1) * 10) / 10)}
             >
               <Minus size={15} />
             </button>
             <button
               className="text-button zoom-reset"
               title={t("适合宽度")}
-              onClick={() => {
-                capturePositions();
-                setZoom(1);
-              }}
+              onClick={() => changeZoom(1)}
             >
               {Math.round(zoom * 100)}%
             </button>
             <button
               className="icon-button"
               title={t("放大")}
-              disabled={zoom >= 2.5}
-              onClick={() => {
-                capturePositions();
-                setZoom((z) => Math.min(2.5, Math.round((z + 0.1) * 10) / 10));
-              }}
+              disabled={zoom >= MAX_ZOOM}
+              onClick={() => changeZoom(Math.round((zoom + 0.1) * 10) / 10)}
             >
               <Plus size={15} />
             </button>
@@ -839,7 +856,10 @@ export default function PdfReader({
         </div>
       )}
       <div className="reader-body">
-        <div className={`pdf-content ${mode === "split" ? "split" : ""}`}>
+        <div
+          ref={pdfContent}
+          className={`pdf-content ${mode === "split" ? "split" : ""}`}
+        >
           {(["original", "translated"] as const).map((side) =>
             data.documents[side] ? (
               <PdfPane

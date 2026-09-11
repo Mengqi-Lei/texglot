@@ -179,3 +179,112 @@ def test_changed_or_ambiguous_artwork_does_not_claim_a_figure_match(
     )
     result = build_alignment(first, second, {"original": "a", "translated": "b"})
     assert result["regions"] == []
+
+
+def test_oversized_image_keeps_other_figures_and_section_alignment(
+    tmp_path, monkeypatch
+):
+    """Exercise a real decoder limit without allocating a large bitmap in the test."""
+    from pypdf import apply_configuration
+    from pypdf.generic import DecodedStreamObject, NameObject, NumberObject
+
+    from app.reader import ReaderStore
+
+    folder = tmp_path / "illustrated"
+    folder.mkdir()
+    for side in ("original", "translated"):
+        path = folder / f"{side}.pdf"
+        illustrated_paper(path, translated=side == "translated")
+        writer = PdfWriter(clone_from=path)
+        page = writer.pages[2 if side == "translated" else 1]
+        bitmap = DecodedStreamObject()
+        bitmap.set_data(b"\x00" * 12000)
+        bitmap.update(
+            {
+                NameObject("/Subtype"): NameObject("/Image"),
+                NameObject("/Width"): NumberObject(100),
+                NameObject("/Height"): NumberObject(120),
+                NameObject("/BitsPerComponent"): NumberObject(8),
+                NameObject("/ColorSpace"): NameObject("/DeviceGray"),
+            }
+        )
+        page["/Resources"]["/XObject"][NameObject("/Large")] = writer._add_object(
+            bitmap.flate_encode()
+        )
+        content = DecodedStreamObject()
+        content.set_data(
+            page.get_contents().get_data() + b"q 100 0 0 120 40 40 cm /Large Do Q"
+        )
+        page[NameObject("/Contents")] = writer._add_object(content)
+        writer.write(path)
+    job = {
+        "id": folder.name,
+        "artifacts": {
+            "original": "original.pdf",
+            "translated": "translated.pdf",
+        },
+    }
+    before = {
+        p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in folder.glob("*.pdf")
+    }
+    with apply_configuration(zlib_maximum_output_length=1024):
+        state = ReaderStore(tmp_path).get(job)
+    assert state["documents"]["translated"]["pages"] == 4
+    assert [p["id"] for p in state["alignment"]["pairs"]] == ["section.1"]
+    assert [p["id"] for p in state["alignment"]["regions"]] == ["figure.1"]
+    assert before == {
+        p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in folder.glob("*.pdf")
+    }
+
+
+def test_graphic_fingerprint_does_not_decode_large_images(monkeypatch):
+    from pypdf.errors import LimitReachedError
+    from pypdf.generic import DecodedStreamObject, NameObject, NumberObject
+
+    from app.figure_alignment import graphic_signature
+
+    image = DecodedStreamObject()
+    image.set_data(b"pixels" * 1000)
+    image = image.flate_encode()
+    image[NameObject("/Subtype")] = NameObject("/Image")
+    image[NameObject("/Width")] = NumberObject(100)
+
+    def no_decode():
+        raise LimitReachedError("Bitmap decoding must not run for matching")
+
+    monkeypatch.setattr(image, "get_data", no_decode)
+    first = graphic_signature(image)
+    assert first == graphic_signature(image)
+    image[NameObject("/Width")] = NumberObject(200)
+    assert first != graphic_signature(image)
+
+
+def test_encoded_image_metadata_is_order_independent_and_leaves_source_unchanged():
+    from pypdf.generic import DecodedStreamObject, NameObject, NumberObject
+
+    from app.figure_alignment import graphic_signature
+
+    data = DecodedStreamObject()
+    data.set_data(b"pixels")
+    first, second = data.flate_encode(), data.flate_encode()
+    fields = [
+        (NameObject("/Width"), NumberObject(100)),
+        (NameObject("/Height"), NumberObject(200)),
+    ]
+    first.update(fields)
+    second.update(reversed(fields))
+    first[NameObject("/Length")] = NumberObject(17)
+    before = dict(first)
+    assert graphic_signature(first) == graphic_signature(second)
+    assert dict(first) == before
+
+
+def test_image_resource_references_are_not_compared_across_documents():
+    from pypdf.generic import EncodedStreamObject, IndirectObject, NameObject
+
+    from app.figure_alignment import graphic_signature
+
+    image = EncodedStreamObject()
+    image[NameObject("/ColorSpace")] = IndirectObject(1, 0, PdfWriter())
+    with pytest.raises(NotImplementedError):
+        graphic_signature(image)

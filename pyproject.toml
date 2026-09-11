@@ -1,6 +1,6 @@
 [project]
 name = "texglot"
-version = "1.0.2"
+version = "1.0.3"
 description = "Local, structure-preserving LaTeX paper translation"
 readme = "README.md"
 license = "Apache-2.0"

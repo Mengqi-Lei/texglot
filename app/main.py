@@ -110,7 +110,7 @@ def health():
         "name": "TeXGlot",
         "compilers": available_compilers(),
         "data_dir": str(DATA),
-        "version": "1.0.2",
+        "version": "1.0.3",
     }
 
 

@@ -581,6 +581,27 @@ def test_damaged_job_record_does_not_prevent_loading_other_jobs(tmp_path, monkey
     assert manager.jobs["valid"]["status"] == "interrupted"
 
 
+async def test_arxiv_pipeline_uses_compiled_macro_dependencies_for_display_title(
+    pipeline, translator
+):
+    manager, job, folder, settings, _ = pipeline
+    job.update(kind="arxiv", arxiv_id="2111.12345", name="arXiv 2111.12345")
+    source = folder / "source"
+    (source / "definitions.tex").write_text(
+        r"\newcommand{\method}{Structured Training}", encoding="utf-8"
+    )
+    (source / "main.tex").write_text(
+        r"\documentclass{article}\input{definitions}"
+        r"\title{\method{} Improves Learning}"
+        r"\begin{document}\maketitle\input{body}\end{document}",
+        encoding="utf-8",
+    )
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed"
+    assert job["name"] == "Structured Training Improves Learning"
+    assert job["title_metadata_version"] == jobs.TITLE_METADATA_VERSION
+
+
 async def test_long_provider_retry_after_does_not_retry_too_early(monkeypatch):
     calls = []
 
