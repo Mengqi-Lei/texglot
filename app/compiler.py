@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -13,6 +14,8 @@ from .config import CONFIG, DATA
 from .platforms import process_options, terminate_process_tree
 from .runtime import bundled_tools, child_environment
 from .sources import TEX_SOURCE_SUFFIXES, decode_tex, visible_tex, without_comments
+
+FLOAT_FIT_NOTICE = "部分图表超出页高，已整体缩放以保留全部内容、标签和图表说明"
 
 
 def available_compilers():
@@ -420,6 +423,12 @@ def normalize_engine(text: str, engine: str) -> str:
     return text
 
 
+PDFTEX_OUTPUT_SETTINGS = re.compile(
+    r"(?:\\global\s*)?\\(?P<control>pdf(?:compresslevel|objcompresslevel|minorversion|majorversion|optionpdfminorversion|gentounicode))\s*=?\s*\d+\b"
+    r"|\\input\s*(?:\{glyphtounicode(?:\.tex)?\}|glyphtounicode(?:\.tex)?\b)"
+)
+
+
 def normalize_pdftex_features(text: str, engine: str) -> str:
     """Drop unsupported output/typography controls, retaining document content.
 
@@ -432,11 +441,7 @@ def normalize_pdftex_features(text: str, engine: str) -> str:
 
     visible = visible_tex(text)
     edits = []
-    for match in re.finditer(
-        r"(?:\\global\s*)?\\pdf(?:compresslevel|objcompresslevel|minorversion|majorversion|optionpdfminorversion|gentounicode)\s*=?\s*\d+\b"
-        r"|\\input\s*(?:\{glyphtounicode(?:\.tex)?\}|glyphtounicode(?:\.tex)?\b)",
-        visible,
-    ):
+    for match in PDFTEX_OUTPUT_SETTINGS.finditer(visible):
         edits.append((match.start(), match.end(), ""))
     for match in re.finditer(r"\\DisableLigatures\s*(?:\[[^]]*\]\s*)?\{", visible):
         end = group_end(text, match.end() - 1)
@@ -1080,9 +1085,153 @@ async def probe_source_dependencies(
 
 
 class CompilationError(ValueError):
-    def __init__(self, message: str, log: str):
+    def __init__(self, message: str, log: str, *, tex_log="", bundle=None):
         super().__init__(message)
         self.log = log
+        self.tex_log = tex_log
+        self.bundle = bundle
+
+
+def tectonic_bundle() -> str:
+    return os.environ.get(
+        "TEXGLOT_TEX_BUNDLE",
+        os.environ.get(
+            "MOYI_TEX_BUNDLE",
+            "https://data1b.fullyjustified.net/tlextras-2022.0r0.tar",
+        ),
+    )
+
+
+async def _cached_bundle_file(
+    name: str, bundle: str, root: Path, out: Path
+) -> bytes | None:
+    """Read from the exact compilation bundle, never from a guessed cache path.
+
+    The failing compilation has already cached this resource. The isolated
+    workspace prevents an author's Tectonic.toml from changing bundle selection.
+    This command reads bytes only; it does not execute the package's TeX code.
+    """
+    with tempfile.TemporaryDirectory(prefix="texglot-resource-", dir=out) as folder:
+        cwd = Path(folder)
+        (cwd / "Tectonic.toml").write_text(
+            '[doc]\nname="texglot-resource"\nbundle='
+            + json.dumps(bundle)
+            + '\n[[output]]\nname="unused"\ntype="pdf"\n',
+            encoding="utf-8",
+        )
+        command = [
+            find_compiler("tectonic"),
+            "-X",
+            "bundle",
+            "cat",
+            "--only-cached",
+            name,
+        ]
+        env = {
+            key: value
+            for key, value in child_environment().items()
+            if not any(
+                part in key.upper() for part in ("KEY", "TOKEN", "SECRET", "PASSWORD")
+            )
+        }
+        process = None
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *sandbox_command(command, root, out),
+                cwd=cwd,
+                env=env,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+                **process_options(),
+            )
+
+            async def read():
+                try:
+                    # Refuse oversized resources before buffering their contents.
+                    await process.stdout.readexactly(1024 * 1024 + 1)
+                    return None
+                except asyncio.IncompleteReadError as exc:
+                    await process.wait()
+                    return exc.partial if process.returncode == 0 else None
+
+            return await asyncio.wait_for(read(), timeout=20)
+        except (OSError, asyncio.TimeoutError):
+            return None
+        finally:
+            if process is not None and process.returncode is None:
+                await terminate_process_tree(process)
+
+
+async def recover_external_package(
+    root: Path, main: str, out: Path, engine: str, error: CompilationError
+) -> str:
+    """Adapt only a diagnosed, literal output setting in an external package."""
+    if engine != "tectonic" or error.bundle is None:
+        return ""
+    location = re.findall(
+        r"(?m)^error: ([A-Za-z0-9][A-Za-z0-9_.-]{0,119}\.(?:sty|cls|cfg|def|clo|fd)):(\d+): Undefined control sequence",
+        error.log,
+    )
+    trace = re.findall(r"(?m)^l\.(\d+)[ \t]+([^\r\n]*)", error.tex_log)
+    if not location or not trace:
+        return ""
+    name, line = location[-1]
+    trace_line, fragment = trace[-1]
+    command = re.search(r"\\([A-Za-z@]+)\s*$", fragment)
+    if (
+        trace_line != line
+        or command is None
+        or not PDFTEX_OUTPUT_SETTINGS.fullmatch(rf"\{command[1]}=0")
+    ):
+        return ""
+    # A local or generated same-name file makes the package's origin ambiguous.
+    # Never shadow an author's package or overwrite an earlier repair.
+    if any(root.rglob(name)) or any(out.rglob(name)):
+        return ""
+    target = (root / main).parent / name
+    backup = target.with_name(name + ".texglot-original")
+    if not target.resolve().is_relative_to(root.resolve()) or backup.exists():
+        return ""
+    original = await _cached_bundle_file(name, error.bundle, root, out)
+    if not original:
+        return ""
+    text = decode_tex(original)
+    matches = list(PDFTEX_OUTPUT_SETTINGS.finditer(visible_tex(text)))
+    if not any(
+        match["control"] == command[1]
+        and text.count("\n", 0, match.start("control")) + 1 == int(line)
+        for match in matches
+        if match["control"] is not None
+    ):
+        return ""
+    # Reuse the same output-setting policy as source preparation. Do not apply
+    # unrelated font/layout changes to the external package or discard its code.
+    for match in reversed(matches):
+        text = (
+            text[: match.start()]
+            + "\n" * text[match.start() : match.end()].count("\n")
+            + text[match.end() :]
+        )
+    header = (
+        f"% TeXGlot: {name} adapted for XeTeX output settings.\n"
+        f"% Unmodified original: {backup.name}\n"
+        f"% Original SHA-256: {hashlib.sha256(original).hexdigest()}\n"
+        "% Original license and package implementation follow.\n"
+    )
+    created = []
+    try:
+        for path, content in ((backup, original), (target, (header + text).encode())):
+            with path.open("xb") as stream:
+                created.append(path)
+                stream.write(content)
+    except OSError:
+        for path in reversed(created):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        return ""
+    return name
 
 
 def recover_compile_configuration(
@@ -1163,9 +1312,12 @@ async def _compile_with_recovery(root, main, out, engine, notify, **options):
         try:
             return await _compile_document(root, main, out, engine, notify, **options)
         except CompilationError as exc:
-            if attempt == 2 or not (
-                change := recover_compile_configuration(root, main, exc)
-            ):
+            if attempt == 2:
+                raise
+            change = recover_compile_configuration(root, main, exc)
+            if not change:
+                change = await recover_external_package(root, main, out, engine, exc)
+            if not change:
                 raise
             await notify(f"已按编译诊断调整 {change}，正在重试")
 
@@ -1209,17 +1361,12 @@ async def _compile_document(
         out / (path.stem + ".pdf"),
         out / (path.stem + ".xdv"),
         out / (path.stem + ".fls"),
+        out / (path.stem + ".log"),
         out / "dependencies.mk",
     ):
         stale.unlink(missing_ok=True)
     if engine == "tectonic":
-        bundle = os.environ.get(
-            "TEXGLOT_TEX_BUNDLE",
-            os.environ.get(
-                "MOYI_TEX_BUNDLE",
-                "https://data1b.fullyjustified.net/tlextras-2022.0r0.tar",
-            ),
-        )
+        bundle = tectonic_bundle()
         cmd = [
             find_compiler("tectonic"),
             "-X",
@@ -1317,7 +1464,20 @@ async def _compile_document(
                 ):
                     hints.append(line)
             detail = "\n".join(hints[-5:])[:1000] or log[-800:]
-            raise CompilationError("LaTeX 编译未通过：" + detail, log)
+            tex_log = out / (path.stem + ".log")
+            context = ""
+            try:
+                with tex_log.open("rb") as stream:
+                    stream.seek(max(0, tex_log.stat().st_size - 64 * 1024))
+                    context = stream.read().decode("utf-8", errors="replace")
+            except OSError:
+                pass
+            raise CompilationError(
+                "LaTeX 编译未通过：" + detail,
+                log,
+                tex_log=context,
+                bundle=bundle if engine == "tectonic" else None,
+            )
         if (
             engine != "tectonic"
             and run == 0
@@ -1379,7 +1539,7 @@ async def _compile_document(
     if re.search(r"undefined references|Citation .+ undefined", final_log, re.I):
         warnings.append("存在未解析的引用，请检查参考文献文件")
     if "TeXGlot-Float-Fit:" in final_log:
-        warnings.append("部分图表超出页高，已整体缩放以保留全部内容、标签和图表说明")
+        await notify(FLOAT_FIT_NOTICE)
     if "Float too large for page" in final_log:
         warnings.append("存在超出页高的浮动体，内容可能被裁切；请检查图表及编译日志")
     return pdf, warnings

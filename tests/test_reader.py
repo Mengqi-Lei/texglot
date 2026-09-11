@@ -184,12 +184,22 @@ async def test_reader_api_roundtrip_and_clean_exports(workspace, monkeypatch):
         assert (
             await client.put(base + "/reader/position", json=reading)
         ).status_code == 200
-        assert (await client.get(base + "/reader")).json()["reading"] == reading
+        assert (await client.get(base + "/reader")).json()["reading"] == reading | {
+            "left": "original"
+        }
+        reading["left"] = "translated"
         reading["positions"]["translated"]["viewport"] = 0.2
         assert (
             await client.put(base + "/reader/position", json=reading)
         ).status_code == 200
         assert (await client.get(base + "/reader")).json()["reading"] == reading
+        invalid_order = await client.put(
+            base + "/reader/position", json=reading | {"left": "unknown"}
+        )
+        assert invalid_order.status_code == 422
+        assert (
+            await client.get(base + "/artifacts/translated?download=true")
+        ).content == original
         reading["positions"]["translated"]["viewport"] = 2
         assert (
             await client.put(base + "/reader/position", json=reading)

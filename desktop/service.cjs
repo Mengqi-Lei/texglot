@@ -52,7 +52,7 @@ async function portAvailable(port) {
   });
 }
 
-async function startService({ executable, dataDir, preferredPort = 8765, logPath, onExit }) {
+async function startService({ executable, dataDir, preferredPort = 8765, logPath, onExit, expectedVersion }) {
   if (!Number.isInteger(preferredPort) || preferredPort < 1 || preferredPort > 65535) {
     throw new Error('Invalid TEXGLOT_PORT');
   }
@@ -61,7 +61,10 @@ async function startService({ executable, dataDir, preferredPort = 8765, logPath
   for (let candidate = preferredPort; candidate <= Math.min(preferredPort + 20, 65535); candidate++) {
     const url = `http://127.0.0.1:${candidate}`;
     const health = await requestJSON(`${url}/api/health`).catch(() => null);
-    if (matchingService(health, dataDir)) return { url, owned: false, close: async () => {} };
+    if (matchingService(health, dataDir)) {
+      if (expectedVersion && health.version !== expectedVersion) throw new Error('different-service-version');
+      return { url, owned: false, close: async () => {} };
+    }
     if (port === undefined && await portAvailable(candidate)) port = candidate;
   }
   if (!port) throw new Error('No local port is available');
@@ -97,6 +100,7 @@ async function startService({ executable, dataDir, preferredPort = 8765, logPath
       if (spawnError) throw spawnError;
       const health = await requestJSON(`${url}/api/health`).catch(() => null);
       if (matchingService(health, dataDir)) {
+        if (expectedVersion && health.version !== expectedVersion) throw new Error('different-service-version');
         child.on('exit', (code, signal) => { if (!closing) onExit?.(code, signal); });
         return { url, owned: true, child, close };
       }

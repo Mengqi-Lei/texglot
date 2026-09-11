@@ -15,7 +15,7 @@
 先构建前端，再从项目根目录导出到新目录：
 
 ```bash
-uv run python scripts/prepare_release.py --output output/release-1.0.3 --installer desktop/out/TeXGlot-1.0.3-macOS-arm64.dmg
+uv run python scripts/prepare_release.py --output output/release-1.0.4 --installer desktop/out/TeXGlot-1.0.4-macOS-arm64.dmg
 ```
 
 每个已验证的 DMG 或 EXE 分别添加一次 `--installer PATH`。输出目录不能已存在。脚本按明确的源码清单导出，检查文档链接和常见凭据、私人路径泄漏，并构建源码 ZIP、wheel、sdist，同时生成 SHA-256 校验和、源码清单及带版本仓库链接的双语发布正文。
@@ -34,3 +34,5 @@ uv run python scripts/prepare_release.py --output output/release-1.0.3 --install
 保留仓库历史，提交已审阅的源码变更。在发布提交创建对应的 `vX.Y.Z` 标签，再使用生成的说明和已验证附件准备 [GitHub Release](https://github.com/Mengqi-Lei/texglot/releases) 草稿。公开前核对附件名称、校验和及文档链接。
 
 安装包和生成的压缩包放在 Release 附件中，不写入 Git 历史。只提供已验证平台的安装包，并准确描述剩余限制。发布者签名和 Apple 公证不同于文件完整性检查，不将未签名的安装包描述为已签名。上传 PyPI 是独立流程。
+
+桌面更新检查会从正式仓库选择稳定版本和名称完全匹配的安装包。保留生成的安装包文件名，附上覆盖全部安装包的 `SHA256SUMS.txt`，完成附件上传后再公开 Release。发布前在目标平台验证版本发现和校验下载；应用与内置引擎版本必须一致。缺少可验证安装包时不会提供安装操作，文件完整性校验不代替发布者签名。

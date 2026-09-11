@@ -61,6 +61,7 @@ export type ReadingState = {
   mode: ReaderMode;
   zoom: number;
   sync: boolean;
+  left?: DocumentSide;
 };
 export type ReaderData = {
   documents: Partial<Record<DocumentSide, DocumentInfo>>;

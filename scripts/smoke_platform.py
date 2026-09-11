@@ -28,13 +28,14 @@ from app.platforms import (  # noqa: E402
 from scripts.install_compiler import install  # noqa: E402
 
 SOURCE = r"""\documentclass{article}
+\usepackage[accsupp]{axessibility}
 \title{Platform check}
 \author{TeXGlot}
 \begin{document}
 \maketitle
 \begin{abstract}We verify a formula and a reference.\end{abstract}
 \section{Method}\label{sec:method}
-We preserve $E=mc^2$ and see Section~\ref{sec:method}.
+We preserve \(E=mc^2\) and see Section~\ref{sec:method}.
 The Greek letter alpha is a parameter.
 \end{document}
 """
@@ -246,6 +247,13 @@ $b$ & 2 \\
                 assert "我们保留" in re.sub(r"\s+", "", text)
                 assert "α" in text
                 assert not paper["warnings"]
+                assert any(
+                    b"/ActualText" in page.get_contents().get_data()
+                    for page in pdf.pages
+                )
+                with zipfile.ZipFile(paper["files"]["source"]) as exported:
+                    assert "axessibility.sty" in exported.namelist()
+                    assert "axessibility.sty.texglot-original" in exported.namelist()
                 pages.append(len(pdf.pages))
             if eps:
                 assert pdf.pages[0]["/Resources"].get("/XObject")
@@ -272,6 +280,8 @@ $b$ & 2 \\
                 "compiler_recorded_dynamic_input": True,
                 "legacy_unicode_fonts": True,
                 "generated_unicode_math": True,
+                "external_package_recovery": True,
+                "formula_accessibility_retained": True,
                 "custom_prose_arguments": True,
                 "booktabs_column_rules": True,
                 "model": "local stub (no paid API)",

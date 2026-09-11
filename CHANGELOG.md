@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.4 — 2026-09-11
+
+- Keep successful automatic figure/table fitting in processing logs, including existing tasks, while retaining warnings for unresolved layout problems. / 自动完成的图表缩放只记录到处理日志，兼容已有任务；未解决的排版问题仍会提示。
+- Add side-by-side pane swapping with saved order, independent document positions and unchanged annotation ownership. / 对照阅读新增左右互换，保存显示顺序，保留两侧阅读位置及批注所属文档。
+- Add desktop update reminders, architecture-matched installer downloads, integrity verification, cancellation and verified download reuse; require explicit installation and preserve pending reader writes. / 桌面版新增更新提醒、按系统架构选择安装包、完整性校验、取消下载和已验证下载复用；确认后打开安装器，并先保存阅读器中的待写入内容。
+- Recover diagnosed pdfTeX-only output settings in external Tectonic packages using task-local copies from the same bundle; retain the original package, license and accessibility code. / 根据编译诊断，使用同一 Tectonic 宏包库中的任务内副本适配 pdfTeX 专用输出设置，保留原始宏包、许可及无障碍代码。
+- Carry original-compilation repairs into target-language preflight, translation, source exports and cached retries. / 将原文编译阶段的修复完整带入目标语言预检、翻译、源码导出和缓存重试。
+
+[Release notes](docs/releases/v1.0.4.md) · [中文版本说明](docs/releases/v1.0.4_CN.md)
+
 ## 1.0.3 — 2026-09-11
 
 - Fix reader loading for large raster images while preserving section and figure alignment. / 修复大位图导致的阅读器加载失败，保留章节与插图同步。

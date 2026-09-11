@@ -209,16 +209,58 @@ async def test_partial_retries_only_failed_segments_and_keeps_deliverable(
     assert calls.count("build-original") == 1
 
 
+def test_existing_auto_layout_notices_move_to_logs_without_hiding_real_problems(
+    pipeline,
+):
+    manager, job, folder, _, _ = pipeline
+    cropped = "存在超出页高的浮动体，内容可能被裁切；请检查图表及编译日志"
+    job["warnings"] = [jobs.FLOAT_FIT_NOTICE, cropped]
+    job["original_warnings"] = list(job["warnings"])
+    manager.persist(job)
+    original = (folder / "job.json").read_bytes()
+    loaded = jobs.JobManager().get(job["id"])
+    assert loaded["warnings"] == loaded["original_warnings"] == [cropped]
+    assert (
+        len(loaded["logs"]) == 1
+        and loaded["logs"][0]["message"] == jobs.FLOAT_FIT_NOTICE
+    )
+    jobs.separate_layout_notices(loaded)
+    assert len(loaded["logs"]) == 1
+    assert (folder / "job.json").read_bytes() == original
+
+
+async def test_auto_layout_log_does_not_replace_the_visible_progress_message(pipeline):
+    manager, job, _, _, _ = pipeline
+    job["message"] = "检查排版"
+    await manager.log(job, jobs.FLOAT_FIT_NOTICE)
+    assert job["message"] == "检查排版"
+    assert job["logs"][-1]["message"] == jobs.FLOAT_FIT_NOTICE
+    await manager.log(job, "开始翻译")
+    assert job["message"] == "开始翻译"
+
+
 async def test_compiler_adapted_original_is_reused_with_its_warnings(
     pipeline, translator, monkeypatch
 ):
+    import zipfile
+
     manager, job, folder, settings, calls = pipeline
     original = jobs.compile_pdf
+    library = b"% adapted package\n\\def\\KeptMacro{Scientific meaning}\n"
+    upstream = b"% original package\n\\pdfcompresslevel=0\n"
 
     async def adapted(root, main, out, engine, log):
         if out.name == "build-original":
             path = root / main
             path.write_text("% compiler configuration repair\n" + path.read_text())
+            (root / "external.sty").write_bytes(library)
+            (root / "external.sty.texglot-original").write_bytes(upstream)
+        else:
+            assert (root / "external.sty").read_bytes() == library
+            assert (root / "external.sty.texglot-original").read_bytes() == upstream
+            assert (
+                (root / main).read_text().startswith("% compiler configuration repair")
+            )
         pdf, warnings = await original(root, main, out, engine, log)
         return pdf, warnings + (
             ["Original source warning"] if out.name == "build-original" else []
@@ -228,7 +270,10 @@ async def test_compiler_adapted_original_is_reused_with_its_warnings(
     translator.bad = "second"
     await manager.pipeline(job, settings)
     translator.bad = ""
+    translator.calls.clear()
     await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and job["cached"] == 2
+    assert len(translator.calls) == 1 and "second" in translator.calls[0]
     assert calls.count("build-original") == 1
     assert job["warnings"] == ["Original source warning"]
     assert (
@@ -236,6 +281,10 @@ async def test_compiler_adapted_original_is_reused_with_its_warnings(
         .read_text()
         .startswith("% compiler configuration repair")
     )
+    with zipfile.ZipFile(folder / job["artifacts"]["source"]) as archive:
+        assert archive.read("external.sty") == library
+        assert archive.read("external.sty.texglot-original") == upstream
+    assert not (folder / "source/external.sty").exists()
     (folder / "source/body.tex").write_text(
         "A changed scientific result needs fresh source preparation."
     )

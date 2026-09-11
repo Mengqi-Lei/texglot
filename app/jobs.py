@@ -14,6 +14,7 @@ from pathlib import Path
 from pypdf import PdfReader
 
 from .compiler import (
+    FLOAT_FIT_NOTICE,
     break_long_code_identifiers,
     choose_compiler,
     compile_pdf,
@@ -56,6 +57,18 @@ JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
 SOURCE_PREPARATION_VERSION = "native-source-v3"
 TITLE_METADATA_VERSION = 1
+
+
+def separate_layout_notices(job: dict):
+    """Older jobs also keep successful auto-layout adjustments in the log only."""
+    for field in ("warnings", "original_warnings"):
+        values = job.get(field, [])
+        if FLOAT_FIT_NOTICE not in values:
+            continue
+        job[field] = [value for value in values if value != FLOAT_FIT_NOTICE]
+        logs = job.setdefault("logs", [])
+        if not any(item.get("message") == FLOAT_FIT_NOTICE for item in logs):
+            logs.append({"time": job.get("updated_at", 0), "message": FLOAT_FIT_NOTICE})
 
 
 def refresh_title_metadata(job: dict, folder: Path):
@@ -133,6 +146,7 @@ class JobManager:
                 ):
                     continue
                 refresh_title_metadata(data, path.parent)
+                separate_layout_notices(data)
                 if data["status"] in ACTIVE:
                     data.update(
                         status="interrupted",
@@ -158,7 +172,10 @@ class JobManager:
     async def log(self, job, message):
         job["logs"].append({"time": time.time(), "message": message})
         job["logs"] = job["logs"][-160:]
-        self.update(job, message=message)
+        if message == FLOAT_FIT_NOTICE:
+            self.persist(job)
+        else:
+            self.update(job, message=message)
 
     def create(
         self,
@@ -255,6 +272,7 @@ class JobManager:
             await self.log(job, error[:1200])
 
     async def pipeline(self, job, settings: Settings):
+        separate_layout_notices(job)
         folder = JOBS / job["id"]
         source = folder / "source"
         work = folder / "translated"
@@ -346,15 +364,6 @@ class JobManager:
                 source_files=eps_dependencies,
                 used_images=eps_images,
             )
-        if work.exists():
-            shutil.rmtree(work)
-        shutil.copytree(prepared_source, work)
-        if settings.target_language != "English":
-            shutil.copytree(
-                ROOT / "app/resources/fonts",
-                work / Path(main).parent / "texglot-fonts",
-                dirs_exist_ok=True,
-            )
         self.update(job, status="preparing", progress=12)
         await log(f"主文件 {main} · 使用 {engine} 检查原文编译")
         original_path = folder / "original.pdf"
@@ -390,6 +399,18 @@ class JobManager:
         job["source_dependencies"] = dependencies
         job["source_files"] = reachable
         job["artifacts"]["original"] = "original.pdf"
+        # Original compilation may adapt external packages or document options.
+        # Carry that complete prepared project into preflight, translation/export
+        # and subsequent retries, instead of copying it before those repairs.
+        if work.exists():
+            shutil.rmtree(work)
+        shutil.copytree(prepared_source, work)
+        if settings.target_language != "English":
+            shutil.copytree(
+                ROOT / "app/resources/fonts",
+                work / Path(main).parent / "texglot-fonts",
+                dirs_exist_ok=True,
+            )
         macro_context = "\n".join(
             (prepared_source / rel).read_text(encoding="utf-8") for rel in dependencies
         )

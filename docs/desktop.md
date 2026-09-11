@@ -6,9 +6,9 @@ TeXGlot's desktop packages include the interface, Python service and Tectonic 0.
 
 ## Install and open
 
-- **Apple Silicon Mac:** download `TeXGlot-1.0.3-macOS-arm64.dmg`, open it, drag TeXGlot into Applications and launch TeXGlot.
-- **Intel Mac:** use `TeXGlot-1.0.3-macOS-x64.dmg` when attached to the release.
-- **Windows x64:** use `TeXGlot-1.0.3-Windows-x64-Setup.exe` when attached to the release. The installer runs for the current user and creates Start menu and desktop shortcuts; administrator access is not required.
+- **Apple Silicon Mac:** download `TeXGlot-1.0.4-macOS-arm64.dmg`, open it, drag TeXGlot into Applications and launch TeXGlot.
+- **Intel Mac:** use `TeXGlot-1.0.4-macOS-x64.dmg` when attached to the release.
+- **Windows x64:** use `TeXGlot-1.0.4-Windows-x64-Setup.exe` when attached to the release. The installer runs for the current user and creates Start menu and desktop shortcuts; administrator access is not required.
 
 Only attached, verified assets are release downloads. See the [platform table](platforms.en.md) for current validation status. The initial packages do not have an Apple Developer ID/notarization or a Windows publisher certificate. Your OS may display an unknown-publisher warning; the release hashes verify file integrity, not publisher identity. Do not disable system security settings to install the app.
 
@@ -24,11 +24,21 @@ Resume the existing task after installation. Original EPS files are retained; PD
 
 The **File** menu opens the main window, the local browser interface or the data folder. On macOS, closing the window keeps the app running; use **Quit TeXGlot** or `Cmd+Q` to exit. Quitting during translation asks whether to keep running. Interrupted work can be resumed from the saved library.
 
-Settings, papers, paragraph caches and annotations live in `~/.texglot` (Windows: `%USERPROFILE%\.texglot`). The embedded browser has its own `desktop-profile` subfolder. Updates replace application files while preserving this data; Windows uninstall also retains the library. Back it up before upgrading. This version uses manual updates from Releases.
+Settings, papers, paragraph caches and annotations live in `~/.texglot` (Windows: `%USERPROFILE%\.texglot`). The embedded browser has its own `desktop-profile` subfolder. Updates replace application files while preserving this data; Windows uninstall also retains the library. Back it up before upgrading.
 
 Source checkouts use their own `data/` directory by default. To migrate, stop both services and copy the contents of that directory into an **empty** `~/.texglot`, or set `TEXGLOT_DATA_DIR` before launching. Do not merge two nonempty libraries blindly. Existing source tasks are not moved automatically.
 
-The desktop app binds to loopback and chooses an available port near 8765. It only shares an existing service when both own the same data directory. If 8765 is occupied, use **File → Open in Browser** for the actual address. Local service errors are recorded in `desktop-service.log` inside the data directory.
+The desktop app binds to loopback and chooses an available port near 8765. It only shares an existing service when both own the same data directory and run the same version. Close an older service for that directory before opening an upgraded app. If 8765 is occupied, use **File → Open in Browser** for the actual address. Local service errors are recorded in `desktop-service.log` inside the data directory.
+
+## Update reminders
+
+The desktop app checks for stable releases on launch and every 12 hours. A quiet notice appears when an update is available. You can also use **Help → Check for Updates** or **Model settings → Check for updates**, and turn automatic checks off in the update window. Checking does not download or install anything.
+
+Choose **Download update** to fetch the installer for this computer from the official GitHub repository. The app verifies its size and SHA-256 digest, supports cancelling a download, and reuses a verified download after reopening the app. Downloading does not interrupt reading or translation. **Quit and open installer** is available after verification; installation waits until translation tasks are finished or stopped, and pending reader writes are saved first.
+
+On macOS, drag TeXGlot from the opened DMG into Applications and confirm replacement. On Windows, complete the opened installer. This is an assisted installation flow: the current unsigned packages do not replace themselves silently. Native automatic updating on macOS requires signing, as described in the [Electron documentation](https://www.electronjs.org/docs/latest/api/auto-updater#macos).
+
+Only desktop builds containing this feature offer these controls; older versions need one manual upgrade. Source/browser installations continue to use their existing installation workflow. The update check contacts GitHub for release information and does not send papers, API keys or library paths. GitHub REST rate limits fall back to the official latest-release redirect; network or verification failures leave the installed application unchanged.
 
 ## Bundled command line
 

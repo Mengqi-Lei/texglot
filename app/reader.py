@@ -77,6 +77,7 @@ class ReadingState(BaseModel):
     mode: Literal["original", "translated", "split"] = "split"
     zoom: float = Field(default=1, ge=0.5, le=2.5)
     sync: bool = True
+    left: Document = "original"
 
 
 @lru_cache(maxsize=64)

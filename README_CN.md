@@ -12,7 +12,7 @@
 </p>
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 <p align="center">
-  <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.0.3_CN.md">版本说明</a>
+  <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.0.4_CN.md">版本说明</a>
 </p>
 
 
@@ -34,9 +34,10 @@ https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
 | **源码到 PDF** | 导入 arXiv 链接、ID 或 `.tex`、`.zip`、`.tar`、`.tar.gz`、`.tgz`、`.gz` 工程，下载译文 PDF、原文 PDF 和译后源码 ZIP。 |
 | **自选模型** | 支持 Qwen / 阿里云百炼、DeepSeek，以及兼容 Chat Completions 的服务，包括本地模型。 |
 | **上下文引导** | 可用论文摘要辅助理解主题与术语，初始默认开启；每项任务都可在界面或 CLI 独立选择。 |
-| **论文阅读** | 原文、译文和左右对照，连续纵向阅读，按共同内容定位点同步滚动，缩放并恢复阅读位置。 |
+| **论文阅读** | 原文、译文和左右对照，左右互换、连续纵向阅读，按共同内容定位点同步滚动，缩放并恢复阅读位置。 |
 | **本地批注** | 高亮、下划线和便签，通过侧栏搜索与管理；导出的 PDF 不附带 TeXGlot 批注。 |
 | **批量与恢复** | 终端批量翻译，恢复中断任务，复用有效的段落缓存，导出适合脚本读取的结果。 |
+| **桌面更新** | 应用内提醒新版本，下载并校验安装包，确认后打开安装器。[更新说明](docs/desktop_CN.md#更新提醒)。 |
 | **双语界面** | 中英文界面独立切换；翻译目标可选简体中文、繁体中文或英文。 |
 
 <p align="center"><img src="docs/assets/reader-zh.png" width="100%" alt="TeXGlot 阅读器中，Attention Is All You Need 的英文正文、中文译文与实验结果对照"></p>
@@ -50,16 +51,16 @@ https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
 
 | 电脑 | 安装包 | 使用方式 |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.0.3-macOS-arm64.dmg` | 打开后拖入 Applications |
-| Mac · Intel | `TeXGlot-1.0.3-macOS-x64.dmg` | 打开后拖入 Applications |
-| Windows · x64 | `TeXGlot-1.0.3-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
+| Mac · Apple Silicon | `TeXGlot-1.0.4-macOS-arm64.dmg` | 打开后拖入 Applications |
+| Mac · Intel | `TeXGlot-1.0.4-macOS-x64.dmg` | 打开后拖入 Applications |
+| Windows · x64 | `TeXGlot-1.0.4-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
 
 安装包内置 Python、网页界面和 Tectonic，**无需安装 Python、Node.js 或 uv**。首次编译需要联网下载 TeX 宏包与字体；含 EPS 插图的论文还需要安装 Ghostscript。首批安装包尚未经过发布者签名／Apple 公证，系统可能显示未知发布者提示；平台验证状态、数据迁移与安装说明见[桌面指南](docs/desktop_CN.md)。只提供已验证的 Release 附件。
 
 <details>
 <summary>从源码安装（开发者与 CLI 用户）</summary>
 
-从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.0.3-source.zip`**，或克隆仓库：
+从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.0.4-source.zip`**，或克隆仓库：
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git

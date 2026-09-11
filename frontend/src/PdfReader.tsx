@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
   Columns2,
@@ -52,6 +60,7 @@ import {
 } from "./readerTypes";
 import "./reader.css";
 import { readDrafts, writeDraft, clearDraft } from "./annotationDrafts";
+import { beforeUpdate } from "./updates";
 import {
   attachWheelZoom,
   clampZoom,
@@ -73,6 +82,7 @@ export default function PdfReader({
     [mode, setMode] = useState<ReaderMode>("split"),
     [zoom, setZoom] = useState(1),
     [sync, setSync] = useState(true),
+    [left, setLeft] = useState<DocumentSide>("original"),
     [active, setActive] = useState<DocumentSide>("translated"),
     [page, setPage] = useState(1),
     [pageInput, setPageInput] = useState("1"),
@@ -100,12 +110,12 @@ export default function PdfReader({
     dataRef = useRef(data),
     saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     queue = useRef<Promise<unknown>>(Promise.resolve()),
-    preferences = useRef({ mode, zoom, sync, active }),
+    preferences = useRef({ mode, zoom, sync, active, left }),
     ready = useRef(false),
     pageInputDirty = useRef(false),
     popupRef = useRef(popup);
   dataRef.current = data;
-  preferences.current = { mode, zoom, sync, active };
+  preferences.current = { mode, zoom, sync, active, left };
   popupRef.current = popup;
   const pane = (side: DocumentSide) =>
     side === "original" ? original.current : translated.current;
@@ -199,6 +209,18 @@ export default function PdfReader({
       applyPositions(plan.positions);
     }
   };
+  const swapPanes = () => {
+    capturePositions();
+    setPopup(null);
+    window.getSelection()?.removeAllRanges();
+    const next = otherSide(preferences.current.left);
+    preferences.current.left = next;
+    setLeft(next);
+  };
+  useLayoutEffect(() => {
+    // Reorder the existing document-keyed panes, retaining both reading anchors.
+    applyPositions(requested.current);
+  }, [left]);
   const focusPosition = (side: DocumentSide, position: PagePosition) => {
     if (
       preferences.current.mode !== "split" &&
@@ -285,6 +307,7 @@ export default function PdfReader({
         }
         setZoom(saved.zoom);
         setSync(saved.sync);
+        setLeft(saved.left ?? "original");
         setMode(saved.mode);
         setActive(saved.active);
         setPage(valid[saved.active]?.page || 1);
@@ -313,8 +336,10 @@ export default function PdfReader({
           keepalive,
         });
         setPositionError(false);
+        return true;
       } catch {
         setPositionError(true);
+        return false;
       }
     },
     [job.id],
@@ -325,7 +350,7 @@ export default function PdfReader({
   };
   useEffect(() => {
     if (data) schedulePosition();
-  }, [mode, zoom, sync, active]);
+  }, [mode, zoom, sync, active, left]);
   useEffect(() => {
     const flush = () => void savePosition(true);
     window.addEventListener("pagehide", flush);
@@ -538,6 +563,14 @@ export default function PdfReader({
       setSidebar(true);
     }
   };
+  const prepareUpdateRef = useRef(async () => {});
+  prepareUpdateRef.current = async () => {
+    await saveComment();
+    await queue.current;
+    if (conflict || failedCreate || (await savePosition()) === false)
+      throw new Error("Unsaved reader changes");
+  };
+  useEffect(() => beforeUpdate(() => prepareUpdateRef.current()), []);
   const closeRef = useRef(close);
   closeRef.current = close;
   useEffect(() => {
@@ -676,15 +709,29 @@ export default function PdfReader({
       <div className="reader-toolbar">
         <div className="reader-tools">
           {mode === "split" && (
-            <button
-              className={`reader-tool sync-tool ${sync ? "selected" : ""}`}
-              aria-pressed={sync}
-              title={t(sync ? "关闭同步滚动" : "开启同步滚动")}
-              onClick={changeSync}
+            <div
+              className="comparison-tools"
+              role="group"
+              aria-label={t("对照阅读")}
             >
-              {sync ? <Link2 size={17} /> : <Unlink size={17} />}
-              <span>{t("同步滚动")}</span>
-            </button>
+              <button
+                className={`reader-tool sync-tool ${sync ? "selected" : ""}`}
+                aria-pressed={sync}
+                title={t(sync ? "关闭同步滚动" : "开启同步滚动")}
+                onClick={changeSync}
+              >
+                {sync ? <Link2 size={17} /> : <Unlink size={17} />}
+                <span>{t("同步滚动")}</span>
+              </button>
+              <button
+                className="reader-tool"
+                title={t("左右互换")}
+                aria-label={t("左右互换")}
+                onClick={swapPanes}
+              >
+                <ArrowLeftRight size={17} />
+              </button>
+            </div>
           )}
           <div
             className="annotation-tools"
@@ -860,7 +907,7 @@ export default function PdfReader({
           ref={pdfContent}
           className={`pdf-content ${mode === "split" ? "split" : ""}`}
         >
-          {(["original", "translated"] as const).map((side) =>
+          {[left, otherSide(left)].map((side) =>
             data.documents[side] ? (
               <PdfPane
                 key={side + data.documents[side]!.version}

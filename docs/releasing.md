@@ -15,7 +15,7 @@ This guide describes the repeatable release process for maintainers. Local prepa
 Build the frontend, then export a new directory from the project root:
 
 ```bash
-uv run python scripts/prepare_release.py --output output/release-1.0.3 --installer desktop/out/TeXGlot-1.0.3-macOS-arm64.dmg
+uv run python scripts/prepare_release.py --output output/release-1.0.4 --installer desktop/out/TeXGlot-1.0.4-macOS-arm64.dmg
 ```
 
 Repeat `--installer PATH` for each verified DMG or EXE. The output directory must not already exist. The script exports an explicit source-file list, checks documentation links and common credential/path leaks, and builds the source ZIP, wheel and sdist. It also generates SHA-256 checksums, a source manifest and bilingual release text with versioned repository links.
@@ -34,3 +34,5 @@ Inspect the exported tree and archives. Check that fonts and third-party license
 Commit the reviewed source changes while preserving the repository's history. Create the matching `vX.Y.Z` tag on the release commit, then prepare a draft [GitHub Release](https://github.com/Mengqi-Lei/texglot/releases) with the generated description and verified assets. Recheck attachment names, checksums and documentation links before publishing.
 
 Keep installers and generated archives in Release assets, not Git history. Publish only the platforms that have been validated and describe remaining limitations accurately. Publisher signing and Apple notarization are separate from file-integrity verification; do not describe unsigned packages as publisher-signed. PyPI publication is a separate process.
+
+Desktop update checks select stable versions and exact installer names from this repository. Keep the generated installer filenames unchanged, attach `SHA256SUMS.txt` covering every installer, and finish uploading the assets before publishing the release. Validate update discovery and a verified download on the target platform. Application and embedded-engine versions must match; missing or unverifiable installers are not offered for installation. Signing remains separate from file-integrity checks.

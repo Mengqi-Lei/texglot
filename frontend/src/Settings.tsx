@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { api, type Settings as Config, type Health } from "./types";
 import ContextGuidance from "./ContextGuidance";
+import { openUpdates } from "./updates";
+import { keepDialogFocus } from "./dialogFocus";
 import {
   normalizedEndpoint,
   providerId,
@@ -92,22 +94,7 @@ export default function Settings({
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "Tab" && dialog.current) {
-        const controls = Array.from(
-          dialog.current.querySelectorAll<HTMLElement>(
-            "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href]",
-          ),
-        ).filter((element) => element.getClientRects().length > 0);
-        const first = controls[0],
-          last = controls[controls.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
+      keepDialogFocus(e, dialog.current);
     };
     document.addEventListener("keydown", fn);
     document.body.style.overflow = "hidden";
@@ -396,6 +383,14 @@ export default function Settings({
               <Check size={16} />
               {message}
             </p>
+          )}
+          {window.texglotDesktop && (
+            <div className="app-version-row">
+              <span>TeXGlot {health?.version}</span>
+              <button type="button" onClick={openUpdates}>
+                {t("检查更新")}
+              </button>
+            </div>
           )}
         </div>
         <footer>

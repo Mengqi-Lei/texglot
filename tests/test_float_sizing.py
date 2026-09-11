@@ -5,7 +5,13 @@ import re
 import pytest
 from pypdf import PdfReader
 
-from app.compiler import FLOAT_SIZING, compile_pdf, find_compiler, prepare_float_sizing
+from app.compiler import (
+    FLOAT_FIT_NOTICE,
+    FLOAT_SIZING,
+    compile_pdf,
+    find_compiler,
+    prepare_float_sizing,
+)
 from app.i18n import MESSAGES
 
 
@@ -23,9 +29,10 @@ def test_float_hook_is_idempotent_and_preserves_body_and_includes(tmp_path):
     prepare_float_sizing(tmp_path)
     fitted = main.read_text(encoding="utf-8")
     assert FLOAT_SIZING.strip() in fitted
-    assert fitted[fitted.index(r"\begin{document}") :] == source[
-        source.index(r"\begin{document}") :
-    ]
+    assert (
+        fitted[fitted.index(r"\begin{document}") :]
+        == source[source.index(r"\begin{document}") :]
+    )
     assert child.read_text(encoding="utf-8") == body
     prepare_float_sizing(tmp_path)
     assert main.read_text(encoding="utf-8") == fitted
@@ -42,7 +49,9 @@ def test_float_hook_is_idempotent_and_preserves_body_and_includes(tmp_path):
         r"\begin{sidewaysfigure}An author-defined float.\end{sidewaysfigure}",
     ],
 )
-def test_comments_code_and_custom_float_examples_do_not_trigger_injection(tmp_path, body):
+def test_comments_code_and_custom_float_examples_do_not_trigger_injection(
+    tmp_path, body
+):
     main = tmp_path / "main.tex"
     source = r"\documentclass{article}\begin{document}" + body + r"\end{document}"
     main.write_text(source, encoding="utf-8")
@@ -85,11 +94,17 @@ async def test_native_oversized_float_keeps_every_row_caption_and_reference(
     )
     assert any("可能被裁切" in item for item in before_warnings)
     prepare_float_sizing(root)
+    notices = []
+
+    async def record(message):
+        notices.append(message)
+
     pdf, warnings = await compile_pdf(
-        root, "main.tex", tmp_path / "after", "tectonic", notify
+        root, "main.tex", tmp_path / "after", "tectonic", record
     )
-    assert len(warnings) == 1 and "已整体缩放" in warnings[0]
-    assert "scaled together" in MESSAGES[warnings[0]]
+    assert warnings == []
+    assert FLOAT_FIT_NOTICE in notices
+    assert "scaled together" in MESSAGES[FLOAT_FIT_NOTICE]
     log = (tmp_path / "after/main.log").read_text(encoding="utf-8")
     assert "Float too large for page" not in log
     assert "TeXGlot-Float-Fit:" in log
@@ -142,9 +157,7 @@ async def test_native_fitting_floats_keep_exact_pdf_content_streams_and_at_catco
     source = (
         r"\documentclass{article}\usepackage{graphicx}\makeatletter"
         r"\begin{document}\def\author@macro{Author catcode preserved}"
-        r"\author@macro\makeatother"
-        + body
-        + r"\end{document}"
+        r"\author@macro\makeatother" + body + r"\end{document}"
     )
     main.write_text(source, encoding="utf-8")
     before, old_warnings = await compile_pdf(

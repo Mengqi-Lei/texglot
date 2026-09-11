@@ -25,6 +25,7 @@
 .reader-tools,
 .reader-view-tools,
 .annotation-tools,
+.comparison-tools,
 .annotation-colors {
   display: flex;
   align-items: center;

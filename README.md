@@ -12,7 +12,7 @@
 </p>
 <p align="center"><strong>English</strong> · <a href="README_CN.md">简体中文</a></p>
 <p align="center">
-  <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.0.3.md">Release notes</a>
+  <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.0.4.md">Release notes</a>
 </p>
 
 
@@ -34,9 +34,10 @@ The name combines **TeX + Polyglot**. The browser interface and CLI use the same
 | **Source to PDF** | Import arXiv links/IDs or `.tex`, `.zip`, `.tar`, `.tar.gz`, `.tgz`, `.gz` projects. Download the translated PDF, original PDF and translated source ZIP. |
 | **Your model** | Use Qwen / Alibaba Model Studio, DeepSeek, or a compatible Chat Completions endpoint, including a local model service. |
 | **Context guidance** | Optionally use the paper's abstract to guide terminology. On by default; independently selectable for each task in the GUI and CLI. |
-| **Reading workspace** | Read original, translation or both; scroll continuously, synchronize by shared content landmarks, zoom and resume your reading position. |
+| **Reading workspace** | Read original, translation or both; swap sides, scroll continuously, synchronize by shared content landmarks, zoom and resume your reading position. |
 | **Local annotations** | Highlight, underline and add notes. Search and manage annotations in a sidebar; exported PDFs stay free of TeXGlot annotations. |
 | **Batch & resume** | Translate multiple papers from the terminal, resume interrupted tasks, reuse valid paragraph caches and export machine-readable results. |
+| **Desktop updates** | Get release reminders, download a verified installer and open it from the app. [Update guide](docs/desktop.md#update-reminders). |
 | **Two interface languages** | Chinese and English UI, independently of the translation target: Simplified Chinese, Traditional Chinese or English. |
 
 <p align="center"><img src="docs/assets/reader-en.png" width="100%" alt="Attention Is All You Need: aligned English prose, Chinese translation and experimental results in the comparison reader"></p>
@@ -50,16 +51,16 @@ Choose the **desktop installer** for your computer from [Releases](https://githu
 
 | Computer | Installer | Install |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.0.3-macOS-arm64.dmg` | Open and drag into Applications |
-| Mac · Intel | `TeXGlot-1.0.3-macOS-x64.dmg` | Open and drag into Applications |
-| Windows · x64 | `TeXGlot-1.0.3-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
+| Mac · Apple Silicon | `TeXGlot-1.0.4-macOS-arm64.dmg` | Open and drag into Applications |
+| Mac · Intel | `TeXGlot-1.0.4-macOS-x64.dmg` | Open and drag into Applications |
+| Windows · x64 | `TeXGlot-1.0.4-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
 
 Python, the interface and Tectonic are included. **No Python, Node.js or uv installation is required.** First compilation downloads TeX packages and fonts; papers with EPS figures additionally require Ghostscript. The initial packages have no publisher signing certificate / Apple notarization, so the OS may show an unknown-publisher warning. See the [desktop guide](docs/desktop.md) for installation, migration and platform validation. Only verified assets are attached to a release.
 
 <details>
 <summary>Install from source (developers and CLI users)</summary>
 
-Download and extract **`texglot-1.0.3-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
+Download and extract **`texglot-1.0.4-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git
