@@ -51,7 +51,13 @@ The value remains 6 and the equation is $x=1$."""
 async def test_real_compiler_preserves_threepart_table_and_notes(tmp_path):
     from pypdf import PdfReader
 
-    from app.compiler import compile_pdf, find_compiler, fit_tables
+    from app.compiler import (
+        TABLE_FITTING,
+        compile_pdf,
+        find_compiler,
+        fit_tables,
+        inject_preamble,
+    )
 
     if not find_compiler("tectonic"):
         pytest.skip("Optional native Tectonic not installed")
@@ -70,9 +76,11 @@ async def test_real_compiler_preserves_threepart_table_and_notes(tmp_path):
 \end{document}"""
     fixed, count = fit_tables(source)
     assert count == 1
-    assert r"\begin{adjustbox}{max width=\linewidth}\begin{threeparttable}" in fixed
+    assert r"\begin{TeXGlotFitTable}\begin{threeparttable}" in fixed
     assert fit_tables(fixed) == (fixed, 0)
-    (root / "main.tex").write_text(fixed, encoding="utf-8")
+    (root / "main.tex").write_text(
+        inject_preamble(fixed, TABLE_FITTING), encoding="utf-8"
+    )
 
     async def notify(_):
         pass

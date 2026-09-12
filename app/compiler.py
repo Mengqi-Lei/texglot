@@ -127,6 +127,30 @@ FLOAT_SIZING = r"""% texglot: fit complete oversized float boxes v1
 """
 
 
+TABLE_FITTING = r"""% texglot: fit complete measured table containers v1
+\usepackage{adjustbox}
+\begingroup
+\makeatletter
+\AtBeginDocument{%
+\newif\iftexglot@tablefit
+\newenvironment{TeXGlotFitTable}{%
+\iftexglot@tablefit
+\let\texglot@endtablefit\relax
+\else
+\texglot@tablefittrue
+\def\texglot@endtablefit{\end{adjustbox}}%
+\begin{adjustbox}{max width=\linewidth}%
+\fi\ignorespaces
+}{\texglot@endtablefit}%
+% Classes can insert this measurement scope without naming it in the paper.
+% Start fitting outside it, and leave inner generated wrappers inactive.
+\AddToHook{env/threeparttable/before}{\begin{TeXGlotFitTable}}%
+\AddToHook{env/threeparttable/after}{\end{TeXGlotFitTable}}%
+}
+\endgroup
+"""
+
+
 def prepare_float_sizing(root: Path) -> None:
     """Keep complete oversized standard figures and tables within a usable page."""
     sources = {
@@ -561,7 +585,7 @@ def normalize_legacy_cjk(text: str, engine: str) -> str:
 
 
 def fit_tables(text: str) -> tuple[str, int]:
-    """Fit complete table boxes, preserving caption/notes measurement scopes."""
+    """Mark complete table boxes for TABLE_FITTING's runtime scope handling."""
     count = 0
     visible = visible_tex(text)
     for match in reversed(
@@ -569,7 +593,9 @@ def fit_tables(text: str) -> tuple[str, int]:
     ):
         body = text[match.start() : match.end()]
         shown = visible[match.start() : match.end()]
-        if re.search(r"\\resizebox\b|\\begin\s*\{adjustbox\}", shown):
+        if re.search(
+            r"\\resizebox\b|\\begin\s*\{(?:adjustbox|TeXGlotFitTable)\}", shown
+        ):
             continue
         pairs = []
         start = None
@@ -594,9 +620,9 @@ def fit_tables(text: str) -> tuple[str, int]:
         for a, b in reversed(pairs):
             body = (
                 body[:a]
-                + r"\begin{adjustbox}{max width=\linewidth}"
+                + r"\begin{TeXGlotFitTable}"
                 + body[a:b]
-                + r"\end{adjustbox}"
+                + r"\end{TeXGlotFitTable}"
                 + body[b:]
             )
         count += len(pairs)

@@ -244,7 +244,7 @@ def test_table_width_and_pdftex_compatibility():
     assert r"\pdfoutput=1" not in fixed and "[xetex,colorlinks]" in fixed
     source = r"\begin{table}\begin{tabular}{lr}Name & 82.4\\\end{tabular}\end{table}"
     fixed, n = fit_tables(source)
-    assert n == 1 and r"max width=\linewidth" in fixed
+    assert n == 1 and r"\begin{TeXGlotFitTable}" in fixed
     assert r"Name & 82.4" in fixed
     assert fit_tables(fixed) == (fixed, 0)
 

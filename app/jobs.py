@@ -15,6 +15,7 @@ from pypdf import PdfReader
 
 from .compiler import (
     FLOAT_FIT_NOTICE,
+    TABLE_FITTING,
     break_long_code_identifiers,
     choose_compiler,
     compile_pdf,
@@ -496,7 +497,7 @@ class JobManager:
                 main_path.write_text(
                     inject_preamble(
                         main_path.read_text(encoding="utf-8"),
-                        r"\usepackage{adjustbox}" + "\n",
+                        TABLE_FITTING,
                     ),
                     encoding="utf-8",
                 )

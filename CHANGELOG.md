@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5 — 2026-09-12
+
+- Fit complete table measurement containers at runtime, including containers inserted by journal classes; preserve captions and notes without nesting incompatible fitting boxes. / 在实际排版时缩放完整的表格测量容器，覆盖期刊模板内部插入的包装，保留标题与注释，避免不兼容的嵌套缩放导致编译失败。
+
+[Release notes](docs/releases/v1.0.5.md) · [中文版本说明](docs/releases/v1.0.5_CN.md)
+
 ## 1.0.4 — 2026-09-11
 
 - Keep successful automatic figure/table fitting in processing logs, including existing tasks, while retaining warnings for unresolved layout problems. / 自动完成的图表缩放只记录到处理日志，兼容已有任务；未解决的排版问题仍会提示。
