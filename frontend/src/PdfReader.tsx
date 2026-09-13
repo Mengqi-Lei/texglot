@@ -32,6 +32,7 @@ import {
   Check,
 } from "lucide-react";
 import { useI18n } from "./i18n";
+import SelectionGroup from "./SelectionGroup";
 import { api, artifactURL, type Job } from "./types";
 import PdfPane, { type PaneHandle } from "./PdfPane";
 import { clamp } from "./readerGeometry";
@@ -678,7 +679,12 @@ export default function PdfReader({
           <strong>{job.name}</strong>
           <span>TeXGlot · {t("连续阅读")}</span>
         </div>
-        <div className="segmented reader-modes">
+        <SelectionGroup
+          value={mode}
+          className="segmented reader-modes"
+          role="group"
+          aria-label={t("阅读模式")}
+        >
           {(["translated", "original", "split"] as const).map((m) => (
             <button
               key={m}
@@ -696,7 +702,7 @@ export default function PdfReader({
               }
             </button>
           ))}
-        </div>
+        </SelectionGroup>
         <a
           className="primary small reader-download"
           aria-label={t("下载译文")}
@@ -733,7 +739,8 @@ export default function PdfReader({
               </button>
             </div>
           )}
-          <div
+          <SelectionGroup
+            value={tool}
             className="annotation-tools"
             role="group"
             aria-label={t("批注工具")}
@@ -760,7 +767,7 @@ export default function PdfReader({
                 <Icon size={17} />
               </button>
             ))}
-          </div>
+          </SelectionGroup>
           <div
             className="annotation-colors"
             role="group"
@@ -977,7 +984,12 @@ export default function PdfReader({
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <div className="note-scope">
+              <SelectionGroup
+                value={scope}
+                className="note-scope"
+                role="group"
+                aria-label={t("筛选批注")}
+              >
                 {[
                   ["all", "全部"],
                   ["original", "原文"],
@@ -986,12 +998,13 @@ export default function PdfReader({
                   <button
                     key={value}
                     className={scope === value ? "selected" : ""}
+                    aria-pressed={scope === value}
                     onClick={() => setScope(value)}
                   >
                     {t(label)}
                   </button>
                 ))}
-              </div>
+              </SelectionGroup>
             </div>
             <div className="annotations-list">
               {!shown.length && (

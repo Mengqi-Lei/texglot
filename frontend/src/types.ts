@@ -64,7 +64,7 @@ export const statusNames: Record<string, string> = {
 };
 export const defaults: Settings = {
   base_url: "https://api.deepseek.com",
-  model: "deepseek-v4-flash",
+  model: "deepseek-flash",
   target_language: "简体中文",
   context_guidance: true,
   concurrency: 3,

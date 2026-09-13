@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleHelp } from "lucide-react";
 import { useI18n } from "./i18n";
+import { usePresence } from "./motion";
 
 function GuidanceHelp({ description }: { description: string }) {
   const { t } = useI18n();
@@ -11,6 +12,7 @@ function GuidanceHelp({ description }: { description: string }) {
   const pinned = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState(false);
+  const present = usePresence(open);
   const [position, setPosition] = useState<{
     left: number;
     top: number;
@@ -111,13 +113,15 @@ function GuidanceHelp({ description }: { description: string }) {
       >
         <CircleHelp size={15} />
       </button>
-      {open &&
+      {present &&
         createPortal(
           <div
             ref={bubble}
             id={id}
             role="tooltip"
+            aria-hidden={!open}
             className="guidance-tooltip"
+            data-closing={!open || undefined}
             style={{ ...position, visibility: position ? "visible" : "hidden" }}
             onPointerEnter={clearTimer}
             onPointerLeave={leave}

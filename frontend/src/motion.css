@@ -1,0 +1,115 @@
+/* One restrained motion language, independent of each view's visual styling. */
+:root {
+  --motion-fast: 140ms;
+  --motion-standard: 220ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.selection-group {
+  position: relative;
+  isolation: isolate;
+}
+.selection-group > button {
+  position: relative;
+  z-index: 1;
+}
+.selection-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: var(--selection-radius, 7px);
+  background: var(--selection-background, white);
+  box-shadow: var(--selection-shadow, none);
+  transition:
+    transform var(--motion-standard) var(--motion-ease),
+    width var(--motion-standard) var(--motion-ease),
+    height var(--motion-standard) var(--motion-ease);
+}
+.selection-group[data-sliding]
+  > button:is(.selected, [aria-pressed="true"], [aria-selected="true"]) {
+  background: transparent;
+  box-shadow: none;
+}
+@keyframes content-appear {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes overlay-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialog-appear {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+    scale: 0.99;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes sidebar-appear {
+  from {
+    opacity: 0;
+    translate: 6px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-intro,
+  .library-hero,
+  .job-detail,
+  .job-logs,
+  .advanced[open] > .field-row,
+  .toast,
+  .update-notice,
+  .guidance-tooltip {
+    animation: content-appear var(--motion-standard) var(--motion-ease) both;
+  }
+  .modal-backdrop,
+  .update-dialog[open]::backdrop {
+    animation: overlay-appear var(--motion-standard) var(--motion-ease) both;
+  }
+  .settings-modal,
+  .update-dialog[open] {
+    animation: dialog-appear var(--motion-standard) var(--motion-ease) both;
+  }
+  .modal-backdrop[data-closing],
+  .update-dialog[open][data-closing]::backdrop {
+    animation: overlay-appear var(--motion-fast) ease-in reverse both;
+  }
+  .modal-backdrop[data-closing] .settings-modal,
+  .update-dialog[open][data-closing] {
+    animation: dialog-appear var(--motion-fast) ease-in reverse both;
+  }
+  .guidance-tooltip[data-closing] {
+    animation: content-appear var(--motion-fast) ease-in reverse both;
+    pointer-events: none;
+  }
+  .annotations-sidebar {
+    animation: sidebar-appear var(--motion-standard) var(--motion-ease) both;
+  }
+  :is(.primary, .secondary, .icon-button, .settings-button):not(
+      :disabled
+    ):active {
+    scale: 0.97;
+  }
+}

@@ -92,7 +92,7 @@ texglot --show-config
 
 Plain `--configure` prompts for the endpoint, model and a hidden key. In scripts, set a secret environment variable and use `--key-env` to read it; avoid key literals in command arguments. `--show-config` reports only whether a key exists.
 
-`--provider qwen|deepseek|custom` is used with `--configure`. Qwen defaults to `qwen3.7-plus`; its initial configuration needs the OpenAI-compatible endpoint from your Alibaba workspace. Replace the workspace placeholder above. Switching to a previously saved provider restores its connection; a new endpoint never inherits another endpoint's key. An empty key preserves the saved key for the same address. `--configure --clear-key` removes only the current address's saved key.
+`--provider qwen|deepseek|custom` is used with `--configure`. Qwen defaults to `qwen3.8-flash`; its initial configuration needs the OpenAI-compatible endpoint from your Alibaba workspace. Replace the workspace placeholder above. Switching to a previously saved provider restores its connection; a new endpoint never inherits another endpoint's key. An empty key preserves the saved key for the same address. `--configure --clear-key` removes only the current address's saved key.
 
 ## Service and storage
 

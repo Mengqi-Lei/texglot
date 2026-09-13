@@ -10,6 +10,7 @@ import {
 import { useI18n } from "./i18n";
 import { prepareUpdate, type UpdateState } from "./updates";
 import { keepDialogFocus } from "./dialogFocus";
+import { usePresence } from "./motion";
 import "./updates.css";
 
 const errors: Record<string, string> = {
@@ -29,6 +30,7 @@ export default function UpdateCenter() {
   const [error, setError] = useState(""),
     [preparing, setPreparing] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
+  const visible = usePresence(open && !!state);
   const dismissRef = useRef(() => {});
   const bridge = window.texglotDesktop?.updates;
   const accept = (next: UpdateState) =>
@@ -60,7 +62,7 @@ export default function UpdateCenter() {
     };
   }, [bridge]);
   useEffect(() => {
-    if (!open || !state) return;
+    if (!visible || !state) return;
     dialog.current?.showModal();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -82,7 +84,7 @@ export default function UpdateCenter() {
       document.body.style.overflow = previousOverflow;
       dialog.current?.close();
     };
-  }, [open, !!state]);
+  }, [visible, !!state]);
   if (!bridge || !state) return null;
   const noticeKey = `${state.version}:${state.status === "ready" ? "ready" : "available"}`;
   const dismissDialog = () => {
@@ -112,7 +114,7 @@ export default function UpdateCenter() {
   };
   return (
     <>
-      {!open && available && noticeKey !== dismissed && (
+      {!visible && available && noticeKey !== dismissed && (
         <div className="update-notice" role="status">
           <ArrowDownToLine size={19} />
           <div>
@@ -138,6 +140,7 @@ export default function UpdateCenter() {
       <dialog
         ref={dialog}
         className="update-dialog"
+        data-closing={!open || undefined}
         aria-labelledby="update-title"
         onCancel={(event) => {
           event.preventDefault();
@@ -151,7 +154,7 @@ export default function UpdateCenter() {
           keepDialogFocus(event, dialog.current);
         }}
       >
-        <div className="update-dialog-content">
+        <div className="update-dialog-content" inert={!open}>
           <button
             className="icon-button update-close"
             title={t("关闭")}

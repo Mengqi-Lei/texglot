@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 — 2026-09-13
+
+- Add restrained selection, switch, dialog and content transitions while preserving the existing visual style, reading anchors and reduced-motion preferences. / 保留现有外观，为选项、开关、弹窗和内容切换增加克制的过渡动画，保留阅读定位并适配减少动态效果偏好。
+- Refresh model presets to Qwen 3.8 Flash (`qwen3.8-flash`) and DeepSeek V4.1 Flash (`deepseek-flash`) across the interface and CLI; keep saved model selections and connections. / 界面与 CLI 预设更新为 Qwen 3.8 Flash 和 DeepSeek V4.1 Flash，保留已保存的模型选择与连接。
+
+[Release notes](docs/releases/v1.1.0.md) · [中文版本说明](docs/releases/v1.1.0_CN.md)
+
 ## 1.0.5 — 2026-09-12
 
 - Fit complete table measurement containers at runtime, including containers inserted by journal classes; preserve captions and notes without nesting incompatible fitting boxes. / 在实际排版时缩放完整的表格测量容器，覆盖期刊模板内部插入的包装，保留标题与注释，避免不兼容的嵌套缩放导致编译失败。

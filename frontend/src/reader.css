@@ -61,6 +61,7 @@
   padding: 6px 9px;
 }
 .annotation-tools {
+  --selection-background: #e3edfc;
   border-left: 1px solid #dddde5;
   padding-left: 10px;
 }
@@ -82,12 +83,21 @@
   border-radius: 50%;
   position: relative;
 }
-.color-dot.selected::after {
+.color-dot::after {
   content: "";
   position: absolute;
   inset: -4px;
   border-radius: inherit;
   border: 1px solid #8b8b96;
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity var(--motion-fast) ease,
+    transform var(--motion-standard) var(--motion-ease);
+}
+.color-dot.selected::after {
+  opacity: 1;
+  transform: scale(1);
 }
 .annotation-colors {
   gap: 9px;
@@ -356,6 +366,8 @@
   box-shadow: none !important;
 }
 .note-scope {
+  --selection-background: #e8e8ef;
+  --selection-radius: 6px;
   display: flex;
   gap: 5px;
   margin-top: 10px;
@@ -367,7 +379,7 @@
   padding: 4px 9px;
 }
 .note-scope button.selected {
-  background: #e8e8ef;
+  background: var(--selection-background);
   color: #5a5a65;
 }
 .annotations-list {

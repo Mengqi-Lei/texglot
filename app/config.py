@@ -21,7 +21,7 @@ CONFIG = DATA / "settings.json"
 
 class Settings(BaseModel):
     base_url: str = "https://api.deepseek.com"
-    model: str = "deepseek-v4-flash"
+    model: str = PROVIDERS["deepseek"]["model"]
     api_key: str = ""
     target_language: str = "简体中文"
     context_guidance: bool = True

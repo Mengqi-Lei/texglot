@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import Settings from "./Settings";
 import ContextGuidance from "./ContextGuidance";
+import SelectionGroup from "./SelectionGroup";
+import { useContentMotion, usePresence } from "./motion";
 import {
   api,
   artifactURL,
@@ -233,6 +235,8 @@ function JobDetail({
         )}
         <button
           className="text-button log-toggle"
+          aria-expanded={logs}
+          aria-controls={`job-logs-${job.id}`}
           onClick={() => setLogs(!logs)}
         >
           <Terminal size={14} />
@@ -241,7 +245,7 @@ function JobDetail({
         </button>
       </div>
       {logs && (
-        <div className="job-logs">
+        <div className="job-logs" id={`job-logs-${job.id}`}>
           {job.logs.map((l, i) => (
             <p key={i}>
               <time>
@@ -283,6 +287,16 @@ export default function App() {
     [notice, setNotice] = useState(""),
     [error, setError] = useState(""),
     [connected, setConnected] = useState(true);
+  const settingsPresent = usePresence(showSettings);
+  const content = useRef<HTMLDivElement>(null);
+  const sourcePanel = useRef<HTMLDivElement>(null);
+  const jobList = useRef<HTMLDivElement>(null);
+  useContentMotion(content, section, { active: !reader });
+  useContentMotion(sourcePanel, tab, {
+    resize: true,
+    active: section === "workspace" && !reader,
+  });
+  useContentMotion(jobList, filter, { active: !reader });
   const input = useRef<HTMLInputElement>(null),
     arxivInput = useRef<HTMLInputElement>(null),
     noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
@@ -459,7 +473,12 @@ export default function App() {
             <img className="brand-mark" src={logoURL} alt="" />
             <strong>TeXGlot</strong>
           </a>
-          <nav className="app-nav" aria-label={t("主要导航")}>
+          <SelectionGroup
+            as="nav"
+            value={section}
+            className="app-nav"
+            aria-label={t("主要导航")}
+          >
             <button
               className={section === "workspace" ? "selected" : ""}
               aria-current={section === "workspace" ? "page" : undefined}
@@ -474,9 +493,10 @@ export default function App() {
             >
               {t("文献库")}
             </button>
-          </nav>
+          </SelectionGroup>
           <div className="header-actions">
-            <div
+            <SelectionGroup
+              value={locale}
               className="locale-switch"
               role="group"
               aria-label="界面语言 / Interface language"
@@ -495,7 +515,7 @@ export default function App() {
               >
                 EN
               </button>
-            </div>
+            </SelectionGroup>
             <span className="connection-status">
               <i className={connected ? "" : "offline"} />
               {connected ? t("本地运行") : t("连接中断")}
@@ -512,12 +532,10 @@ export default function App() {
         </div>
       </header>
       <main>
-        <div className="main-content">
+        <div className="main-content" ref={content}>
           {!connected && (
             <div className="error-box">
-              {t(
-                "无法连接本地服务。请运行 texglot --serve，页面会自动重连。",
-              )}
+              {t("无法连接本地服务。请运行 texglot --serve，页面会自动重连。")}
             </div>
           )}
           {section === "workspace" ? (
@@ -527,13 +545,17 @@ export default function App() {
                 <p>{t("导入 arXiv 链接或 LaTeX 源码，生成翻译后的 PDF。")}</p>
               </section>
               <section className="input-card">
-                <div
+                <SelectionGroup
+                  value={tab}
                   className="input-tabs"
                   role="tablist"
                   aria-label={t("论文来源")}
                 >
                   <button
+                    id="source-tab-arxiv"
                     role="tab"
+                    tabIndex={tab === "arxiv" ? 0 : -1}
+                    aria-controls="source-panel"
                     aria-selected={tab === "arxiv"}
                     className={tab === "arxiv" ? "selected" : ""}
                     onClick={() => {
@@ -545,7 +567,10 @@ export default function App() {
                     {t("arXiv 链接")}
                   </button>
                   <button
+                    id="source-tab-file"
                     role="tab"
+                    tabIndex={tab === "file" ? 0 : -1}
+                    aria-controls="source-panel"
                     aria-selected={tab === "file"}
                     className={tab === "file" ? "selected" : ""}
                     onClick={() => {
@@ -556,8 +581,14 @@ export default function App() {
                     <FileArchive size={17} />
                     {t("LaTeX 源码")}
                   </button>
-                </div>
-                <div className="input-body">
+                </SelectionGroup>
+                <div
+                  className="input-body"
+                  ref={sourcePanel}
+                  id="source-panel"
+                  role="tabpanel"
+                  aria-labelledby={`source-tab-${tab}`}
+                >
                   {tab === "arxiv" ? (
                     <>
                       <label className="input-label" htmlFor="arxiv">
@@ -751,7 +782,12 @@ export default function App() {
             </header>
             {jobs.length > 0 && (
               <div className="library-tools">
-                <div className="filter-tabs">
+                <SelectionGroup
+                  value={filter}
+                  className="filter-tabs"
+                  role="group"
+                  aria-label={t("筛选文献")}
+                >
                   {[
                     ["all", t("全部")],
                     ["done", t("已完成")],
@@ -760,12 +796,13 @@ export default function App() {
                     <button
                       key={value}
                       className={filter === value ? "selected" : ""}
+                      aria-pressed={filter === value}
                       onClick={() => setFilter(value)}
                     >
                       {label}
                     </button>
                   ))}
-                </div>
+                </SelectionGroup>
                 <div className="search-box">
                   <Search size={14} />
                   <input
@@ -777,7 +814,7 @@ export default function App() {
                 </div>
               </div>
             )}
-            <div className="jobs-list">
+            <div className="jobs-list" ref={jobList}>
               {(section === "workspace" ? shown.slice(0, 5) : shown).map(
                 (job) => (
                   <article
@@ -914,8 +951,9 @@ export default function App() {
           </section>
         </div>
       </main>
-      {showSettings && (
+      {settingsPresent && (
         <Settings
+          closing={!showSettings}
           value={settings}
           health={health}
           onClose={() => setShowSettings(false)}

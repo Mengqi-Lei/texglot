@@ -12,7 +12,7 @@
 </p>
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 <p align="center">
-  <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.0.5_CN.md">版本说明</a>
+  <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.1.0_CN.md">版本说明</a>
 </p>
 
 
@@ -51,16 +51,16 @@ https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
 
 | 电脑 | 安装包 | 使用方式 |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.0.5-macOS-arm64.dmg` | 打开后拖入 Applications |
-| Mac · Intel | `TeXGlot-1.0.5-macOS-x64.dmg` | 打开后拖入 Applications |
-| Windows · x64 | `TeXGlot-1.0.5-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
+| Mac · Apple Silicon | `TeXGlot-1.1.0-macOS-arm64.dmg` | 打开后拖入 Applications |
+| Mac · Intel | `TeXGlot-1.1.0-macOS-x64.dmg` | 打开后拖入 Applications |
+| Windows · x64 | `TeXGlot-1.1.0-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
 
 安装包内置 Python、网页界面和 Tectonic，**无需安装 Python、Node.js 或 uv**。首次编译需要联网下载 TeX 宏包与字体；含 EPS 插图的论文还需要安装 Ghostscript。首批安装包尚未经过发布者签名／Apple 公证，系统可能显示未知发布者提示；平台验证状态、数据迁移与安装说明见[桌面指南](docs/desktop_CN.md)。只提供已验证的 Release 附件。
 
 <details>
 <summary>从源码安装（开发者与 CLI 用户）</summary>
 
-从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.0.5-source.zip`**，或克隆仓库：
+从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.1.0-source.zip`**，或克隆仓库：
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git
@@ -97,8 +97,8 @@ bash start-texglot.command
 
 | 服务商 | 预设模型 | API 地址 |
 | :--- | :--- | :--- |
-| Qwen / 阿里云百炼 | `qwen3.7-plus` | 从业务空间的 API Key 页面复制 **OpenAI 兼容地址**，须与密钥的地域和业务空间一致。 |
-| DeepSeek | `deepseek-v4-flash` | `https://api.deepseek.com` |
+| Qwen / 阿里云百炼 | `qwen3.8-flash` | 从业务空间的 API Key 页面复制 **OpenAI 兼容地址**，须与密钥的地域和业务空间一致。 |
+| DeepSeek V4.1 Flash | `deepseek-flash` | `https://api.deepseek.com` |
 | 自定义 / 本地模型 | 已安装或有权限使用的模型 | 例如 Ollama 的 `http://localhost:11434/v1`；本地无鉴权服务可以不填密钥。 |
 
 预设均可修改，模型权限和费用由服务商账户决定。Qwen 请求默认关闭深度思考。密钥与接口信息可参考 [千问首次调用](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen) 和 [DeepSeek 文档](https://api-docs.deepseek.com/zh-cn/)。

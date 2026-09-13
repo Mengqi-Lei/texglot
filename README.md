@@ -12,7 +12,7 @@
 </p>
 <p align="center"><strong>English</strong> · <a href="README_CN.md">简体中文</a></p>
 <p align="center">
-  <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.0.5.md">Release notes</a>
+  <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.1.0.md">Release notes</a>
 </p>
 
 
@@ -51,16 +51,16 @@ Choose the **desktop installer** for your computer from [Releases](https://githu
 
 | Computer | Installer | Install |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.0.5-macOS-arm64.dmg` | Open and drag into Applications |
-| Mac · Intel | `TeXGlot-1.0.5-macOS-x64.dmg` | Open and drag into Applications |
-| Windows · x64 | `TeXGlot-1.0.5-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
+| Mac · Apple Silicon | `TeXGlot-1.1.0-macOS-arm64.dmg` | Open and drag into Applications |
+| Mac · Intel | `TeXGlot-1.1.0-macOS-x64.dmg` | Open and drag into Applications |
+| Windows · x64 | `TeXGlot-1.1.0-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
 
 Python, the interface and Tectonic are included. **No Python, Node.js or uv installation is required.** First compilation downloads TeX packages and fonts; papers with EPS figures additionally require Ghostscript. The initial packages have no publisher signing certificate / Apple notarization, so the OS may show an unknown-publisher warning. See the [desktop guide](docs/desktop.md) for installation, migration and platform validation. Only verified assets are attached to a release.
 
 <details>
 <summary>Install from source (developers and CLI users)</summary>
 
-Download and extract **`texglot-1.0.5-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
+Download and extract **`texglot-1.1.0-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git
@@ -97,8 +97,8 @@ Open **TeXGlot** (or **http://127.0.0.1:8765** for a source installation), choos
 
 | Provider | Model preset | API base URL |
 | :--- | :--- | :--- |
-| Qwen / Alibaba Model Studio | `qwen3.7-plus` | Copy the **OpenAI-compatible** endpoint from your workspace's API Key page. It must match the key's region and workspace. |
-| DeepSeek | `deepseek-v4-flash` | `https://api.deepseek.com` |
+| Qwen / Alibaba Model Studio | `qwen3.8-flash` | Copy the **OpenAI-compatible** endpoint from your workspace's API Key page. It must match the key's region and workspace. |
+| DeepSeek V4.1 Flash | `deepseek-flash` | `https://api.deepseek.com` |
 | Custom / local | Your installed or available model | For example, `http://localhost:11434/v1` for Ollama. A local endpoint without authentication can use an empty key. |
 
 Presets are editable. Model availability and billing depend on your provider account. Qwen requests disable thinking by default. Refer to the [Qwen quick start](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen) or [DeepSeek documentation](https://api-docs.deepseek.com/) for credentials and endpoint details.

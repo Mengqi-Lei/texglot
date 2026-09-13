@@ -22,11 +22,13 @@ import {
 
 export default function Settings({
   value,
+  closing,
   health,
   onClose,
   onSave,
 }: {
   value: Config;
+  closing: boolean;
   health: Health | null;
   onClose: () => void;
   onSave: (s: Config) => void;
@@ -139,6 +141,7 @@ export default function Settings({
   return (
     <div
       className="modal-backdrop"
+      data-closing={closing || undefined}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -146,6 +149,7 @@ export default function Settings({
       <section
         ref={dialog}
         className="settings-modal"
+        inert={closing}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
@@ -217,19 +221,19 @@ export default function Settings({
                   list="provider-models"
                   placeholder={
                     selectedProvider === "qwen"
-                      ? "qwen3.7-plus"
+                      ? "qwen3.8-flash"
                       : selectedProvider === "deepseek"
-                        ? "deepseek-v4-flash"
+                        ? "deepseek-flash"
                         : t("输入模型名称")
                   }
                   spellCheck={false}
                 />
                 <datalist id="provider-models">
                   {selectedProvider === "qwen" && (
-                    <option value="qwen3.7-plus">Qwen3.7 Plus</option>
+                    <option value="qwen3.8-flash">Qwen 3.8 Flash</option>
                   )}
                   {selectedProvider === "deepseek" && (
-                    <option value="deepseek-v4-flash">DeepSeek V4 Flash</option>
+                    <option value="deepseek-flash">DeepSeek V4.1 Flash</option>
                   )}
                 </datalist>
               </label>

@@ -36,11 +36,16 @@ def test_provider_host_boundaries(url, expected):
 
 
 @pytest.mark.parametrize(
-    "url,provider_fields", [(URL, True), ("https://third-party.example/v1", False)]
+    "url,model,provider",
+    [
+        (URL, "qwen3.8-flash", "qwen"),
+        (URL, "qwen3.7-plus", "qwen"),
+        ("https://api.deepseek.com", "deepseek-flash", "deepseek"),
+        ("https://third-party.example/v1", "qwen3.8-flash", "custom"),
+        ("https://third-party.example/v1", "deepseek-flash", "custom"),
+    ],
 )
-async def test_qwen_non_thinking_and_json_mode_stay_on_official_host(
-    url, provider_fields
-):
+async def test_non_thinking_and_json_mode_stay_on_official_hosts(url, model, provider):
     calls = []
 
     def handler(request):
@@ -53,17 +58,22 @@ async def test_qwen_non_thinking_and_json_mode_stay_on_official_host(
             },
         )
 
-    t = Translator(Settings(base_url=url, model="qwen3.7-plus"))
+    t = Translator(Settings(base_url=url, model=model))
     await t.client.aclose()
     t.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
         await t.complete([{"role": "user", "content": "Return JSON"}], json_output=True)
-        assert ("enable_thinking" in calls[0]) == provider_fields
-        assert ("response_format" in calls[0]) == provider_fields
-        if provider_fields:
+        assert calls[0]["model"] == model
+        assert ("enable_thinking" in calls[0]) == (provider == "qwen")
+        assert ("thinking" in calls[0]) == (provider == "deepseek")
+        assert ("response_format" in calls[0]) == (provider != "custom")
+        if provider == "qwen":
             assert calls[0]["enable_thinking"] is False
+        if provider == "deepseek":
+            assert calls[0]["thinking"] == {"type": "disabled"}
+        if provider != "custom":
             assert calls[0]["response_format"] == {"type": "json_object"}
-        assert "thinking" not in calls[0] and "extra_body" not in calls[0]
+        assert "extra_body" not in calls[0]
         assert t.tokens == 12
     finally:
         await t.close()
@@ -77,7 +87,8 @@ def test_provider_switch_remembers_exact_endpoint_keys_without_exposing_them(
     qwen = save_settings(
         {"provider": "qwen", "base_url": URL, "api_key": "qwen-private-key"}
     )
-    assert qwen.model == "qwen3.7-plus"
+    assert deep.model == "deepseek-flash"
+    assert qwen.model == "qwen3.8-flash"
     assert save_settings({"provider": "deepseek"}).api_key == "deep-private-key"
     assert save_settings({"provider": "qwen"}).api_key == "qwen-private-key"
     assert merge_settings(qwen, {"base_url": URL + "/another"}).api_key == ""
@@ -115,7 +126,33 @@ def test_first_qwen_preset_requires_workspace_address_and_env_is_provider_scoped
 
 
 def test_dotted_provider_keys_are_fully_redacted():
-    assert redact("Failure " + "sk-" + "test.payload.signature") == "Failure [密钥已隐藏]"
+    assert (
+        redact("Failure " + "sk-" + "test.payload.signature") == "Failure [密钥已隐藏]"
+    )
+
+
+@pytest.mark.parametrize(
+    "url,model,provider",
+    [
+        (URL, "qwen3.7-plus", "qwen"),
+        ("https://api.deepseek.com", "deepseek-v4-flash", "deepseek"),
+        ("http://localhost:11434/v1", "my-local-model", "custom"),
+    ],
+)
+def test_new_presets_preserve_saved_model_choices(
+    tmp_path, monkeypatch, url, model, provider
+):
+    monkeypatch.setattr(config, "CONFIG", tmp_path / "settings.json")
+    config.CONFIG.write_text(
+        json.dumps({"base_url": url, "model": model, "api_key": "saved-test-key"})
+    )
+    assert config.load_settings().model == model
+    assert next(p for p in provider_options() if p["id"] == provider)["model"] == model
+    other_url = URL if provider == "deepseek" else "https://api.deepseek.com"
+    save_settings({"base_url": other_url, "model": "another-model"})
+    restored = save_settings({"provider": provider})
+    assert restored.model == model
+    assert restored.api_key == "saved-test-key"
 
 
 async def test_cli_selects_provider_without_sending_credentials_in_command_line(

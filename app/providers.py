@@ -7,14 +7,14 @@ PROVIDERS = {
     "qwen": {
         "name": "Qwen · 百炼",
         "base_url": "",
-        "model": "qwen3.7-plus",
+        "model": "qwen3.8-flash",
         "placeholder": "https://YOUR_WORKSPACE_ID.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
         "docs": "https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen",
     },
     "deepseek": {
         "name": "DeepSeek",
         "base_url": "https://api.deepseek.com",
-        "model": "deepseek-v4-flash",
+        "model": "deepseek-flash",
         "placeholder": "https://api.deepseek.com",
         "docs": "https://api-docs.deepseek.com/",
     },

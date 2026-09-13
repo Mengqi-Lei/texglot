@@ -38,7 +38,7 @@ def parser():
     p = argparse.ArgumentParser(
         prog="texglot",
         description="TeXGlot · arXiv / LaTeX → translated PDF · 本地论文翻译",
-        epilog="Examples:\n  texglot https://arxiv.org/abs/1706.03762\n  texglot paper.tex project.zip -o ./papers\n  texglot --batch papers.txt --language zh\n  texglot --resume TASK_ID\n  texglot --configure --model deepseek-v4-flash --key-env DEEPSEEK_API_KEY",
+        epilog="Examples:\n  texglot https://arxiv.org/abs/1706.03762\n  texglot paper.tex project.zip -o ./papers\n  texglot --batch papers.txt --language zh\n  texglot --resume TASK_ID\n  texglot --configure --model deepseek-flash --key-env DEEPSEEK_API_KEY",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument(
@@ -150,7 +150,7 @@ def parser():
     p.add_argument(
         "--test", action="store_true", help="test API connection after --configure"
     )
-    p.add_argument("--version", action="version", version="TeXGlot 1.0.5")
+    p.add_argument("--version", action="version", version="TeXGlot 1.1.0")
     return p
 
 

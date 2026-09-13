@@ -123,7 +123,7 @@ texglot --configure --provider qwen
 texglot --show-config
 ```
 
-无参数的 `--configure` 会交互式询问地址、模型和隐藏输入的密钥。脚本可用 `--key-env` 从已设置的环境变量读取密钥，避免把密钥写进命令参数。`--show-config` 只显示密钥是否存在。`--provider` 可选 `qwen`、`deepseek`、`custom`，仅用于 `--configure`。Qwen 预设模型为 `qwen3.7-plus`，首次配置必须填写百炼控制台提供的 OpenAI 兼容地址；以上工作空间 ID 需要替换为实际值。更换 API 地址时不会沿用旧服务密钥；已保存的相同地址可恢复自己的密钥，同地址留空保留。`--configure --clear-key` 清除当前地址保存的密钥，其他服务的配置不受影响。本地无鉴权模型可以留空。
+无参数的 `--configure` 会交互式询问地址、模型和隐藏输入的密钥。脚本可用 `--key-env` 从已设置的环境变量读取密钥，避免把密钥写进命令参数。`--show-config` 只显示密钥是否存在。`--provider` 可选 `qwen`、`deepseek`、`custom`，仅用于 `--configure`。Qwen 预设模型为 `qwen3.8-flash`，首次配置必须填写百炼控制台提供的 OpenAI 兼容地址；以上工作空间 ID 需要替换为实际值。更换 API 地址时不会沿用旧服务密钥；已保存的相同地址可恢复自己的密钥，同地址留空保留。`--configure --clear-key` 清除当前地址保存的密钥，其他服务的配置不受影响。本地无鉴权模型可以留空。
 
 ## 本地服务与安装包
 
