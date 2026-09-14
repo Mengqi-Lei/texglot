@@ -22,6 +22,7 @@ from .compiler import (
     compiled_dependencies,
     fit_tables,
     inject_preamble,
+    normalize_float_spacing,
     prepare_chinese,
     prepare_engine_sources,
     probe_source_dependencies,
@@ -482,9 +483,11 @@ class JobManager:
         def write_sources(outputs):
             # Preflight and final output must run exactly the same transformations.
             # Otherwise a layout-only change can first fail after paid translation.
-            table_count = 0
+            table_count = spacing_count = 0
             for rel, (text, items) in files.items():
                 output = apply_translations(text, items, outputs)
+                output, spacers = normalize_float_spacing(output)
+                spacing_count += spacers
                 output = break_long_code_identifiers(output, math_aliases=math_aliases)
                 output, fitted = fit_tables(output)
                 table_count += fitted
@@ -501,7 +504,7 @@ class JobManager:
                     ),
                     encoding="utf-8",
                 )
-            return table_count
+            return table_count, spacing_count
 
         write_sources(source_outputs)
         probe_source = (work / main).read_text(encoding="utf-8")
@@ -629,9 +632,11 @@ class JobManager:
             job["tokens"] = job["previous_tokens"]
             await client.close()
             self.persist(job)
-        table_count = write_sources(translated)
+        table_count, spacing_count = write_sources(translated)
         if table_count:
             await log(f"为 {table_count} 个表格设置页宽上限，避免译文溢出页边距")
+        if spacing_count:
+            await log(f"已调整 {spacing_count} 处浮动图表外的负间距，避免正文重叠")
         if failed:
             job["warnings"].append(
                 f"{len(failed)} / {len(unique)} 段落未通过翻译检查，PDF 对应位置保留了原文，可点击继续重试"

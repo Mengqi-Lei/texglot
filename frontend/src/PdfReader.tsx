@@ -33,6 +33,9 @@ import {
 } from "lucide-react";
 import { useI18n } from "./i18n";
 import SelectionGroup from "./SelectionGroup";
+import SelectionToolbar from "./SelectionToolbar";
+import PdfFindBar from "./PdfFindBar";
+import { emptyFindStatus, type FindStatus } from "./pdfSearch";
 import { api, artifactURL, type Job } from "./types";
 import PdfPane, { type PaneHandle } from "./PdfPane";
 import { clamp } from "./readerGeometry";
@@ -93,6 +96,12 @@ export default function PdfReader({
     [selected, setSelected] = useState(""),
     [draft, setDraft] = useState(""),
     [search, setSearch] = useState(""),
+    [findOpen, setFindOpen] = useState(false),
+    [findQuery, setFindQuery] = useState(""),
+    [findSide, setFindSide] = useState<DocumentSide>("translated"),
+    [findFocus, setFindFocus] = useState(0),
+    [findStep, setFindStep] = useState({ sequence: 0, previous: false }),
+    [findStatus, setFindStatus] = useState<FindStatus>(emptyFindStatus),
     [scope, setScope] = useState("all"),
     [popup, setPopup] = useState<(SelectionDraft & { id: string }) | null>(
       null,
@@ -118,6 +127,46 @@ export default function PdfReader({
   dataRef.current = data;
   preferences.current = { mode, zoom, sync, active, left };
   popupRef.current = popup;
+  const findRef = useRef({ open: findOpen, side: findSide });
+  findRef.current = { open: findOpen, side: findSide };
+  const findRequest = useMemo(
+    () => (findOpen ? { query: findQuery, ...findStep } : null),
+    [findOpen, findQuery, findStep, findSide],
+  );
+  const openFind = () => {
+    const selection = window.getSelection();
+    if (
+      selection?.anchorNode &&
+      selection.focusNode &&
+      pdfContent.current?.contains(selection.anchorNode) &&
+      pdfContent.current.contains(selection.focusNode)
+    ) {
+      const text = selection.toString().trim();
+      if (text && text.length <= 200) setFindQuery(text);
+    }
+    capturePositions();
+    setFindSide(preferences.current.active);
+    setFindOpen(true);
+    setFindFocus((value) => value + 1);
+    setPopup(null);
+    window.getSelection()?.removeAllRanges();
+  };
+  const closeFind = () => {
+    setFindOpen(false);
+    pane(findRef.current.side)?.focus();
+  };
+  const findActions = useRef({ openFind, closeFind });
+  findActions.current = { openFind, closeFind };
+  useEffect(() => {
+    if (findOpen && mode !== "split") setFindSide(mode);
+  }, [mode, findOpen]);
+  useEffect(() => {
+    setFindStatus(
+      findOpen && findQuery.trim()
+        ? { ...emptyFindStatus, pending: true }
+        : emptyFindStatus,
+    );
+  }, [findQuery, findSide, findOpen]);
   const pane = (side: DocumentSide) =>
     side === "original" ? original.current : translated.current;
   const mapper = useMemo(
@@ -576,6 +625,28 @@ export default function PdfReader({
   closeRef.current = close;
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.altKey &&
+        !e.shiftKey &&
+        e.key.toLowerCase() === "f"
+      ) {
+        e.preventDefault();
+        findActions.current.openFind();
+        return;
+      }
+      if (e.key === "Escape" && popupRef.current) {
+        e.preventDefault();
+        setPopup(null);
+        window.getSelection()?.removeAllRanges();
+        return;
+      }
+      if (e.key === "Escape" && findRef.current.open) {
+        e.preventDefault();
+        findActions.current.closeFind();
+        return;
+      }
       if (
         (e.target as HTMLElement).closest(
           "input,textarea,[contenteditable=true]",
@@ -583,10 +654,7 @@ export default function PdfReader({
       )
         return;
       if (e.key === "Escape") {
-        if (popupRef.current) {
-          setPopup(null);
-          window.getSelection()?.removeAllRanges();
-        } else void closeRef.current();
+        void closeRef.current();
       }
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
         e.preventDefault();
@@ -836,6 +904,15 @@ export default function PdfReader({
           </button>
         </div>
         <div className="reader-view-tools">
+          <button
+            className={`reader-tool ${findOpen ? "selected" : ""}`}
+            title={t("搜索 PDF（⌘F / Ctrl+F）")}
+            aria-label={t("搜索 PDF")}
+            aria-expanded={findOpen}
+            onClick={openFind}
+          >
+            <Search size={17} />
+          </button>
           <div className="zoom-control" title={t("Ctrl + 滚轮缩放")}>
             <button
               className="icon-button"
@@ -910,6 +987,26 @@ export default function PdfReader({
         </div>
       )}
       <div className="reader-body">
+        <PdfFindBar
+          open={findOpen}
+          focus={findFocus}
+          query={findQuery}
+          side={findSide}
+          sides={
+            mode === "split"
+              ? (["translated", "original"] as const).filter(
+                  (side) => !!data.documents[side],
+                )
+              : [mode]
+          }
+          status={findStatus}
+          onQuery={setFindQuery}
+          onSide={setFindSide}
+          onNext={(previous) =>
+            setFindStep((value) => ({ sequence: value.sequence + 1, previous }))
+          }
+          onClose={closeFind}
+        />
         <div
           ref={pdfContent}
           className={`pdf-content ${mode === "split" ? "split" : ""}`}
@@ -945,6 +1042,15 @@ export default function PdfReader({
                   const position =
                     requested.current[side] || positions.current[side];
                   if (position) pane(side)?.jump(position);
+                }}
+                find={side === findSide ? findRequest : null}
+                onFindStatus={(side, status) => {
+                  if (findRef.current.open && findRef.current.side === side)
+                    setFindStatus(status);
+                }}
+                onFindPage={(side, number) => {
+                  if (findRef.current.open && findRef.current.side === side)
+                    focusPosition(side, { page: number, fraction: 0 });
                 }}
               />
             ) : null,
@@ -1140,45 +1246,13 @@ export default function PdfReader({
           </aside>
         )}
       </div>
-      {popup && (
-        <div
-          className="selection-toolbar"
-          role="dialog"
-          aria-label={t("添加标记")}
-          style={{ left: popup.x, top: popup.y }}
-          onPointerDown={(e) => e.preventDefault()}
-        >
-          <div className="selection-colors">
-            {(Object.keys(colors) as AnnotationColor[]).map((c) => (
-              <button
-                key={c}
-                className="color-dot"
-                title={t("{color}高亮", { color: t(colorNames[c]) })}
-                style={{ background: colors[c] }}
-                disabled={!!saving}
-                onClick={() => mark(popup, "highlight", c)}
-              />
-            ))}
-          </div>
-          <button
-            title={t("添加下划线")}
-            disabled={!!saving}
-            onClick={() => mark(popup, "underline", color)}
-          >
-            <Underline size={17} />
-          </button>
-          <button
-            title={t("高亮并添加批注")}
-            disabled={!!saving}
-            onClick={() => mark(popup, "highlight", color, true)}
-          >
-            <MessageSquare size={17} />
-          </button>
-          <button title={t("关闭标记工具")} onClick={() => setPopup(null)}>
-            <X size={14} />
-          </button>
-        </div>
-      )}
+      <SelectionToolbar
+        selection={popup}
+        saving={!!saving}
+        color={color}
+        onDismiss={() => setPopup(null)}
+        onMark={mark}
+      />
       <footer className="reader-footer">
         <span>
           {t(

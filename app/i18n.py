@@ -193,6 +193,10 @@ RULES = [
     ),
     (r"正在翻译 · (\d+) / (\d+) 段落", r"Translating · \1 / \2 paragraphs"),
     (
+        r"已调整 (\d+) 处浮动图表外的负间距，避免正文重叠",
+        r"Adjusted \1 negative spacers outside floating figures or tables to prevent overlapping text",
+    ),
+    (
         r"为 (\d+) 个表格设置页宽上限，避免译文溢出页边距",
         r"Constrained \1 tables to page width to prevent overflow",
     ),

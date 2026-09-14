@@ -261,5 +261,15 @@
   "暂时无法确认任务状态，请恢复本地连接后再安装。": "Could not confirm the task status. Restore the local connection before installing.",
   "暂时无法连接桌面更新服务，请重新打开应用。": "Could not reach the desktop update service. Please reopen the app.",
   "请先保存或处理尚未保存的批注，再安装更新。": "Please save or resolve pending annotations before installing the update.",
-  "正在打开安装包…": "Opening installer…"
+  "正在打开安装包…": "Opening installer…",
+  "搜索 PDF": "Search PDF",
+  "搜索 PDF（⌘F / Ctrl+F）": "Search PDF (⌘F / Ctrl+F)",
+  "搜索 PDF 内容": "Find in PDF",
+  "正在搜索…": "Searching…",
+  "未找到": "No matches",
+  "上一处匹配（Shift+Enter）": "Previous match (Shift+Enter)",
+  "下一处匹配（Enter）": "Next match (Enter)",
+  "关闭搜索（Esc）": "Close search (Esc)",
+  "搜索范围": "Search in",
+  "Enter 下一处 · Shift+Enter 上一处": "Enter next · Shift+Enter previous"
 }

@@ -630,6 +630,88 @@ def fit_tables(text: str) -> tuple[str, int]:
     return text, count
 
 
+def normalize_float_spacing(text: str) -> tuple[str, int]:
+    """Neutralize literal negative spacers outside movable figures and tables.
+
+    These spacers stay in the text flow when a float moves to another page.
+    After translation changes line/page breaks, they can pull two paragraphs
+    into each other without any compiler warning. Let the template's float
+    separation do its job; keep spacing inside floats and fixed [H] boxes.
+    """
+    from .latex import COMMAND, MACRO_DEFINITIONS, definition_end, math_regions
+
+    visible = visible_tex(text)
+    hidden = []
+    if document := re.search(r"\\begin\s*\{document\}", visible):
+        hidden.append((0, document.end()))
+    end = 0
+    for command in COMMAND.finditer(visible):
+        if command.start() < end:
+            continue
+        name = command[0][1:].rstrip("*")
+        if name in MACRO_DEFINITIONS:
+            end = definition_end(text, command.end(), name)
+            hidden.append((command.start(), end))
+    chars = list(visible)
+    for start, end in hidden:
+        chars[start:end] = " " * (end - start)
+    for start, end in math_regions("".join(chars)):
+        chars[start:end] = " " * (end - start)
+    visible = "".join(chars)
+    command_starts = {command.start() for command in COMMAND.finditer(visible)}
+    # Only literal lengths have a known sign without executing author macros.
+    spacers = [
+        match
+        for match in re.finditer(
+            r"\\vspace\*?\s*\{(?P<length>\s*(?P<sign>[+-]?)\s*"
+            r"(?:\d+(?:\.\d*)?|\.\d+)\s*(?:pt|pc|in|bp|cm|mm|dd|cc|sp|ex|em)\s*)\}",
+            visible,
+        )
+        if match.start() in command_starts
+    ]
+    before = {match.end(): match for match in spacers}
+    after = {match.start(): match for match in spacers}
+    # Literal examples and definitions must also stop adjacency searches,
+    # even though they were masked for command discovery above.
+    flow = without_comments(text)
+    edits = {}
+    for floating in re.finditer(
+        r"\\begin\s*\{(figure\*?|table\*?)\}\s*(?:\[([^]]*)\])?"
+        r".*?(?P<closing>\\end\s*\{\1\})",
+        visible,
+        re.S,
+    ):
+        if (
+            floating.start() not in command_starts
+            or floating.start("closing") not in command_starts
+            or (floating[2] or "").strip() == "H"
+        ):
+            continue
+        for backwards, edge in ((True, floating.start()), (False, floating.end())):
+            while True:
+                edge = (
+                    len(flow[:edge].rstrip())
+                    if backwards
+                    else edge + len(flow[edge:]) - len(flow[edge:].lstrip())
+                )
+                spacer = (before if backwards else after).get(edge)
+                if spacer is None:
+                    break
+                if spacer["sign"] == "-":
+                    start, end = spacer.span("length")
+                    # Preserve comments, line numbers and paragraph boundaries.
+                    tail = "".join(
+                        char
+                        for char, shown in zip(text[start:end], visible[start:end])
+                        if shown.isspace()
+                    )
+                    edits[start] = (end, "0pt" + tail)
+                edge = spacer.start() if backwards else spacer.end()
+    for start, (end, replacement) in sorted(edits.items(), reverse=True):
+        text = text[:start] + replacement + text[end:]
+    return text, len(edits)
+
+
 def break_long_code_identifiers(
     text: str, *, math_aliases: dict[str, str] | None = None
 ) -> str:

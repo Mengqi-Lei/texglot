@@ -17,6 +17,7 @@
     "src/annotationDrafts.ts",
     "src/readerNavigation.ts",
     "src/readerZoom.ts",
+    "src/searchRanges.ts",
     "src/providers.ts"
   ]
 }

@@ -3,6 +3,7 @@ import {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -23,15 +24,18 @@ import {
   type SelectionDraft,
 } from "./readerTypes";
 import { captureViewport, scrollToPosition } from "./readerNavigation";
+import { PdfSearch, type FindRequest, type FindStatus } from "./pdfSearch";
 pdfjs.GlobalWorkerOptions.workerSrc = workerURL;
 
 type PageFrame = {
   surface: HTMLDivElement;
   canvas: HTMLCanvasElement;
   width: number;
+  unbindSearch?: () => void;
 };
 const releaseFrame = (frame: PageFrame | null) => {
   if (!frame) return;
+  frame.unbindSearch?.();
   frame.surface.remove();
   frame.surface.replaceChildren();
   frame.canvas.width = 0;
@@ -43,11 +47,13 @@ function PageCanvas({
   page,
   width,
   height,
+  finder,
 }: {
   doc: PDFDocumentProxy;
   page: number;
   width: number;
   height: number;
+  finder: PdfSearch;
 }) {
   const { t } = useI18n(),
     host = useRef<HTMLDivElement>(null),
@@ -77,7 +83,7 @@ function PageCanvas({
     const surface = document.createElement("div"),
       element = document.createElement("canvas"),
       textElement = document.createElement("div"),
-      next = { surface, canvas: element, width };
+      next: PageFrame = { surface, canvas: element, width };
     surface.className = "pdf-page-frame";
     surface.style.width = element.style.width = `${width}px`;
     surface.style.height = element.style.height = `${height}px`;
@@ -113,7 +119,9 @@ function PageCanvas({
         });
         await render.promise;
         if (!current()) return;
-        const textContent = await p.getTextContent();
+        const textContent = await p.getTextContent({
+          disableNormalization: true,
+        });
         if (!current()) return;
         textElement.style.setProperty("--total-scale-factor", String(scale));
         layer = new pdfjs.TextLayer({
@@ -130,6 +138,7 @@ function PageCanvas({
         displayed.current = next;
         committed = true;
         releaseFrame(previous);
+        next.unbindSearch = finder.bindPage(page, surface, layer);
         setLoading(false);
       } catch (e) {
         if (
@@ -147,7 +156,7 @@ function PageCanvas({
       layer?.cancel();
       if (!committed) releaseFrame(next);
     };
-  }, [doc, page, width, height]);
+  }, [doc, page, width, height, finder]);
   return (
     <>
       <div ref={host} className="pdf-page-render" />
@@ -177,6 +186,7 @@ function ContinuousPage({
   tool,
   onPick,
   onNote,
+  finder,
 }: {
   doc: PDFDocumentProxy;
   page: number;
@@ -188,6 +198,7 @@ function ContinuousPage({
   tool: ReaderTool;
   onPick: (annotation: Annotation) => void;
   onNote: (page: number, x: number, y: number) => void;
+  finder: PdfSearch;
 }) {
   const { t } = useI18n(),
     paper = useRef<HTMLDivElement>(null),
@@ -237,7 +248,13 @@ function ContinuousPage({
         }}
       >
         {near ? (
-          <PageCanvas doc={doc} page={page} width={width} height={height} />
+          <PageCanvas
+            doc={doc}
+            page={page}
+            width={width}
+            height={height}
+            finder={finder}
+          />
         ) : (
           <div className="page-placeholder">{t("第 {page} 页", { page })}</div>
         )}
@@ -291,6 +308,7 @@ export type PaneHandle = {
   jump: (position: PagePosition, user?: boolean) => void;
   capture: () => PagePosition | null;
   isReady: () => boolean;
+  focus: () => void;
 };
 type Props = {
   job: Job;
@@ -313,6 +331,9 @@ type Props = {
   onPick: (a: Annotation) => void;
   onNote: (side: DocumentSide, page: number, x: number, y: number) => void;
   onReady: () => void;
+  find: FindRequest | null;
+  onFindStatus: (side: DocumentSide, status: FindStatus) => void;
+  onFindPage: (side: DocumentSide, page: number) => void;
 };
 const PdfPane = forwardRef<PaneHandle, Props>(function PdfPane(
   {
@@ -332,6 +353,9 @@ const PdfPane = forwardRef<PaneHandle, Props>(function PdfPane(
     onPick,
     onNote,
     onReady,
+    find,
+    onFindStatus,
+    onFindPage,
   },
   ref,
 ) {
@@ -347,8 +371,8 @@ const PdfPane = forwardRef<PaneHandle, Props>(function PdfPane(
     ignoreTop = useRef<number | null>(null),
     frame = useRef(0),
     generation = useRef(0),
-    callbacks = useRef({ onPosition, onReady });
-  callbacks.current = { onPosition, onReady };
+    callbacks = useRef({ onPosition, onReady, onFindStatus, onFindPage });
+  callbacks.current = { onPosition, onReady, onFindStatus, onFindPage };
   const label = t(side === "original" ? "原文" : "译文");
   const url = artifactURL(job, side) + `?version=${info.version}`;
   useEffect(() => {
@@ -445,7 +469,29 @@ const PdfPane = forwardRef<PaneHandle, Props>(function PdfPane(
     // Preserve the requested content anchor through subsequent layout changes.
     notify(readPosition(), user);
   };
-  useImperativeHandle(ref, () => ({ jump, capture, isReady }));
+  useImperativeHandle(ref, () => ({
+    jump,
+    capture,
+    isReady,
+    focus: () => host.current?.focus({ preventScroll: true }),
+  }));
+  const finder = useMemo(
+    () =>
+      doc
+        ? new PdfSearch(doc, {
+            page: () => current.current.page,
+            jump: (number) => callbacks.current.onFindPage(side, number),
+            status: (status) => callbacks.current.onFindStatus(side, status),
+          })
+        : null,
+    [doc, side],
+  );
+  useEffect(() => () => finder?.destroy(), [finder]);
+  useEffect(() => {
+    if (!finder) return;
+    if (find) finder.find(find);
+    else finder.close();
+  }, [finder, find]);
   const pageWidth = Math.max(120, Math.min(width - 48, 1000)) * zoom;
   useLayoutEffect(() => {
     cancelAnimationFrame(frame.current);
@@ -519,7 +565,7 @@ const PdfPane = forwardRef<PaneHandle, Props>(function PdfPane(
           <div className="reader-load-error">
             <p>{t("PDF 加载失败，可下载后用系统阅读器打开")}</p>
           </div>
-        ) : !doc || !width ? (
+        ) : !doc || !width || !finder ? (
           <div className="reader-load-error">
             <LoaderCircle className="spin" />
             {t("正在打开 PDF…")}
@@ -541,6 +587,7 @@ const PdfPane = forwardRef<PaneHandle, Props>(function PdfPane(
                 tool={tool}
                 onPick={onPick}
                 onNote={(page, x, y) => onNote(side, page, x, y)}
+                finder={finder}
               />
             ))}
           </div>

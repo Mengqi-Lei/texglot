@@ -730,11 +730,21 @@ def math_regions(text: str):
 
     visible = visible_tex(text)
     position = 0
-    for opening in re.finditer(r"(?<!\\)\$\$?|\\[\[(]|\\begin\s*\{([^{}]+)\}", visible):
-        if opening.start() < position or opening[1] and opening[1] not in MATH_ENV:
+    # Consume complete control sequences: the second slash in \\[2pt] is
+    # part of a line break, not the start of a display-math delimiter.
+    for opening in re.finditer(COMMAND.pattern + r"|\$\$?", visible):
+        if opening.start() < position:
             continue
-        token = r"\begin{" + opening[1] + "}" if opening[1] else opening[0]
-        position = math_end(visible, opening.end(), token, {})
+        token, end = opening[0], opening.end()
+        if token == r"\begin":
+            environment = re.match(r"\s*\{([^{}]+)\}", visible[end:])
+            if not environment or environment[1] not in MATH_ENV:
+                continue
+            token = r"\begin{" + environment[1] + "}"
+            end += environment.end()
+        elif token not in {"$", "$$", r"\[", r"\("}:
+            continue
+        position = math_end(visible, end, token, {})
         yield opening.start(), position
 
 

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import zipfile
 
 import httpx
 import pytest
@@ -186,6 +187,41 @@ async def test_layout_transform_failure_is_caught_before_paid_requests(
     assert "Layout transformation did not compile" in job["error"]
     assert calls == ["build-original"]
     assert translator.calls == []
+
+
+async def test_float_spacing_repair_is_shared_by_preflight_export_and_cached_retry(
+    pipeline, translator
+):
+    manager, job, folder, settings, calls = pipeline
+    body = folder / "source/body.tex"
+    source = (
+        "First scientific paragraph before the floating diagram.\n\n"
+        r"\vspace{-4mm}\begin{figure}[p]\caption{A scientific diagram.}\end{figure}\vspace{-5mm}"
+        "\n\nSecond scientific paragraph after the floating diagram.\n"
+    )
+    body.write_text(source, encoding="utf-8")
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and job["warnings"] == []
+    assert body.read_text(encoding="utf-8") == source
+    assert (folder / "prepared-source/body.tex").read_text(encoding="utf-8") == source
+    for stage in ("build-probe", "build-translated"):
+        rendered_source = PdfReader(folder / stage / "main.pdf").metadata["/Source"]
+        assert rendered_source.count(r"\vspace{0pt}") == 2
+    with zipfile.ZipFile(folder / "translated-source.zip") as archive:
+        assert archive.read("body.tex").decode().count(r"\vspace{0pt}") == 2
+    assert any("2 处浮动图表外的负间距" in item["message"] for item in job["logs"])
+    from app.i18n import localize_payload
+
+    assert any(
+        "Adjusted 2 negative spacers" in item["message"]
+        for item in localize_payload(job)["logs"]
+    )
+    total = job["total"]
+    translator.calls.clear()
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and job["cached"] == total
+    assert translator.calls == []
+    assert calls.count("build-original") == 1
 
 
 async def test_partial_retries_only_failed_segments_and_keeps_deliverable(

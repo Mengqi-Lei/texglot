@@ -287,6 +287,137 @@
   box-shadow: 0 5px 26px #1d1d1f30;
   backdrop-filter: blur(20px);
 }
+.selection-toolbar[data-closing],
+.pdf-find-bar[data-closing] {
+  pointer-events: none;
+}
+.pdf-search-highlights {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+.pdf-search-hit {
+  position: absolute;
+  background: #ffda5970;
+  border-radius: 2px;
+  mix-blend-mode: multiply;
+  scroll-margin: 88px 32px 32px;
+}
+.pdf-search-hit.current {
+  background: #ffae487a;
+  outline: 1px solid #d98b2580;
+}
+.pdf-find-bar {
+  position: absolute;
+  z-index: 80;
+  top: 8px;
+  right: 16px;
+  width: min(430px, calc(100% - 24px));
+  border: 1px solid #d9d9e2;
+  border-radius: 12px;
+  background: #fffffff5;
+  box-shadow: 0 6px 24px #20213c20;
+  backdrop-filter: blur(16px);
+  padding: 8px;
+}
+.pdf-find-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #86868b;
+}
+.pdf-find-input > svg {
+  flex: none;
+  margin: 0 4px;
+}
+.pdf-find-input input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  padding: 7px 3px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 13px;
+}
+.pdf-find-input .icon-button {
+  width: 28px;
+  min-width: 28px;
+  height: 30px;
+}
+.pdf-find-count {
+  display: flex;
+  align-items: center;
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin: 0 4px;
+}
+.pdf-find-count.empty {
+  color: #a65a38;
+}
+.pdf-find-options {
+  border-top: 1px solid #ededf2;
+  padding: 7px 4px 1px;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: #86868b;
+}
+.pdf-find-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.pdf-find-options select {
+  width: auto;
+  padding: 3px 5px;
+  font-size: 11px;
+  border: 0;
+  border-radius: 5px;
+  background: #f1f1f5;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .selection-toolbar,
+  .pdf-find-bar {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    transition:
+      opacity var(--motion-fast) var(--motion-ease),
+      translate var(--motion-fast) var(--motion-ease),
+      scale var(--motion-fast) var(--motion-ease);
+  }
+  .selection-toolbar[data-closing],
+  .pdf-find-bar[data-closing] {
+    opacity: 0;
+    translate: 0 3px;
+    scale: 0.98;
+  }
+  @starting-style {
+    .selection-toolbar,
+    .pdf-find-bar {
+      opacity: 0;
+      translate: 0 3px;
+      scale: 0.98;
+    }
+  }
+}
+@media (max-width: 600px) {
+  .pdf-find-bar {
+    right: 12px;
+  }
+  .pdf-find-options > span {
+    display: none;
+  }
+}
 .selection-colors {
   display: flex;
   gap: 8px;

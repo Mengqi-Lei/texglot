@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 — 2026-09-14
+
+- Add full-document PDF search with Cmd/Ctrl+F, highlighted matches and previous/next navigation; dismiss selection tools on lost selection or outside interaction, with restrained transitions. / 新增 Cmd/Ctrl+F 全文 PDF 搜索、高亮与匹配跳转；选区取消或点击别处后自动收起批注工具框，并加入克制的过渡动画。
+- Prevent translated paragraphs from overlapping when figures or tables move to another page: neutralize literal negative spacing outside movable floats while retaining their internal layout and the original PDF. / 修复图表换页后译文段落重叠：消除可移动浮动图表外侧的固定负间距，保留图表内部布局与原文 PDF。
+
+[Release notes](docs/releases/v1.1.1.md) · [中文版本说明](docs/releases/v1.1.1_CN.md)
+
 ## 1.1.0 — 2026-09-13
 
 - Add restrained selection, switch, dialog and content transitions while preserving the existing visual style, reading anchors and reduced-motion preferences. / 保留现有外观，为选项、开关、弹窗和内容切换增加克制的过渡动画，保留阅读定位并适配减少动态效果偏好。
