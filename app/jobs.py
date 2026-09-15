@@ -58,7 +58,7 @@ JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
 SOURCE_PREPARATION_VERSION = "native-source-v3"
-TITLE_METADATA_VERSION = 1
+TITLE_METADATA_VERSION = 2
 
 
 def separate_layout_notices(job: dict):

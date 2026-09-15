@@ -952,6 +952,7 @@ def collect_literal_macros(text: str) -> dict[str, str]:
 
 
 TITLE_COMMANDS = {"title", "subtitle", "icmltitle", "icmltitlerunning", "shorttitle"}
+TITLE_DISPLAY_DECLARATIONS = FONT_SWITCHES | TEXT_DECLARATIONS | {"selectfont"}
 MACRO_DEFINITIONS = {
     "def",
     "gdef",
@@ -1074,8 +1075,10 @@ def extract_paper_title(
     """Read metadata without changing which source spans may be translated.
 
     Display titles may contain constants embedded in prose and nested formatting.
-    Only unambiguous, parameterless declarations are expanded; this never runs
-    TeX, evaluates conditionals, or changes the translation macro policy.
+    Font and layout declarations keep their display-only semantics even when a
+    document class redefines their typesetting internals. Only unambiguous,
+    parameterless custom declarations are expanded; this never runs TeX,
+    evaluates conditionals, or changes the translation macro policy.
     """
     from .sources import without_comments
 
@@ -1115,6 +1118,11 @@ def _expand_display_title(value: str, macros: dict[str, str | None]) -> str:
 
         def replace(match):
             name = match[0][1:]
+            # These declarations are already discarded by the display decoder.
+            # Their template definitions implement layout, not content, and can
+            # legitimately be conditional, parameterized or self-referential.
+            if name.rstrip("*") in TITLE_DISPLAY_DECLARATIONS:
+                return match[0]
             if name not in macros:
                 return match[0]
             body = macros[name]
@@ -1160,7 +1168,7 @@ def _display_title_text(value: str) -> str:
         ]
         + [
             latex2text.MacroTextSpec(name, discard=True)
-            for name in FONT_SWITCHES | TEXT_DECLARATIONS | {"selectfont"}
+            for name in TITLE_DISPLAY_DECLARATIONS
         ],
         prepend=True,
     )

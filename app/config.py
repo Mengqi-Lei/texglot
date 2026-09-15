@@ -25,7 +25,7 @@ class Settings(BaseModel):
     api_key: str = ""
     target_language: str = "简体中文"
     context_guidance: bool = True
-    concurrency: int = Field(default=3, ge=1, le=8)
+    concurrency: int = Field(default=3, ge=1, le=12)
     temperature: float = Field(default=0.2, ge=0, le=1)
     timeout: int = Field(default=180, ge=15, le=600)
     glossary: str = Field(default="", max_length=12000)

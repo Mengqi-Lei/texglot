@@ -126,6 +126,49 @@ def translator(monkeypatch):
     return ControlledTranslator
 
 
+@pytest.mark.parametrize("limit", [3, 12])
+async def test_paragraph_concurrency_is_bounded_and_the_queue_drains(
+    pipeline, translator, monkeypatch, limit
+):
+    manager, job, folder, settings, _ = pipeline
+    settings = Settings(**(settings.model_dump() | {"concurrency": limit}))
+    count = limit + 4
+    (folder / "source/body.tex").write_text(
+        "\n\n".join(
+            f"The scientific result number {index} is useful and reproducible."
+            for index in range(count)
+        ),
+        encoding="utf-8",
+    )
+    full, release = asyncio.Event(), asyncio.Event()
+    active = peak = 0
+    original = translator.translate
+
+    async def hold(self, segment, context, feedback=""):
+        nonlocal active, peak
+        active += 1
+        peak = max(peak, active)
+        if active == limit:
+            full.set()
+        try:
+            await release.wait()
+            return await original(self, segment, context, feedback)
+        finally:
+            active -= 1
+
+    monkeypatch.setattr(translator, "translate", hold)
+    task = asyncio.create_task(manager.pipeline(job, settings))
+    try:
+        await asyncio.wait_for(full.wait(), 3)
+        assert active == limit
+    finally:
+        release.set()
+        await task
+    assert peak == limit and active == 0
+    assert job["status"] == "completed" and job["done"] == count
+    assert len(translator.calls) == count and translator.closed == 1
+
+
 async def test_settings_failure_is_terminal_and_cancel_recovers_orphaned_active(
     pipeline, monkeypatch
 ):

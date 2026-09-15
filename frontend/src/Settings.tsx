@@ -243,7 +243,7 @@ export default function Settings({
                   value={form.concurrency}
                   onChange={(e) => set("concurrency", +e.target.value)}
                 >
-                  {[1, 2, 3, 4, 6, 8].map((n) => (
+                  {[1, 2, 3, 4, 6, 8, 12].map((n) => (
                     <option key={n} value={n}>
                       {n}
                     </option>

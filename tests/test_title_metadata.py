@@ -46,6 +46,42 @@ def test_display_decoding_keeps_text_and_symbols_without_typesetting_adornments(
 
 
 @pytest.mark.parametrize(
+    ("title", "definitions", "expected"),
+    [
+        (
+            r"\LARGE \bf Learning with Point Clouds",
+            r"\def\LARGE{\@setfontsize{\LARGE}{14}{17pt}}"
+            r"\def\LARGE{\@setfontsize{\LARGE}{16}{20pt}}",
+            "Learning with Point Clouds",
+        ),
+        (
+            r"\Huge\bfseries Learning with Point Clouds",
+            r"\def\Huge{\@setfontsize{\Huge}{24}{28pt}}"
+            r"\DeclareRobustCommand{\bfseries}{\fontseries{b}\selectfont}",
+            "Learning with Point Clouds",
+        ),
+        (
+            r"\method{}: Learning with Point Clouds",
+            r"\def\method{{\large\bf A New Method}}"
+            r"\def\large{\@setfontsize{\large}{14}{17pt}}"
+            r"\def\bf{\normalfont\bfseries}",
+            "A New Method: Learning with Point Clouds",
+        ),
+        (
+            r"\LARGE\H{} Learning with $\alpha$",
+            r"\def\H{Hypergraph}\def\LARGE{\@setfontsize{\LARGE}{16}{20pt}}",
+            "Hypergraph Learning with α",
+        ),
+    ],
+)
+def test_template_typesetting_definitions_do_not_override_display_semantics(
+    title, definitions, expected
+):
+    main = rf"\title{{{title}}}"
+    assert extract_paper_title(main, macro_context=definitions + main) == expected
+
+
+@pytest.mark.parametrize(
     "source",
     [
         r"\title{\unknown{} Improves Learning}",
@@ -122,6 +158,37 @@ def test_startup_repairs_old_cross_file_title_once_without_rerunning_or_reorderi
 
     monkeypatch.setattr(jobs, "extract_paper_title", unexpected)
     assert jobs.JobManager().get("paper") == expected
+
+
+def test_startup_refreshes_previous_version_fallback_with_template_dependencies(
+    tmp_path, monkeypatch
+):
+    folder, old = write_old_job(tmp_path)
+    source = folder / "prepared-source"
+    (source / "main.tex").write_text(
+        r"\documentclass{conference}\title{\LARGE\bf Learning with Point Clouds}",
+        encoding="utf-8",
+    )
+    (source / "conference.cls").write_text(
+        r"\def\LARGE{\@setfontsize{\LARGE}{14}{17pt}}"
+        r"\def\LARGE{\@setfontsize{\LARGE}{16}{20pt}}",
+        encoding="utf-8",
+    )
+    old.update(
+        name="arXiv 2409.12345",
+        title_metadata_version=1,
+        source_dependencies=["main.tex", "conference.cls"],
+    )
+    (folder / "job.json").write_text(json.dumps(old), encoding="utf-8")
+    monkeypatch.setattr(jobs, "JOBS", tmp_path)
+    manager = jobs.JobManager()
+    assert manager.get("paper") == {
+        **old,
+        "name": "Learning with Point Clouds",
+        "title_metadata_version": jobs.TITLE_METADATA_VERSION,
+    }
+    for name in ["original.pdf", "translated.pdf", "reader.json", "cache.json"]:
+        assert (folder / name).read_bytes() == b"private existing data"
 
 
 @pytest.mark.parametrize(

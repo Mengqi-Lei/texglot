@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2 — 2026-09-15
+
+- Allow up to 12 concurrent paragraph translations in model settings, shared by the GUI and CLI. / 模型设置中的段落翻译并发上限扩展至 12，网页与 CLI 共用该设置。
+- Fix missing paper titles when templates redefine font and layout declarations; refresh existing task titles without retranslating or changing reading data. / 修复模板重定义字号、字体等排版声明导致的标题缺失；自动刷新已有任务标题，无需重新翻译，也不改变阅读数据。
+
+[Release notes](docs/releases/v1.1.2.md) · [中文版本说明](docs/releases/v1.1.2_CN.md)
+
 ## 1.1.1 — 2026-09-14
 
 - Add full-document PDF search with Cmd/Ctrl+F, highlighted matches and previous/next navigation; dismiss selection tools on lost selection or outside interaction, with restrained transitions. / 新增 Cmd/Ctrl+F 全文 PDF 搜索、高亮与匹配跳转；选区取消或点击别处后自动收起批注工具框，并加入克制的过渡动画。
