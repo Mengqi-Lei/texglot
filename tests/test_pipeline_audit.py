@@ -37,6 +37,11 @@ def pipeline(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(jobs, "load_settings", lambda: settings.model_copy())
     monkeypatch.setattr(jobs, "choose_compiler", lambda _: "tectonic")
+
+    async def no_remote_title(_):
+        return ""
+
+    monkeypatch.setattr(jobs, "fetch_arxiv_title", no_remote_title)
     calls = []
 
     async def compile_fake(root, main, out, engine, log):
@@ -728,6 +733,42 @@ async def test_arxiv_pipeline_uses_compiled_macro_dependencies_for_display_title
     assert job["status"] == "completed"
     assert job["name"] == "Structured Training Improves Learning"
     assert job["title_metadata_version"] == jobs.TITLE_METADATA_VERSION
+
+
+async def test_arxiv_pipeline_prefers_and_reuses_official_title(
+    pipeline, translator, monkeypatch
+):
+    manager, job, folder, settings, _ = pipeline
+    job.update(kind="arxiv", arxiv_id="2512.12345", name="arXiv 2512.12345")
+    path = folder / "source/main.tex"
+    path.write_text(r"\title{\unknownmodel{}: Local Title}" + path.read_text())
+    lookups = []
+
+    async def official(identifier):
+        lookups.append(identifier)
+        return r"VGGT-$\omega$: Official Title"
+
+    monkeypatch.setattr(jobs, "fetch_arxiv_title", official)
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed"
+    assert job["name"] == "VGGT-ω: Official Title"
+    assert job["title"] == {"raw": r"VGGT-$\omega$: Official Title", "source": "arxiv"}
+    await manager.pipeline(job, settings)
+    assert job["name"] == "VGGT-ω: Official Title"
+    assert lookups == ["2512.12345"]
+
+
+async def test_arxiv_pipeline_finishes_offline_with_an_unresolved_title(
+    pipeline, translator
+):
+    manager, job, folder, settings, _ = pipeline
+    job.update(kind="arxiv", arxiv_id="2512.12345", name="arXiv 2512.12345")
+    path = folder / "source/main.tex"
+    path.write_text(r"\title{VGGT-$\customsymbol$}" + path.read_text())
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed"
+    assert job["name"] == r"VGGT-$\customsymbol$"
+    assert job["title"]["raw"] == r"VGGT-$\customsymbol$"
 
 
 async def test_long_provider_retry_after_does_not_retry_too_early(monkeypatch):

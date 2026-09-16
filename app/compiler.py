@@ -1342,6 +1342,28 @@ async def recover_external_package(
     return name
 
 
+def diagnostic_source_path(root: Path, main: str, filename: str) -> Path | None:
+    """Resolve a compiler's input spelling, including an omitted .tex suffix.
+
+    TeX diagnostics may retain the name from \\input{preamble} instead of the
+    opened preamble.tex. Use exact paths relative to the compilation directory;
+    ambiguous names and files outside the project must never trigger an edit.
+    """
+    try:
+        location = (root / main).parent / filename
+        candidates = [location]
+        if location.suffix.lower() not in TEX_SOURCE_SUFFIXES:
+            candidates.append(location.with_name(location.name + ".tex"))
+        paths = {path.resolve() for path in candidates if path.is_file()}
+        if len(paths) == 1:
+            path = paths.pop()
+            if path.is_relative_to(root.resolve()):
+                return path
+    except (OSError, ValueError):
+        pass
+    return None
+
+
 def recover_compile_configuration(
     root: Path, main: str, error: CompilationError
 ) -> str:
@@ -1387,12 +1409,27 @@ def recover_compile_configuration(
         package, options = "natbib", "numbers"
     elif clash := re.search(r"Option clash for package ([A-Za-z0-9_-]+)", error.log):
         package = clash[1]
-        locations = re.findall(r"(?:^|\n)error: (.+?):\d+:", error.log)
+        locations = re.findall(
+            rf"(?m)^(?:error:[ \t]*)?(.+?):\d+:[^\r\n]*"
+            rf"Option clash for package {re.escape(package)}\b",
+            error.log,
+        )
+        # A package call at EOF may look ahead into its parent before reporting
+        # the clash. The input trace still identifies the just-read local file.
+        # Use only inputs recorded before this error, never scan unrelated files.
+        marker = f"Option clash for package {package}"
+        trace = error.tex_log.partition(marker)[0] if marker in error.tex_log else ""
+        locations.extend(
+            name.strip() for name in reversed(re.findall(r"\(([^()\r\n]+)", trace))
+        )
         for filename in locations:
-            path = ((root / main).parent / filename).resolve()
-            if not path.is_relative_to(root.resolve()) or not path.is_file():
+            path = diagnostic_source_path(root, main, filename)
+            if path is None:
                 continue
-            original = path.read_text(encoding="utf-8")
+            try:
+                original = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeError):
+                continue
             for match in re.finditer(
                 rf"\\(?:usepackage|RequirePackage)\s*\[([^]]*)\]\s*\{{{re.escape(package)}\}}",
                 visible_tex(original),
@@ -1400,6 +1437,11 @@ def recover_compile_configuration(
                 option = " ".join(match[1].split())
                 if option and re.fullmatch(r"[A-Za-z0-9_,=.+ -]+", option):
                     options = ",".join(filter(None, [options, option]))
+            if options:
+                break
+    options = ",".join(
+        dict.fromkeys(p.strip() for p in options.split(",") if p.strip())
+    )
     if not package or not options:
         return ""
     command = rf"\PassOptionsToPackage{{{options}}}{{{package}}}"

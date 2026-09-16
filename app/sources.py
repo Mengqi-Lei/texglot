@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import codecs
 import gzip
 import io
 import re
@@ -10,6 +11,7 @@ import tarfile
 import zipfile
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 
@@ -43,6 +45,74 @@ def parse_arxiv(value: str) -> str:
     if not ARXIV_ID.fullmatch(value):
         raise ValueError("arXiv 地址格式不正确，例如 https://arxiv.org/abs/1706.03762")
     return value
+
+
+class _ArxivTitleParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.values: dict[str, set[str]] = {}
+        self.head_done = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "meta" or self.head_done:
+            return
+        attrs = dict(attrs)
+        name = (attrs.get("name") or "").lower()
+        if name in {"citation_title", "citation_arxiv_id"}:
+            self.values.setdefault(name, set()).add(attrs.get("content") or "")
+
+    def handle_endtag(self, tag):
+        if tag == "head":
+            self.head_done = True
+
+    def title(self, requested: str) -> str:
+        titles = self.values.get("citation_title", set())
+        identifiers = self.values.get("citation_arxiv_id", set())
+        if len(titles) != 1 or len(identifiers) != 1:
+            return ""
+        actual = parse_arxiv(next(iter(identifiers)))
+        if (
+            re.sub(r"v\d+$", "", actual).lower()
+            != re.sub(r"v\d+$", "", requested).lower()
+        ):
+            return ""
+        if re.search(r"v\d+$", actual) and re.search(r"v\d+$", requested):
+            if actual.lower() != requested.lower():
+                return ""
+        return " ".join(next(iter(titles)).split())
+
+
+async def fetch_arxiv_title(arxiv_id: str) -> str:
+    """Read public citation metadata; optional metadata never fails a translation.
+
+    Preserve the full title, including TeX math, and verify its paper identifier.
+    A small response limit and a total deadline also bound offline startup repair.
+    """
+    try:
+        identifier = parse_arxiv(arxiv_id)
+        async with asyncio.timeout(8):
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(5, connect=4),
+                headers={"User-Agent": "TeXGlot (personal research; paper metadata)"},
+            ) as client:
+                async with client.stream(
+                    "GET", f"https://arxiv.org/abs/{identifier}"
+                ) as response:
+                    if response.status_code != 200:
+                        return ""
+                    parser = _ArxivTitleParser()
+                    decoder = codecs.getincrementaldecoder("utf-8")()
+                    size = 0
+                    async for chunk in response.aiter_bytes(chunk_size=4096):
+                        size += len(chunk)
+                        if size > 256 * 1024:
+                            return ""
+                        parser.feed(decoder.decode(chunk))
+                        if parser.head_done:
+                            break
+                    return parser.title(identifier)
+    except (httpx.HTTPError, TimeoutError, ValueError, ssl.SSLError):
+        return ""
 
 
 def safe_path(root: Path, name: str) -> Path:

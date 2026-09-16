@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3 — 2026-09-16
+
+- Resolve compiler diagnostics that omit an included file's `.tex` suffix, allowing package-option conflicts in split preambles to recover while retaining the requested options. / 修复编译日志省略被引用文件 `.tex` 后缀时的路径识别，使分文件导言区的宏包选项冲突能够自动恢复，并保留原有选项。
+- Prefer cached official arXiv titles, repair existing placeholder titles in the background, and fall back to local source metadata when offline. / 优先使用并缓存 arXiv 官方标题，后台修复已有占位标题，离线时回退到源码标题。
+- Preserve full original titles and unsupported LaTeX expressions, render supported mathematical symbols and wordmarks, and show complete titles on hover without truncating stored metadata. / 保留完整原始标题及无法转换的 LaTeX 写法，改善数学符号和文字标志的显示；悬浮可查看完整标题，存储时不再截断。
+
+[Release notes](docs/releases/v1.1.3.md) · [中文版本说明](docs/releases/v1.1.3_CN.md)
+
 ## 1.1.2 — 2026-09-15
 
 - Allow up to 12 concurrent paragraph translations in model settings, shared by the GUI and CLI. / 模型设置中的段落翻译并发上限扩展至 12，网页与 CLI 共用该设置。

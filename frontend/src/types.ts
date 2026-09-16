@@ -15,6 +15,7 @@ export type Settings = {
 export type Job = {
   id: string;
   name: string;
+  title?: { raw: string; source: "arxiv" | "latex" };
   kind: string;
   arxiv_id: string;
   main: string;

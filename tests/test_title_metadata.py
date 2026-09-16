@@ -1,11 +1,18 @@
 """Display metadata may decode constants without exposing them to translation."""
 
+import asyncio
 import json
 
 import pytest
 
 import app.jobs as jobs
-from app.latex import collect_title_macros, extract_paper_title, segments
+from app.latex import (
+    collect_title_macros,
+    display_paper_title,
+    extract_paper_title,
+    extract_title_metadata,
+    segments,
+)
 
 
 def test_embedded_method_macro_keeps_the_complete_title_and_translation_boundaries():
@@ -26,7 +33,7 @@ def test_embedded_method_macro_keeps_the_complete_title_and_translation_boundari
 def test_display_constants_can_be_nested_formatted_and_defined_in_another_file():
     main = r"\title[Short]{\method{}: Learning at Scale}"
     definitions = (
-        "\\def\\base{Structured% ignored\n Learning}\n"
+        "\\def\\base{Structured % ignored\n Learning}\n"
         r"\newcommand{\method}{\textbf{\base} \emph{Models}}"
     )
     assert extract_paper_title(main, macro_context=definitions + main) == (
@@ -82,20 +89,40 @@ def test_template_typesetting_definitions_do_not_override_display_semantics(
 
 
 @pytest.mark.parametrize(
-    "source",
+    ("source", "expected"),
     [
-        r"\title{\unknown{} Improves Learning}",
-        r"\newcommand{\method}[1]{A #1 Method}\title{\method{} Improves Learning}",
-        r"\def\method{First}\def\method{Second}\title{\method{} Improves Learning}",
-        r"\def\method{First}\let\method\other\title{\method{} Improves Learning}",
-        r"\edef\method{Computed}\title{\method{} Improves Learning}",
-        r"\def\first{\second}\def\second{\first}\title{\first{} Improves Learning}",
-        r"\def\method{\input{private-file}}\title{\method{} Improves Learning}",
-        r"\title{An Unclosed Title",
+        (r"\title{\unknown{} Improves Learning}", r"\unknown{} Improves Learning"),
+        (
+            r"\newcommand{\method}[1]{A #1 Method}\title{\method{} Improves Learning}",
+            r"\method{} Improves Learning",
+        ),
+        (
+            r"\def\method{First}\def\method{Second}\title{\method{} Improves Learning}",
+            r"\method{} Improves Learning",
+        ),
+        (
+            r"\def\method{First}\let\method\other\title{\method{} Improves Learning}",
+            r"\method{} Improves Learning",
+        ),
+        (
+            r"\edef\method{Computed}\title{\method{} Improves Learning}",
+            r"\method{} Improves Learning",
+        ),
+        (
+            r"\def\first{\second}\def\second{\first}\title{\first{} Improves Learning}",
+            r"\first{} Improves Learning",
+        ),
+        (
+            r"\def\method{\input{private-file}}\title{\method{} Improves Learning}",
+            r"{\input{private-file}}{} Improves Learning",
+        ),
+        (r"\title{An Unclosed Title", ""),
     ],
 )
-def test_unresolved_titles_fall_back_instead_of_silently_losing_the_prefix(source):
-    assert extract_paper_title(source) == ""
+def test_unresolved_titles_preserve_the_expression_instead_of_losing_content(
+    source, expected
+):
+    assert extract_paper_title(source) == expected
 
 
 def test_display_expansion_has_depth_and_work_limits():
@@ -104,10 +131,66 @@ def test_display_expansion_has_depth_and_work_limits():
         "".join(rf"\def\{left}{{\{right}}}" for left, right in zip(names, names[1:]))
         + rf"\def\{names[-1]}{{A Method}}\title{{\{names[0]}}}"
     )
-    assert extract_paper_title(deep) == ""
+    assert extract_paper_title(deep) == r"\methoda"
     large = r"\def\base{" + "X" * 4096 + r"}\title{\base\base\base\base}"
-    assert extract_paper_title(large) == ""
-    assert extract_paper_title(r"\title{" + "A" * 1000 + "}") == "A" * 200
+    assert extract_paper_title(large) == r"\base\base\base\base"
+    assert extract_paper_title(r"\title{" + "A" * 1000 + "}") == "A" * 1000
+
+
+@pytest.mark.parametrize(
+    ("raw", "display"),
+    [
+        (r"VGGT-$\omega$", "VGGT-ω"),
+        (r"VGGT-$\unknownsymbol$", r"VGGT-$\unknownsymbol$"),
+        (
+            r"\unknownmodel{}: Learning with $\omega$",
+            r"\unknownmodel{}: Learning with $\omega$",
+        ),
+        ("Learning at 50% of the Cost", "Learning at 50% of the Cost"),
+        (
+            r"Learning with \kern\customlength Space",
+            r"Learning with \kern\customlength Space",
+        ),
+    ],
+)
+def test_title_display_keeps_unknown_math_and_literal_content(raw, display):
+    assert display_paper_title(raw) == display
+
+
+@pytest.mark.parametrize(
+    ("raw", "display"),
+    [
+        ("A & B: Why {geometry} matters", "A & B: Why {geometry} matters"),
+        ("C# and A_B at 50% of the Cost", "C# and A_B at 50% of the Cost"),
+        (r"VGGT-$\omega$ & 3D", "VGGT-ω & 3D"),
+        (r"VGGT-$\customsymbol$ & 3D", r"VGGT-$\customsymbol$ & 3D"),
+        (r"$\omega$ & $\customsymbol$", r"ω & $\customsymbol$"),
+        ("Learning for $100 and $200", "Learning for $100 and $200"),
+    ],
+)
+def test_citation_prose_is_not_interpreted_as_tex_syntax(raw, display):
+    assert display_paper_title(raw, literal=True) == display
+
+
+def test_wordmark_title_preserves_content_and_raw_source_without_translating_macros():
+    source = r"""
+\newcommand{\wordmark}{%
+  \mbox{%
+    {\fontfamily{cmr}\fontseries{bx}\fontshape{it}\selectfont X}%
+    \kern0.4pt%
+    {\fontfamily{cmr}\fontseries{m}\fontshape{it}\selectfont -Model:}%
+  }%
+}
+\newcommand{\subject}{{\bfseries Self-supervised Reconstruction}}
+\title{\wordmark\ \subject\ with $\omega$}
+"""
+    result = extract_title_metadata(source)
+    assert result.raw == r"\wordmark\ \subject\ with $\omega$"
+    assert result.display == "X-Model: Self-supervised Reconstruction with ω"
+    assert collect_title_macros(source) == {}
+    assert all(
+        "Self-supervised Reconstruction" not in item.source for item in segments(source)
+    )
 
 
 def write_old_job(root, *, main="main.tex", dependencies=None):
@@ -146,6 +229,7 @@ def test_startup_repairs_old_cross_file_title_once_without_rerunning_or_reorderi
     expected = {
         **old,
         "name": "Structured Training Improves Learning",
+        "title": {"raw": r"\method{} Improves Learning", "source": "latex"},
         "title_metadata_version": jobs.TITLE_METADATA_VERSION,
     }
     assert manager.get("paper") == expected
@@ -156,7 +240,7 @@ def test_startup_repairs_old_cross_file_title_once_without_rerunning_or_reorderi
     def unexpected(*args, **kwargs):
         raise AssertionError("Versioned metadata must not rescan the source")
 
-    monkeypatch.setattr(jobs, "extract_paper_title", unexpected)
+    monkeypatch.setattr(jobs, "extract_title_metadata", unexpected)
     assert jobs.JobManager().get("paper") == expected
 
 
@@ -185,6 +269,7 @@ def test_startup_refreshes_previous_version_fallback_with_template_dependencies(
     assert manager.get("paper") == {
         **old,
         "name": "Learning with Point Clouds",
+        "title": {"raw": r"\LARGE\bf Learning with Point Clouds", "source": "latex"},
         "title_metadata_version": jobs.TITLE_METADATA_VERSION,
     }
     for name in ["original.pdf", "translated.pdf", "reader.json", "cache.json"]:
@@ -213,3 +298,106 @@ def test_unreadable_title_sources_do_not_hide_existing_jobs(
     monkeypatch.setattr(jobs, "JOBS", tmp_path)
     record = jobs.JobManager().get("paper")
     assert record == {**old, "title_metadata_version": jobs.TITLE_METADATA_VERSION}
+
+
+def test_cached_official_title_survives_startup_without_local_sources(
+    tmp_path, monkeypatch
+):
+    folder, old = write_old_job(tmp_path, main="missing.tex")
+    raw = r"VGGT-$\omega$: " + "A long title " * 30
+    old.update(
+        name="arXiv 2512.12345",
+        title={"raw": raw, "source": "arxiv"},
+        title_metadata_version=2,
+    )
+    (folder / "job.json").write_text(json.dumps(old))
+    monkeypatch.setattr(jobs, "JOBS", tmp_path)
+    record = jobs.JobManager().get("paper")
+    assert record["name"] == ("VGGT-ω: " + "A long title " * 30).strip()
+    assert record["title"]["raw"] == raw
+    assert record["updated_at"] == old["updated_at"]
+
+
+async def test_background_title_repair_does_not_block_or_overwrite_newer_job_state(
+    tmp_path, monkeypatch
+):
+    folder, old = write_old_job(tmp_path)
+    old.update(name="arXiv 2512.12345", arxiv_id="2512.12345")
+    (folder / "job.json").write_text(json.dumps(old))
+    monkeypatch.setattr(jobs, "JOBS", tmp_path)
+    entered, finish = asyncio.Event(), asyncio.Event()
+    calls = []
+
+    async def fetch(identifier):
+        calls.append(identifier)
+        entered.set()
+        await finish.wait()
+        return r"Official Title with $\omega$"
+
+    monkeypatch.setattr(jobs, "fetch_arxiv_title", fetch)
+    manager = jobs.JobManager()
+    manager.start_title_refresh()
+    await entered.wait()
+    record = manager.get("paper")
+    assert record["name"] == "Structured Training Improves Learning"
+    # Simulate progress arriving while a metadata request is pending.
+    record.update(done=7, tokens=123999, status="compiling")
+    finish.set()
+    await manager._title_refresh
+    assert record["name"] == "Official Title with ω"
+    assert record["title"] == {
+        "raw": r"Official Title with $\omega$",
+        "source": "arxiv",
+    }
+    assert record["done"] == 7 and record["tokens"] == 123999
+    assert record["status"] == "compiling" and record["updated_at"] == old["updated_at"]
+    assert json.loads((folder / "job.json").read_text()) == record
+    for name in ["original.pdf", "translated.pdf", "reader.json", "cache.json"]:
+        assert (folder / name).read_bytes() == b"private existing data"
+    await manager.resolve_arxiv_title(record)
+    assert calls == ["2512.12345"]
+
+
+async def test_shutdown_cancels_pending_title_lookup_and_keeps_local_title(
+    tmp_path, monkeypatch
+):
+    folder, old = write_old_job(tmp_path)
+    old.update(name="arXiv 2512.12345", arxiv_id="2512.12345")
+    (folder / "job.json").write_text(json.dumps(old))
+    monkeypatch.setattr(jobs, "JOBS", tmp_path)
+    entered, cancelled = asyncio.Event(), asyncio.Event()
+
+    async def fetch(_):
+        entered.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    monkeypatch.setattr(jobs, "fetch_arxiv_title", fetch)
+    manager = jobs.JobManager()
+    manager.start_title_refresh()
+    await entered.wait()
+    await manager.close()
+    assert cancelled.is_set() and manager._title_refresh.cancelled()
+    assert manager.get("paper")["name"] == "Structured Training Improves Learning"
+
+
+async def test_background_offline_failure_preserves_a_previous_version_literal_title(
+    tmp_path, monkeypatch
+):
+    folder, old = write_old_job(tmp_path)
+    (folder / "prepared-source/main.tex").write_text(r"\title{VGGT-$\customsymbol$}")
+    old.update(name="arXiv 2512.12345", arxiv_id="2512.12345", title_metadata_version=2)
+    (folder / "job.json").write_text(json.dumps(old))
+    monkeypatch.setattr(jobs, "JOBS", tmp_path)
+
+    async def unavailable(_):
+        return ""
+
+    monkeypatch.setattr(jobs, "fetch_arxiv_title", unavailable)
+    manager = jobs.JobManager()
+    manager.start_title_refresh()
+    await manager._title_refresh
+    assert manager.get("paper")["name"] == r"VGGT-$\customsymbol$"
+    assert manager.get("paper")["updated_at"] == old["updated_at"]

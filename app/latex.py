@@ -953,6 +953,19 @@ def collect_literal_macros(text: str) -> dict[str, str]:
 
 TITLE_COMMANDS = {"title", "subtitle", "icmltitle", "icmltitlerunning", "shorttitle"}
 TITLE_DISPLAY_DECLARATIONS = FONT_SWITCHES | TEXT_DECLARATIONS | {"selectfont"}
+TITLE_DISPLAY_ADORNMENTS = {
+    "includegraphics": "*[[{",
+    "thanks": "{",
+    "footnote": "[{",
+    "label": "{",
+    "color": "[{",
+    "fontsize": "{{",
+    "fontencoding": "{",
+    "fontfamily": "{",
+    "fontseries": "{",
+    "fontshape": "{",
+    "usefont": "{{{{",
+}
 MACRO_DEFINITIONS = {
     "def",
     "gdef",
@@ -1066,12 +1079,61 @@ def collect_title_macros(text: str) -> dict[str, str]:
     return result
 
 
-def extract_paper_title(
+@dataclass(frozen=True)
+class PaperTitle:
+    raw: str
+    display: str
+
+
+def _title_without_comments(value: str) -> str:
+    # Unlike source masking, a TeX comment removes the line break too. Keeping
+    # that whitespace would split wordmarks assembled across commented lines.
+    return re.sub(
+        COMMAND.pattern + r"|%[^\n]*(?:\n[ \t]*)?",
+        lambda match: "" if match[0].startswith("%") else match[0],
+        value,
+        flags=re.S,
+    )
+
+
+def display_paper_title(value: str, *, literal: bool = False) -> str:
+    """Beautify supported TeX; an unsupported expression stays visible verbatim."""
+    value = value.strip()
+    if literal:
+        # arXiv citation prose is plain text, not a TeX document: '&', braces and
+        # percentages must survive. Only explicit math commands are prettified;
+        # bare dollar amounts and unsupported formulas keep their original form.
+        parts, position = [], 0
+        for start, end in math_regions(value) if len(value) <= 16_384 else []:
+            fragment = value[start:end]
+            parts.extend(
+                [
+                    value[position:start],
+                    display_paper_title(fragment)
+                    if re.search(r"\\[A-Za-z]+", fragment)
+                    else fragment,
+                ]
+            )
+            position = end
+        parts.append(value[position:])
+        return re.sub(r"\s+", " ", "".join(parts)).strip()
+    try:
+        # Citation metadata can contain literal percentages. Source comments are
+        # removed by the extractor; never interpret a metadata '%' as a comment.
+        if len(value) <= 16_384 and _title_without_comments(value) == value:
+            if rendered := _display_title_text(value):
+                return rendered
+    except (ValueError, RecursionError):
+        pass
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def extract_title_metadata(
     text: str,
     *,
     title_macros: dict[str, str] | None = None,
     macro_context: str | None = None,
-) -> str:
+) -> PaperTitle | None:
     """Read metadata without changing which source spans may be translated.
 
     Display titles may contain constants embedded in prose and nested formatting.
@@ -1080,30 +1142,50 @@ def extract_paper_title(
     parameterless custom declarations are expanded; this never runs TeX,
     evaluates conditionals, or changes the translation macro policy.
     """
-    from .sources import without_comments
-
     context = text if macro_context is None else macro_context
     declarations, _ = _title_source_parts(context)
-    macros: dict[str, str | None] = dict(title_macros or {})
+    macros: dict[str, str | None] = {
+        name: _title_without_comments(body)
+        for name, body in (title_macros or {}).items()
+    }
     declared = set()
     for name, a, b, literal in declarations:
         macros[name] = (
-            without_comments(context[a:b]) if literal and name not in declared else None
+            _title_without_comments(context[a:b])
+            if literal and name not in declared
+            else None
         )
         declared.add(name)
     _, titles = _title_source_parts(text)
     for name, a, b in titles:
         if name not in {"title", "icmltitle"} or b >= len(text) or text[b] != "}":
             continue
-        value = without_comments(text[a:b]).strip()
+        raw = text[a:b].strip()
+        value = _title_without_comments(raw).strip()
         try:
-            value = _display_title_text(_expand_display_title(value, macros))
+            value = _expand_display_title(value, macros)
         except (ValueError, RecursionError):
-            # Keep the existing metadata/fallback instead of silently dropping an
-            # unresolved macro and presenting a plausible but incomplete title.
-            continue
-        if value:
-            return value[:200]
+            # Preserve the whole expression when expansion is ambiguous or too
+            # expensive. Never silently lose a method name or truncate a title.
+            display = re.sub(r"\s+", " ", value).strip()
+        else:
+            display = display_paper_title(value)
+        if display:
+            return PaperTitle(raw=raw, display=display)
+    return None
+
+
+def extract_paper_title(
+    text: str,
+    *,
+    title_macros: dict[str, str] | None = None,
+    macro_context: str | None = None,
+) -> str:
+    title = extract_title_metadata(
+        text, title_macros=title_macros, macro_context=macro_context
+    )
+    if title:
+        return title.display
     return ""
 
 
@@ -1121,7 +1203,11 @@ def _expand_display_title(value: str, macros: dict[str, str | None]) -> str:
             # These declarations are already discarded by the display decoder.
             # Their template definitions implement layout, not content, and can
             # legitimately be conditional, parameterized or self-referential.
-            if name.rstrip("*") in TITLE_DISPLAY_DECLARATIONS:
+            if name.rstrip("*") in (
+                TITLE_DISPLAY_DECLARATIONS
+                | TITLE_DISPLAY_ADORNMENTS.keys()
+                | {"mbox", "kern", "mkern"}
+            ):
                 return match[0]
             if name not in macros:
                 return match[0]
@@ -1137,24 +1223,34 @@ def _expand_display_title(value: str, macros: dict[str, str | None]) -> str:
 
 def _display_title_text(value: str) -> str:
     from pylatexenc import latex2text, latexwalker
-    from pylatexenc.macrospec import MacroSpec
+    from pylatexenc.macrospec import MacroSpec, ParsedMacroArgs
+
+    class LiteralKern:
+        def __init__(self, units):
+            self.pattern = re.compile(
+                rf"\s*[+-]?\s*(?:\d+(?:\.\d*)?|\.\d+)\s*(?:{units})(?![A-Za-z])"
+            )
+
+        def parse_args(self, w, pos, parsing_state=None):
+            match = self.pattern.match(w.s, pos)
+            if not match:
+                raise ValueError("Unsupported title spacing expression")
+            return ParsedMacroArgs(), pos, match.end() - pos
 
     # Use the existing LaTeX text decoder for accents, math, and formatting.
     # These overrides describe display-only adornments, not arbitrary macros.
-    ignored = {
-        "includegraphics": "*[[{",
-        "thanks": "{",
-        "footnote": "[{",
-        "label": "{",
-        "color": "[{",
-        "fontsize": "{{",
-    }
+    ignored = TITLE_DISPLAY_ADORNMENTS
     parser_context = latexwalker.get_default_latex_context_db()
     text_context = latex2text.get_default_latex_context_db()
     parser_context.add_context_category(
         "title-metadata",
         macros=[MacroSpec(name, args) for name, args in ignored.items()]
-        + [MacroSpec("href", "{{")],
+        + [
+            MacroSpec("href", "{{"),
+            MacroSpec("mbox", "{"),
+            MacroSpec("kern", LiteralKern("pt|pc|in|bp|cm|mm|dd|cc|sp|ex|em")),
+            MacroSpec("mkern", LiteralKern("mu")),
+        ],
         prepend=True,
     )
     text_context.add_context_category(
@@ -1162,6 +1258,9 @@ def _display_title_text(value: str) -> str:
         macros=[latex2text.MacroTextSpec(name, discard=True) for name in ignored]
         + [
             latex2text.MacroTextSpec("href", simplify_repl="%(2)s"),
+            latex2text.MacroTextSpec("mbox", simplify_repl="%(1)s"),
+            latex2text.MacroTextSpec("kern", discard=True),
+            latex2text.MacroTextSpec("mkern", discard=True),
             latex2text.MacroTextSpec("xspace", simplify_repl=" "),
             latex2text.MacroTextSpec("LaTeX", simplify_repl="LaTeX"),
             latex2text.MacroTextSpec("TeX", simplify_repl="TeX"),

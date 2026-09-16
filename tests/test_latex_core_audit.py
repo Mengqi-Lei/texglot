@@ -755,7 +755,7 @@ def test_literal_macro_at_explicit_title_entry_is_translated_once(entry, definit
 def test_title_macro_definition_and_usage_in_separate_files_keep_references():
     from app.latex import collect_title_macros, extract_paper_title
 
-    definitions = "\\def% comment\n\\papername% ignored\n{A Unified% author note\n Framework for Learning}\n"
+    definitions = "\\def% comment\n\\papername% ignored\n{A Unified % author note\n Framework for Learning}\n"
     main = r"\input{definitions}\title[Short]{\papername}\begin{document}\maketitle\end{document}"
     macros = collect_title_macros(definitions + "\n" + main)
     assert set(macros) == {"papername"}

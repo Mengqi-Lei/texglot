@@ -32,6 +32,7 @@ from .compiler import (
 from .config import DATA, ROOT, Settings, atomic_json, load_settings, public_settings
 from .graphics import prepare_eps
 from .latex import (
+    PaperTitle,
     apply_translations,
     classify_source_contexts,
     collect_literal_macros,
@@ -40,7 +41,8 @@ from .latex import (
     collect_prose_arguments,
     collect_text_macros,
     collect_title_macros,
-    extract_paper_title,
+    display_paper_title,
+    extract_title_metadata,
     segments,
 )
 from .llm import (
@@ -52,13 +54,13 @@ from .llm import (
     validate_translation_language,
 )
 from .paper_context import extract_paper_context
-from .sources import download_arxiv, extract_source, find_main
+from .sources import download_arxiv, extract_source, fetch_arxiv_title, find_main
 
 JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
 SOURCE_PREPARATION_VERSION = "native-source-v3"
-TITLE_METADATA_VERSION = 2
+TITLE_METADATA_VERSION = 3
 
 
 def separate_layout_notices(job: dict):
@@ -73,13 +75,43 @@ def separate_layout_notices(job: dict):
             logs.append({"time": job.get("updated_at", 0), "message": FLOAT_FIT_NOTICE})
 
 
-def refresh_title_metadata(job: dict, folder: Path):
-    """Upgrade display-only metadata once, without reordering or rerunning jobs."""
-    if (
-        job.get("kind") != "arxiv"
-        or job.get("title_metadata_version") == TITLE_METADATA_VERSION
-    ):
-        return
+def cached_arxiv_title(job: dict) -> str:
+    metadata = job.get("title")
+    if isinstance(metadata, dict) and metadata.get("source") == "arxiv":
+        raw = metadata.get("raw")
+        if isinstance(raw, str) and raw.strip():
+            return raw
+    return ""
+
+
+def set_title_metadata(job: dict, title: PaperTitle, source: str):
+    job.update(
+        name=title.display,
+        title={"raw": title.raw, "source": source},
+        title_metadata_version=TITLE_METADATA_VERSION,
+    )
+
+
+def has_placeholder_title(job: dict) -> bool:
+    name = job.get("name", "")
+    identifier = job.get("arxiv_id", "")
+    return (
+        job.get("kind") == "arxiv"
+        and isinstance(identifier, str)
+        and bool(identifier)
+        and (
+            not isinstance(name, str)
+            or not name
+            or name.casefold()
+            in {
+                f"arxiv {identifier}".casefold(),
+                "arxiv " + re.sub(r"v\d+$", "", identifier).casefold(),
+            }
+        )
+    )
+
+
+def source_title_metadata(job: dict, folder: Path) -> PaperTitle | None:
     try:
         source = folder / "prepared-source"
         if not source.is_dir():
@@ -103,13 +135,27 @@ def refresh_title_metadata(job: dict, folder: Path):
             if remaining < 0:
                 raise ValueError("Source metadata limit")
             texts[name] = blob.decode("utf-8")
-        if title := extract_paper_title(
+        return extract_title_metadata(
             texts[main], macro_context="\n".join(texts.values())
-        ):
-            job["name"] = title
+        )
     except (OSError, ValueError, TypeError, RecursionError):
         # Missing or malformed old sources must not block loading their PDFs.
-        pass
+        return None
+
+
+def refresh_title_metadata(job: dict, folder: Path):
+    """Upgrade cached/local metadata without network access or reordering jobs."""
+    if (
+        job.get("kind") != "arxiv"
+        or job.get("title_metadata_version") == TITLE_METADATA_VERSION
+    ):
+        return
+    if raw := cached_arxiv_title(job):
+        set_title_metadata(
+            job, PaperTitle(raw, display_paper_title(raw, literal=True)), "arxiv"
+        )
+    elif title := source_title_metadata(job, folder):
+        set_title_metadata(job, title, "latex")
     job["title_metadata_version"] = TITLE_METADATA_VERSION
     try:
         # persist() updates updated_at; a metadata migration must preserve it.
@@ -138,6 +184,9 @@ class JobManager:
         self.jobs = {}
         self.tasks = {}
         self.slot = asyncio.Semaphore(1)
+        self._title_lock = asyncio.Lock()
+        self._title_refresh = None
+        self._title_candidates = []
         for path in JOBS.glob("*/job.json"):
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
@@ -147,7 +196,10 @@ class JobManager:
                     or not isinstance(data.get("status"), str)
                 ):
                     continue
+                missing_title = has_placeholder_title(data)
                 refresh_title_metadata(data, path.parent)
+                if missing_title or has_placeholder_title(data):
+                    self._title_candidates.append(data["id"])
                 separate_layout_notices(data)
                 if data["status"] in ACTIVE:
                     data.update(
@@ -162,6 +214,41 @@ class JobManager:
         if job_id not in self.jobs:
             raise KeyError("任务不存在")
         return self.jobs[job_id]
+
+    def start_title_refresh(self):
+        if self._title_candidates and (
+            self._title_refresh is None or self._title_refresh.done()
+        ):
+            self._title_refresh = asyncio.create_task(self._repair_missing_titles())
+
+    async def _repair_missing_titles(self):
+        # One finite background pass, paced independently of opening the library.
+        candidates, self._title_candidates = self._title_candidates, []
+        for index, job_id in enumerate(candidates):
+            if index:
+                await asyncio.sleep(3)
+            job = self.jobs.get(job_id)
+            if job and job.get("status") not in ACTIVE:
+                await self.resolve_arxiv_title(job)
+
+    async def resolve_arxiv_title(self, job):
+        if job.get("kind") != "arxiv" or not isinstance(job.get("arxiv_id"), str):
+            return
+        async with self._title_lock:
+            if cached_arxiv_title(job):
+                return
+            raw = await fetch_arxiv_title(job["arxiv_id"])
+            if not raw:
+                return
+            set_title_metadata(
+                job, PaperTitle(raw, display_paper_title(raw, literal=True)), "arxiv"
+            )
+            try:
+                # A background metadata repair must preserve ordering, progress,
+                # token counts, artifacts and reading data, including newer writes.
+                atomic_json(JOBS / job["id"] / "job.json", job)
+            except OSError:
+                pass
 
     def persist(self, job):
         job["updated_at"] = time.time()
@@ -247,6 +334,8 @@ class JobManager:
 
     async def close(self):
         pending = [t for t in self.tasks.values() if not t.done()]
+        if self._title_refresh is not None and not self._title_refresh.done():
+            pending.append(self._title_refresh)
         for t in pending:
             t.cancel()
         await asyncio.gather(*pending, return_exceptions=True)
@@ -292,6 +381,9 @@ class JobManager:
             artifacts={},
             pages=0,
         )
+        if job["kind"] == "arxiv":
+            self.update(job, status="downloading", progress=3)
+            await self.resolve_arxiv_title(job)
         if not (folder / "source-ready").exists():
             blob_path = folder / "upload.bin"
             if job["kind"] == "arxiv" and not blob_path.exists():
@@ -418,11 +510,11 @@ class JobManager:
         )
         title_macros = collect_title_macros(macro_context)
         main_text = (work / main).read_text(encoding="utf-8")
-        if job["kind"] == "arxiv":
-            if name := extract_paper_title(
+        if job["kind"] == "arxiv" and not cached_arxiv_title(job):
+            if title := extract_title_metadata(
                 main_text, title_macros=title_macros, macro_context=macro_context
             ):
-                job["name"] = name
+                set_title_metadata(job, title, "latex")
             job["title_metadata_version"] = TITLE_METADATA_VERSION
         # Translate the TeX files the original compilation actually consumed.
         # Macro-driven includes and inactive conditionals cannot be determined

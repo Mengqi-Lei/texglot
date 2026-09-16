@@ -39,8 +39,11 @@ reader_store = ReaderStore(JOBS)
 
 @asynccontextmanager
 async def lifespan(app):
-    yield
-    await manager.close()
+    manager.start_title_refresh()
+    try:
+        yield
+    finally:
+        await manager.close()
 
 
 app = FastAPI(title="TeXGlot", lifespan=lifespan)
@@ -110,7 +113,7 @@ def health():
         "name": "TeXGlot",
         "compilers": available_compilers(),
         "data_dir": str(DATA),
-        "version": "1.1.2",
+        "version": "1.1.3",
     }
 
 

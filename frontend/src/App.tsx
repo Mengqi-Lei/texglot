@@ -840,7 +840,9 @@ export default function App() {
                           <FileText size={21} />
                         </div>
                         <div className="job-name">
-                          <h3 id={`job-title-${job.id}`}>{job.name}</h3>
+                          <h3 id={`job-title-${job.id}`} title={job.name}>
+                            {job.name}
+                          </h3>
                           <p>
                             {job.kind === "arxiv"
                               ? `arXiv · ${job.arxiv_id}`

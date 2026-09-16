@@ -132,7 +132,11 @@ async def run(output, portable_compiler, engine=None, eps=False):
     main = main.replace(r"\author{TeXGlot}", r"\author{\NativeAffiliation}")
     main = main.replace(
         r"\begin{document}",
-        r"\usepackage{native-proof,booktabs}" + "\n" + r"\begin{document}",
+        r"\usepackage{native-proof,booktabs,xcolor}"
+        + "\n"
+        + r"\input{preamble}"
+        + "\n"
+        + r"\begin{document}",
     )
     section += r"""
 
@@ -142,6 +146,7 @@ async def run(output, portable_compiler, engine=None, eps=False):
 \caption{Native table.}
 \begin{tabular}{ll}
 \toprule
+\rowcolor{gray!20}
 $a$ & 1 \\
 \cmidrule(lr){1-2}
 $b$ & 2 \\
@@ -156,6 +161,7 @@ $b$ & 2 \\
         section += "\n" + r"\includegraphics{figure.eps}" + "\n"
     with zipfile.ZipFile(archive, "w") as zipped:
         zipped.writestr("main.tex", main.encode("utf-8"))
+        zipped.writestr("preamble.tex", r"\usepackage[table]{xcolor}".encode("utf-8"))
         zipped.writestr("sections/章节 一.tex", section.encode("utf-8"))
         zipped.writestr(
             "native-proof.sty",
@@ -268,6 +274,19 @@ $b$ & 2 \\
                 details = response.json()
             assert "sections/章节 一.tex" in details["translation_files"]
             assert "native-proof.sty" in details["source_dependencies"]
+            assert "preamble.tex" in details["source_dependencies"]
+            assert any(
+                "已按编译诊断调整 xcolor 宏包选项" in entry["message"]
+                for entry in details["logs"]
+            )
+            with zipfile.ZipFile(paper["files"]["source"]) as exported:
+                assert r"\PassOptionsToPackage{table}{xcolor}" in exported.read(
+                    "main.tex"
+                ).decode("utf-8")
+                assert (
+                    exported.read("preamble.tex").decode("utf-8")
+                    == r"\usepackage[table]{xcolor}"
+                )
             report = {
                 "platform": platform.platform(),
                 "python": platform.python_version(),
@@ -284,6 +303,7 @@ $b$ & 2 \\
                 "formula_accessibility_retained": True,
                 "custom_prose_arguments": True,
                 "booktabs_column_rules": True,
+                "included_package_option_recovery": True,
                 "model": "local stub (no paid API)",
                 "result": result,
             }

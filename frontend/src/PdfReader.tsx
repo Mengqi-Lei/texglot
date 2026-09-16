@@ -744,7 +744,7 @@ export default function PdfReader({
           <ArrowLeft size={19} />
         </button>
         <div className="reader-title">
-          <strong>{job.name}</strong>
+          <strong title={job.name}>{job.name}</strong>
           <span>TeXGlot · {t("连续阅读")}</span>
         </div>
         <SelectionGroup
