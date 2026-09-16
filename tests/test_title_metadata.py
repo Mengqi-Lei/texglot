@@ -310,7 +310,7 @@ def test_cached_official_title_survives_startup_without_local_sources(
         title={"raw": raw, "source": "arxiv"},
         title_metadata_version=2,
     )
-    (folder / "job.json").write_text(json.dumps(old))
+    (folder / "job.json").write_text(json.dumps(old), encoding="utf-8")
     monkeypatch.setattr(jobs, "JOBS", tmp_path)
     record = jobs.JobManager().get("paper")
     assert record["name"] == ("VGGT-ω: " + "A long title " * 30).strip()
@@ -323,7 +323,7 @@ async def test_background_title_repair_does_not_block_or_overwrite_newer_job_sta
 ):
     folder, old = write_old_job(tmp_path)
     old.update(name="arXiv 2512.12345", arxiv_id="2512.12345")
-    (folder / "job.json").write_text(json.dumps(old))
+    (folder / "job.json").write_text(json.dumps(old), encoding="utf-8")
     monkeypatch.setattr(jobs, "JOBS", tmp_path)
     entered, finish = asyncio.Event(), asyncio.Event()
     calls = []
@@ -351,7 +351,7 @@ async def test_background_title_repair_does_not_block_or_overwrite_newer_job_sta
     }
     assert record["done"] == 7 and record["tokens"] == 123999
     assert record["status"] == "compiling" and record["updated_at"] == old["updated_at"]
-    assert json.loads((folder / "job.json").read_text()) == record
+    assert json.loads((folder / "job.json").read_text(encoding="utf-8")) == record
     for name in ["original.pdf", "translated.pdf", "reader.json", "cache.json"]:
         assert (folder / name).read_bytes() == b"private existing data"
     await manager.resolve_arxiv_title(record)
@@ -363,7 +363,7 @@ async def test_shutdown_cancels_pending_title_lookup_and_keeps_local_title(
 ):
     folder, old = write_old_job(tmp_path)
     old.update(name="arXiv 2512.12345", arxiv_id="2512.12345")
-    (folder / "job.json").write_text(json.dumps(old))
+    (folder / "job.json").write_text(json.dumps(old), encoding="utf-8")
     monkeypatch.setattr(jobs, "JOBS", tmp_path)
     entered, cancelled = asyncio.Event(), asyncio.Event()
 
@@ -387,9 +387,11 @@ async def test_background_offline_failure_preserves_a_previous_version_literal_t
     tmp_path, monkeypatch
 ):
     folder, old = write_old_job(tmp_path)
-    (folder / "prepared-source/main.tex").write_text(r"\title{VGGT-$\customsymbol$}")
+    (folder / "prepared-source/main.tex").write_text(
+        r"\title{VGGT-$\customsymbol$}", encoding="utf-8"
+    )
     old.update(name="arXiv 2512.12345", arxiv_id="2512.12345", title_metadata_version=2)
-    (folder / "job.json").write_text(json.dumps(old))
+    (folder / "job.json").write_text(json.dumps(old), encoding="utf-8")
     monkeypatch.setattr(jobs, "JOBS", tmp_path)
 
     async def unavailable(_):
