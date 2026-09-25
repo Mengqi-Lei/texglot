@@ -15,7 +15,11 @@ def _write_xpi(
 ) -> None:
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, content in members.items():
-            archive.writestr(name, content)
+            info = zipfile.ZipInfo()
+            # Preserve deliberately unsafe names on Windows too: its ZipInfo
+            # constructor would otherwise change backslashes to forward slashes.
+            info.filename = name
+            archive.writestr(info, content)
         if symlink:
             info = zipfile.ZipInfo(symlink)
             info.external_attr = (stat.S_IFLNK | 0o777) << 16
@@ -102,12 +106,32 @@ def test_audit_rejects_private_or_non_runtime_members(tmp_path, name, content, m
 
 @pytest.mark.parametrize(
     "name",
-    ["../escape.js", "/absolute.js", "C:/absolute.js", "nested\\windows.js"],
+    [
+        "../escape.js",
+        "/absolute.js",
+        "C:/absolute.js",
+        "nested\\windows.js",
+        "truncated\0.js",
+    ],
 )
 def test_audit_rejects_unsafe_paths(tmp_path, name):
     package = tmp_path / "plugin.xpi"
     _write_xpi(package, {"manifest.json": _manifest(), name: b"x"})
     with pytest.raises(ZoteroPackageError, match="archive member"):
+        audit_package(package)
+
+
+def test_audit_checks_raw_names_after_platform_normalization(tmp_path, monkeypatch):
+    package = tmp_path / "plugin.xpi"
+    _write_xpi(package, {"manifest.json": _manifest(), "nested\\windows.js": b"x"})
+
+    class WindowsZipInfo(zipfile.ZipInfo):
+        def __init__(self, filename="NoName", *args, **kwargs):
+            super().__init__(filename, *args, **kwargs)
+            self.filename = self.filename.replace("\\", "/")
+
+    monkeypatch.setattr(zipfile, "ZipInfo", WindowsZipInfo)
+    with pytest.raises(ZoteroPackageError, match="Windows separator"):
         audit_package(package)
 
 

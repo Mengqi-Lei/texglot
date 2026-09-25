@@ -181,7 +181,10 @@ def audit_package(path: Path) -> dict[str, Any]:
         manifest_name: str | None = None
         total_uncompressed = 0
         for info in infos:
-            name = _normal_member_name(info.filename)
+            # ZipInfo normalizes Windows separators (and truncates at NUL).
+            # Validate the archive's raw name before that platform-dependent
+            # cleanup can conceal an unsafe spelling.
+            name = _normal_member_name(info.orig_filename)
             if name in seen:
                 raise ZoteroPackageError(f"duplicate archive member: {name}")
             seen.add(name)
