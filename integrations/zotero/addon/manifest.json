@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "TeXGlot for Zotero",
+  "version": "1.0.0",
+  "description": "Send Zotero papers to a local TeXGlot service and keep translated PDFs as child attachments.",
+  "author": "TeXGlot contributors",
+  "homepage_url": "https://github.com/Mengqi-Lei/texglot",
+  "applications": {
+    "zotero": {
+      "id": "zotero@texglot.org",
+      "update_url": "https://github.com/Mengqi-Lei/texglot/releases/latest/download/texglot-zotero-update.json",
+      "strict_min_version": "9.0",
+      "strict_max_version": "9.99.99"
+    }
+  },
+  "icons": {
+    "48": "icons/texglot.png",
+    "96": "icons/texglot.png"
+  }
+}

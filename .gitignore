@@ -4,7 +4,8 @@ __pycache__/
 .ruff_cache/
 *.tsbuildinfo
 .env*
-data/
+data/*
+!data/.gitkeep
 frontend/node_modules/
 frontend/dist/
 tmp/
@@ -16,6 +17,9 @@ texglot-output/
 desktop/node_modules/
 desktop/out/
 desktop/engine-dist/
+integrations/zotero/node_modules/
+integrations/zotero/.scaffold/
+integrations/zotero/addon/dist/
 desktop/build/icon.*
 desktop/build/THIRD_PARTY_NOTICES.txt
 desktop/build/LICENSES.chromium.html

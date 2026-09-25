@@ -6,9 +6,9 @@
 
 ## 安装与首次使用
 
-- **Apple Silicon Mac：**下载 `TeXGlot-1.1.3-macOS-arm64.dmg`，打开后将 TeXGlot 拖入 Applications，再打开应用。
-- **Intel Mac：**使用 Release 附件中的 `TeXGlot-1.1.3-macOS-x64.dmg`。
-- **Windows x64：**使用 Release 附件中的 `TeXGlot-1.1.3-Windows-x64-Setup.exe`。安装器为当前用户安装，并建立开始菜单和桌面快捷方式，不需要管理员权限。
+- **Apple Silicon Mac：**下载 `TeXGlot-1.2.0-macOS-arm64.dmg`，打开后将 TeXGlot 拖入 Applications，再打开应用。
+- **Intel Mac：**使用 Release 附件中的 `TeXGlot-1.2.0-macOS-x64.dmg`。
+- **Windows x64：**使用 Release 附件中的 `TeXGlot-1.2.0-Windows-x64-Setup.exe`。安装器为当前用户安装，并建立开始菜单和桌面快捷方式，不需要管理员权限。
 
 只有实际附加且验证过的文件才作为下载包提供。当前验证结果见[平台说明](platforms.md)。首批安装包尚无 Apple Developer ID 签名及公证，也没有 Windows 发布者证书，系统可能提示发布者未知。发布校验和用于验证文件完整性，不代表发布者身份认证；请勿为安装应用而关闭系统安全设置。
 
@@ -78,4 +78,4 @@ uv run python scripts/smoke_platform.py --engine desktop/engine-dist/texglot-eng
 
 检查会从 PATH 去除开发工具，通过本地模型桩翻译 `.tex` 与含中文目录的多文件 ZIP，验证中文 PDF 内容和父进程退出清理。不消耗模型额度，也不代表任意论文的语义质量已验证。
 
-[原生构建工作流](../.github/workflows/desktop.yml)使用 GitHub 的 Windows x64 和 Intel macOS 主机，验证冻结引擎并执行 Windows 静默安装。手动触发，只上传构建产物，不自动发布 Release。正式签名版本需要另行配置可信签名凭据。第三方许可随应用附带，可从**帮助 → 第三方许可**查看。
+[原生构建工作流](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/desktop.yml)使用 GitHub 的 Windows x64 和 Intel macOS 主机，验证冻结引擎并执行 Windows 静默安装。手动触发，只上传构建产物，不自动发布 Release。正式签名版本需要另行配置可信签名凭据。第三方许可随应用附带，可从**帮助 → 第三方许可**查看。

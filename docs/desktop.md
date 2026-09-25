@@ -6,9 +6,9 @@ TeXGlot's desktop packages include the interface, Python service and Tectonic 0.
 
 ## Install and open
 
-- **Apple Silicon Mac:** download `TeXGlot-1.1.3-macOS-arm64.dmg`, open it, drag TeXGlot into Applications and launch TeXGlot.
-- **Intel Mac:** use `TeXGlot-1.1.3-macOS-x64.dmg` when attached to the release.
-- **Windows x64:** use `TeXGlot-1.1.3-Windows-x64-Setup.exe` when attached to the release. The installer runs for the current user and creates Start menu and desktop shortcuts; administrator access is not required.
+- **Apple Silicon Mac:** download `TeXGlot-1.2.0-macOS-arm64.dmg`, open it, drag TeXGlot into Applications and launch TeXGlot.
+- **Intel Mac:** use `TeXGlot-1.2.0-macOS-x64.dmg` when attached to the release.
+- **Windows x64:** use `TeXGlot-1.2.0-Windows-x64-Setup.exe` when attached to the release. The installer runs for the current user and creates Start menu and desktop shortcuts; administrator access is not required.
 
 Only attached, verified assets are release downloads. See the [platform table](platforms.en.md) for current validation status. The initial packages do not have an Apple Developer ID/notarization or a Windows publisher certificate. Your OS may display an unknown-publisher warning; the release hashes verify file integrity, not publisher identity. Do not disable system security settings to install the app.
 
@@ -78,4 +78,4 @@ uv run python scripts/smoke_platform.py --engine desktop/engine-dist/texglot-eng
 
 The check removes development tools from PATH, calls a local model stub, translates `.tex` and Unicode multi-file ZIP inputs, verifies Chinese PDF text and tests parent-process shutdown. It does not spend model credits or establish translation quality for arbitrary papers.
 
-[Native build workflow](../.github/workflows/desktop.yml) builds Windows x64 and Intel macOS on GitHub-hosted runners, verifies frozen engines and exercises Windows silent installation. It is manually dispatched and uploads build artifacts to the workflow run; it never publishes a release. Configure trusted signing credentials separately before producing signed public packages. Third-party notices are included in the app and exposed through **Help → Third-party Licenses**.
+[Native build workflow](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/desktop.yml) builds Windows x64 and Intel macOS on GitHub-hosted runners, verifies frozen engines and exercises Windows silent installation. It is manually dispatched and uploads build artifacts to the workflow run; it never publishes a release. Configure trusted signing credentials separately before producing signed public packages. Third-party notices are included in the app and exposed through **Help → Third-party Licenses**.

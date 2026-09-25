@@ -16,8 +16,6 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC_ROOT = (
-    ".github/workflows/verify.yml",
-    ".github/workflows/desktop.yml",
     "README.md",
     "README_CN.md",
     "CONTRIBUTING.md",
@@ -44,12 +42,16 @@ PUBLIC_DOCS = (
     "troubleshooting_CN.md",
     "releasing.md",
     "releasing_CN.md",
+    "github-actions-template.yml",
     "desktop.md",
     "desktop_CN.md",
+    "desktop-build-workflow.yml",
     "assets/home-en.png",
     "assets/home-zh.png",
     "assets/reader-en.png",
     "assets/reader-zh.png",
+    "assets/zotero-reader.png",
+    "zotero-integration-design.md",
 )
 TEXT_SUFFIXES = {
     ".md",
@@ -66,9 +68,16 @@ TEXT_SUFFIXES = {
     ".command",
     ".cjs",
     ".html",
+    ".js",
+    ".mjs",
+    ".css",
+    ".xml",
 }
 LEAKS = re.compile(
     r"sk-[A-Za-z0-9._-]{20,}|-----BEGIN (?:RSA |OPENSSH )?PRIVATE KEY-----|/Users/[a-zA-Z0-9_-]+/|texglot(?:-dev)"
+)
+EXPORT_EXCLUDED_PARTS = frozenset(
+    {"node_modules", ".scaffold", "dist", "build", "coverage", "__pycache__"}
 )
 LINKS = re.compile(r'\]\(([^\s)]+)(?:\s+"[^"]*")?\)|(?:href|src)="([^"]+)"')
 
@@ -89,11 +98,20 @@ def public_files(root: Path, version: str) -> list[Path]:
         ("examples", "*"),
         (".github", "*.md"),
         ("app/resources", "*"),
+        ("integrations/zotero", "*"),
     ):
         files += [
             p
             for p in (root / folder).rglob(pattern)
-            if p.is_file() and "__pycache__" not in p.parts
+            if p.is_file()
+            and not any(
+                part in EXPORT_EXCLUDED_PARTS for part in p.relative_to(root).parts
+            )
+            and not (
+                folder == "integrations/zotero"
+                and p.relative_to(root / folder).parts[0] == "docs"
+                and p.name != "development.md"
+            )
         ]
     for pattern in ("*.json", "*.ts", "*.html"):
         files += list((root / "frontend").glob(pattern))
@@ -156,7 +174,41 @@ def release_body(root: Path, version: str) -> str:
     )
 
 
-def prepare(source: Path, output: Path, installers: list[Path] | None = None) -> None:
+def zotero_update_manifest(xpis: list[Path], core_version: str) -> dict:
+    """Bind Zotero updates to the exact versioned XPI and its checksum."""
+    addons = {}
+    for xpi in xpis:
+        with zipfile.ZipFile(xpi) as archive:
+            manifest = json.loads(archive.read("manifest.json"))
+        application = manifest["applications"]["zotero"]
+        identifier = application["id"]
+        if identifier in addons:
+            raise ValueError(f"Duplicate Zotero add-on ID: {identifier}")
+        addons[identifier] = {
+            "updates": [
+                {
+                    "version": manifest["version"],
+                    "update_link": f"https://github.com/Mengqi-Lei/texglot/releases/download/v{core_version}/{xpi.name}",
+                    "update_hash": "sha256:"
+                    + hashlib.sha256(xpi.read_bytes()).hexdigest(),
+                    "applications": {
+                        "zotero": {
+                            key: application[key]
+                            for key in ("strict_min_version", "strict_max_version")
+                        }
+                    },
+                }
+            ]
+        }
+    return {"addons": addons}
+
+
+def prepare(
+    source: Path,
+    output: Path,
+    installers: list[Path] | None = None,
+    zotero_xpis: list[Path] | None = None,
+) -> None:
     source, output = source.resolve(), output.resolve()
     if output.exists() or source.is_relative_to(output):
         raise ValueError(
@@ -230,6 +282,34 @@ def prepare(source: Path, output: Path, installers: list[Path] | None = None) ->
         if target.exists():
             raise ValueError(f"Duplicate installer: {installer.name}")
         shutil.copyfile(installer, target)
+    for xpi in zotero_xpis or []:
+        # Audit the built archive before it enters the release directory.  The
+        # plugin version is read from its manifest, so the core and plugin can
+        # evolve independently while the release name remains unambiguous.
+        try:
+            from scripts.audit_zotero import audit_package
+        except ModuleNotFoundError:
+            # When this file is executed directly (`python scripts/...`), the
+            # scripts directory is on sys.path but the repository root is not
+            # a package import root. Keep the release command usable in both
+            # direct and module execution modes.
+            from audit_zotero import audit_package
+
+        report = audit_package(xpi)
+        expected_name = f"texglot-zotero-{report['manifest']['version']}.xpi"
+        if xpi.name != expected_name:
+            raise ValueError(
+                f"Unexpected Zotero plugin name: {xpi.name}; expected {expected_name}"
+            )
+        target = assets / xpi.name
+        if target.exists():
+            raise ValueError(f"Duplicate release asset: {xpi.name}")
+        shutil.copyfile(xpi, target)
+    if zotero_xpis:
+        (assets / "texglot-zotero-update.json").write_text(
+            json.dumps(zotero_update_manifest(zotero_xpis, version), indent=2) + "\n",
+            encoding="utf-8",
+        )
     checksums = []
     for path in sorted(assets.iterdir()):
         checksums.append(
@@ -257,8 +337,14 @@ def main():
         action="append",
         help="Attach a verified native installer; repeatable",
     )
+    parser.add_argument(
+        "--zotero-xpi",
+        type=Path,
+        action="append",
+        help="Attach an audited Zotero plugin XPI; repeatable",
+    )
     args = parser.parse_args()
-    prepare(ROOT, args.output, args.installer)
+    prepare(ROOT, args.output, args.installer, args.zotero_xpi)
 
 
 if __name__ == "__main__":

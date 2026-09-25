@@ -36,6 +36,7 @@ import Settings from "./Settings";
 import ContextGuidance from "./ContextGuidance";
 import SelectionGroup from "./SelectionGroup";
 import { useContentMotion, usePresence } from "./motion";
+import { parseJobDeepLink, resolveJobDeepLink } from "./jobDeepLink";
 import {
   api,
   artifactURL,
@@ -271,6 +272,7 @@ export default function App() {
   const [settings, setSettings] = useState<Config>(defaults),
     [health, setHealth] = useState<Health | null>(null),
     [jobs, setJobs] = useState<Job[]>([]),
+    [jobsLoaded, setJobsLoaded] = useState(false),
     [showSettings, setShowSettings] = useState(false),
     [tab, setTab] = useState("arxiv"),
     [section, setSection] = useState("workspace"),
@@ -291,6 +293,8 @@ export default function App() {
   const content = useRef<HTMLDivElement>(null);
   const sourcePanel = useRef<HTMLDivElement>(null);
   const jobList = useRef<HTMLDivElement>(null);
+  const pendingJobLink = useRef(parseJobDeepLink(window.location.search));
+  const scrollToLinkedJob = useRef<string | null>(null);
   useContentMotion(content, section, { active: !reader });
   useContentMotion(sourcePanel, tab, {
     resize: true,
@@ -349,7 +353,10 @@ export default function App() {
       const next = await api<Job[]>("/jobs", {
         headers: { "Accept-Language": requestLocale },
       });
-      if (requestLocale === currentLocale.current) setJobs(next);
+      if (requestLocale === currentLocale.current) {
+        setJobs(next);
+        setJobsLoaded(true);
+      }
       setConnected(true);
     } catch {
       setConnected(false);
@@ -371,6 +378,35 @@ export default function App() {
   useEffect(() => {
     void refresh();
   }, [locale]);
+  useEffect(() => {
+    const link = pendingJobLink.current;
+    if (!link || !jobsLoaded) return;
+    pendingJobLink.current = null;
+    const result = resolveJobDeepLink(jobs, link);
+    if (result.kind === "missing") {
+      toast("未找到该 TeXGlot 任务。");
+      return;
+    }
+    setSection("library");
+    setFilter("all");
+    setSearch("");
+    setSelected(result.job.id);
+    if (result.kind === "reader") {
+      setReader(result.job);
+    } else {
+      scrollToLinkedJob.current = result.job.id;
+      if (link.view === "reader") toast("译文 PDF 尚未生成，已打开任务详情。");
+    }
+  }, [jobs, jobsLoaded]);
+  useLayoutEffect(() => {
+    const id = scrollToLinkedJob.current;
+    if (!id || section !== "library" || selected !== id) return;
+    const row = document.getElementById(`job-row-${id}`);
+    if (!row) return;
+    row.scrollIntoView({ block: "center", behavior: "instant" });
+    row.querySelector<HTMLButtonElement>(".job-summary")?.focus({ preventScroll: true });
+    scrollToLinkedJob.current = null;
+  }, [jobs, section, selected]);
   const submit = async (example = false) => {
     setError("");
     if (!example && tab === "arxiv" && !url.trim()) {

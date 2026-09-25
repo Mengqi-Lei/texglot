@@ -43,4 +43,4 @@ bash start-texglot.command --no-browser --port 8877
 
 服务采用对应系统的单进程所有权锁、子进程清理与显式 UTF-8 读写，仅监听回环地址。macOS 有额外的编译沙箱，Windows/Linux 尚无同等级的 OS 文件隔离，请使用可信源码。
 
-帮助验证平台时，可运行 `uv run python scripts/smoke_platform.py --portable-compiler`，将脱敏结果附到 Issue。测试使用本地模型桩，验证原生 CLI 和 PDF 生成，不消耗模型额度。[桌面构建工作流](../.github/workflows/desktop.yml) 构建安装包并检查其中的引擎；[源码 CI](../.github/workflows/verify.yml) 覆盖 Linux、macOS 和 Windows。工作流配置本身不代表平台已获验证，上表记录本次发布实际完成的检查。
+帮助验证平台时，可运行 `uv run python scripts/smoke_platform.py --portable-compiler`，将脱敏结果附到 Issue。测试使用本地模型桩，验证原生 CLI 和 PDF 生成，不消耗模型额度。[桌面构建工作流](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/desktop.yml) 构建安装包并检查其中的引擎；[源码 CI](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/verify.yml) 覆盖 Linux、macOS 和 Windows。工作流配置本身不代表平台已获验证，上表记录本次发布实际完成的检查。

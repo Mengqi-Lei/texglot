@@ -6,16 +6,16 @@ This guide describes the repeatable release process for maintainers. Local prepa
 
 ## Version and validation
 
-1. Finish the relevant checks in [CONTRIBUTING.md](../CONTRIBUTING.md), including the [source CI](../.github/workflows/verify.yml). Record the operating systems and checks actually completed.
-2. Keep the version aligned in `pyproject.toml`, `uv.lock`, `app/main.py`, `app/cli.py`, both frontend and desktop `package.json` files and their lockfiles. Add bilingual notes under `docs/releases/` and update `CHANGELOG.md`.
-3. Build each native installer on its target OS/architecture using the [desktop guide](desktop.md). The [desktop workflow](../.github/workflows/desktop.yml) builds and tests Windows x64 and Intel Mac installers; Apple Silicon is built on an ARM Mac. These workflows do not publish releases.
+1. Finish the relevant checks in [CONTRIBUTING.md](../CONTRIBUTING.md), including the [source CI](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/verify.yml). Record the operating systems and checks actually completed.
+2. Keep the version aligned in `pyproject.toml`, `uv.lock`, `app/version.py`, both frontend and desktop `package.json` files and their lockfiles. Add bilingual notes under `docs/releases/` and update `CHANGELOG.md`.
+3. Build each native installer on its target OS/architecture using the [desktop guide](desktop.md). The [desktop workflow](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/desktop.yml) builds and tests Windows x64 and Intel Mac installers; Apple Silicon is built on an ARM Mac. These workflows do not publish releases.
 
 ## Prepare the files
 
 Build the frontend, then export a new directory from the project root:
 
 ```bash
-uv run python scripts/prepare_release.py --output output/release-1.1.3 --installer desktop/out/TeXGlot-1.1.3-macOS-arm64.dmg
+uv run python scripts/prepare_release.py --output output/release-1.2.0 --installer desktop/out/TeXGlot-1.2.0-macOS-arm64.dmg --zotero-xpi integrations/zotero/.scaffold/texglot-zotero-1.0.0.xpi
 ```
 
 Repeat `--installer PATH` for each verified DMG or EXE. The output directory must not already exist. The script exports an explicit source-file list, checks documentation links and common credential/path leaks, and builds the source ZIP, wheel and sdist. It also generates SHA-256 checksums, a source manifest and bilingual release text with versioned repository links.
@@ -36,3 +36,5 @@ Commit the reviewed source changes while preserving the repository's history. Cr
 Keep installers and generated archives in Release assets, not Git history. Publish only the platforms that have been validated and describe remaining limitations accurately. Publisher signing and Apple notarization are separate from file-integrity verification; do not describe unsigned packages as publisher-signed. PyPI publication is a separate process.
 
 Desktop update checks select stable versions and exact installer names from this repository. Keep the generated installer filenames unchanged, attach `SHA256SUMS.txt` covering every installer, and finish uploading the assets before publishing the release. Validate update discovery and a verified download on the target platform. Application and embedded-engine versions must match; missing or unverifiable installers are not offered for installation. Signing remains separate from file-integrity checks.
+
+The plugin has its own version; align its package.json, lockfile, manifest.json and client version. Preparation creates texglot-zotero-update.json with the XPI SHA-256. Include the current XPI and update manifest in every Release so the Zotero update URL remains available.

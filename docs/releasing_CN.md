@@ -6,16 +6,16 @@
 
 ## 版本与验证
 
-1. 完成[贡献指南](../CONTRIBUTING_CN.md)中的相关检查及[源码 CI](../.github/workflows/verify.yml)，记录实际验证的系统和范围。
-2. 对齐 `pyproject.toml`、`uv.lock`、`app/main.py`、`app/cli.py`、前端与桌面的 `package.json` 及对应锁文件版本，在 `docs/releases/` 添加双语说明，并更新 `CHANGELOG.md`。
-3. 按[桌面指南](desktop_CN.md)在目标系统和架构构建安装包。[桌面工作流](../.github/workflows/desktop.yml) 构建并验证 Windows x64 与 Intel Mac 安装包；Apple Silicon 在 ARM Mac 上构建。这些工作流不会发布 Release。
+1. 完成[贡献指南](../CONTRIBUTING_CN.md)中的相关检查及[源码 CI](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/verify.yml)，记录实际验证的系统和范围。
+2. 对齐 `pyproject.toml`、`uv.lock`、`app/version.py`、前端与桌面的 `package.json` 及对应锁文件版本，在 `docs/releases/` 添加双语说明，并更新 `CHANGELOG.md`。
+3. 按[桌面指南](desktop_CN.md)在目标系统和架构构建安装包。[桌面工作流](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/desktop.yml) 构建并验证 Windows x64 与 Intel Mac 安装包；Apple Silicon 在 ARM Mac 上构建。这些工作流不会发布 Release。
 
 ## 准备文件
 
 先构建前端，再从项目根目录导出到新目录：
 
 ```bash
-uv run python scripts/prepare_release.py --output output/release-1.1.3 --installer desktop/out/TeXGlot-1.1.3-macOS-arm64.dmg
+uv run python scripts/prepare_release.py --output output/release-1.2.0 --installer desktop/out/TeXGlot-1.2.0-macOS-arm64.dmg --zotero-xpi integrations/zotero/.scaffold/texglot-zotero-1.0.0.xpi
 ```
 
 每个已验证的 DMG 或 EXE 分别添加一次 `--installer PATH`。输出目录不能已存在。脚本按明确的源码清单导出，检查文档链接和常见凭据、私人路径泄漏，并构建源码 ZIP、wheel、sdist，同时生成 SHA-256 校验和、源码清单及带版本仓库链接的双语发布正文。
@@ -36,3 +36,5 @@ uv run python scripts/prepare_release.py --output output/release-1.1.3 --install
 安装包和生成的压缩包放在 Release 附件中，不写入 Git 历史。只提供已验证平台的安装包，并准确描述剩余限制。发布者签名和 Apple 公证不同于文件完整性检查，不将未签名的安装包描述为已签名。上传 PyPI 是独立流程。
 
 桌面更新检查会从正式仓库选择稳定版本和名称完全匹配的安装包。保留生成的安装包文件名，附上覆盖全部安装包的 `SHA256SUMS.txt`，完成附件上传后再公开 Release。发布前在目标平台验证版本发现和校验下载；应用与内置引擎版本必须一致。缺少可验证安装包时不会提供安装操作，文件完整性校验不代替发布者签名。
+
+插件单独维护版本，需对齐 package.json、锁文件、manifest.json 和客户端版本。发布准备会生成带 SHA-256 的 texglot-zotero-update.json；每次 Release 都应包含最新插件包和此清单，以保持 Zotero 更新入口有效。

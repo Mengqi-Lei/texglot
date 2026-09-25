@@ -4,12 +4,14 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from .arxiv_versions import resolve_arxiv_version
 from .compiler import available_compilers
 from .config import (
     DATA,
@@ -22,6 +24,22 @@ from .config import (
     save_settings,
 )
 from .i18n import localize_payload
+from .integrations import (
+    CORE_VERSION,
+    ZoteroIntegrationError,
+    ZoteroJobRequest,
+    ZoteroResolveRequest,
+    capabilities_payload,
+)
+from .integrations import (
+    create_job as create_zotero_job,
+)
+from .integrations import (
+    health as zotero_health,
+)
+from .integrations import (
+    serialize_job as serialize_zotero_job,
+)
 from .jobs import ACTIVE, JOBS, JobManager
 from .llm import ProviderError, Translator
 from .reader import (
@@ -106,6 +124,15 @@ async def key_error(request, exc):
     return JSONResponse({"detail": "任务不存在"}, status_code=404)
 
 
+@app.exception_handler(ZoteroIntegrationError)
+async def zotero_integration_error(request, exc: ZoteroIntegrationError):
+    # Keep integration failures machine-readable and intentionally omit the
+    # richer compiler/provider details stored in the local task log.
+    return JSONResponse(
+        {"code": exc.code, "message": exc.message}, status_code=exc.status_code
+    )
+
+
 @app.get("/api/health")
 def health():
     return {
@@ -113,8 +140,36 @@ def health():
         "name": "TeXGlot",
         "compilers": available_compilers(),
         "data_dir": str(DATA),
-        "version": "1.1.3",
+        "version": CORE_VERSION,
     }
+
+
+@app.get("/api/integrations/zotero/health")
+def zotero_integration_health():
+    return zotero_health()
+
+
+@app.get("/api/integrations/zotero/capabilities")
+def zotero_integration_capabilities():
+    return capabilities_payload()
+
+
+@app.post("/api/integrations/zotero/sources/resolve")
+async def zotero_resolve_source(data: ZoteroResolveRequest):
+    try:
+        parse_arxiv(data.id)
+    except ValueError:
+        raise ZoteroIntegrationError(
+            "ARXIV_NOT_FOUND", "没有识别到有效的 arXiv 编号", status_code=422
+        ) from None
+    try:
+        return await resolve_arxiv_version(data.id)
+    except (httpx.HTTPError, TimeoutError, ValueError):
+        raise ZoteroIntegrationError(
+            "ARXIV_RESOLUTION_UNAVAILABLE",
+            "暂时无法从 arXiv 确认论文版本，请检查网络后重试。也可以选择已下载的原文 PDF。",
+            status_code=503,
+        ) from None
 
 
 @app.get("/api/settings")
@@ -223,6 +278,82 @@ async def job_example(data: ExampleInput | None = None):
         language=options.language,
         context_guidance=options.context_guidance,
     )
+
+
+def _zotero_get(job_id: str):
+    try:
+        return manager.get(job_id)
+    except KeyError:
+        raise ZoteroIntegrationError(
+            "TASK_NOT_FOUND", "任务不存在", status_code=404
+        ) from None
+
+
+@app.post("/api/integrations/zotero/jobs")
+async def zotero_job_create(request: Request, data: ZoteroJobRequest):
+    header_key = request.headers.get("idempotency-key", "").strip()
+    if header_key:
+        body_key = data.idempotency_key.strip()
+        if body_key and body_key != header_key:
+            raise ZoteroIntegrationError(
+                "INVALID_IDEMPOTENCY_KEY",
+                "请求体与 Idempotency-Key 不一致",
+                status_code=422,
+            )
+        if not body_key:
+            data = data.model_copy(update={"idempotency_key": header_key})
+    job, reused = create_zotero_job(manager, data)
+    # Selection and creation are synchronous, with no await between them, so
+    # concurrent requests cannot both create a job in this service process.
+    return JSONResponse(
+        {**serialize_zotero_job(job), "reuse": reused},
+        status_code=200 if reused else 202,
+    )
+
+
+@app.get("/api/integrations/zotero/jobs/{job_id}")
+def zotero_job_get(job_id: str):
+    return serialize_zotero_job(_zotero_get(job_id))
+
+
+@app.post("/api/integrations/zotero/jobs/{job_id}/cancel")
+async def zotero_job_cancel(job_id: str):
+    job = _zotero_get(job_id)
+    try:
+        await manager.cancel(job_id)
+    except ValueError as exc:
+        raise ZoteroIntegrationError(
+            "TASK_CANCEL_FAILED", str(exc), status_code=409
+        ) from exc
+    return serialize_zotero_job(job)
+
+
+@app.post("/api/integrations/zotero/jobs/{job_id}/retry")
+async def zotero_job_retry(job_id: str):
+    job = _zotero_get(job_id)
+    if job.get("status") in ACTIVE:
+        raise ZoteroIntegrationError("TASK_RUNNING", "任务正在处理", status_code=409)
+    try:
+        manager.start(job_id)
+    except ValueError as exc:
+        raise ZoteroIntegrationError("TASK_RUNNING", str(exc), status_code=409) from exc
+    return serialize_zotero_job(job)
+
+
+@app.get("/api/integrations/zotero/jobs/{job_id}/artifacts/{kind}")
+def zotero_artifact(job_id: str, kind: str, download: bool = False, version: str = ""):
+    if kind not in {"translated", "source", "original"}:
+        raise ZoteroIntegrationError(
+            "ARTIFACT_NOT_READY",
+            "当前集成只提供原文、译文 PDF 和翻译源码包",
+            status_code=404,
+        )
+    try:
+        return artifact(job_id, kind, download=download, version=version)
+    except KeyError:
+        raise ZoteroIntegrationError(
+            "TASK_NOT_FOUND", "任务不存在", status_code=404
+        ) from None
 
 
 @app.get("/api/jobs/{job_id}")

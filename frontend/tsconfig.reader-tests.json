@@ -18,6 +18,7 @@
     "src/readerNavigation.ts",
     "src/readerZoom.ts",
     "src/searchRanges.ts",
-    "src/providers.ts"
+    "src/providers.ts",
+    "src/jobDeepLink.ts"
   ]
 }

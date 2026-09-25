@@ -1055,6 +1055,42 @@ def test_target_font_probe_covers_title_and_table_slots_without_touching_values(
     assert "Method" not in outputs and "Value" not in outputs
 
 
+@pytest.mark.parametrize(
+    "language,sample", [("简体中文", "译文"), ("繁體中文", "譯文")]
+)
+def test_font_probe_preserves_protected_spans_without_name_recognition(
+    language, sample
+):
+    import random
+    import string
+
+    rng = random.Random(20260924)
+    for _ in range(100):
+        prefix = "".join(rng.choices(string.ascii_lowercase, k=8))
+        name = f"{prefix}-1.5-{rng.randrange(2, 99)}B-lowercase"
+        source = rf"\textbf{{We test {name}}} using $E=mc^2$ and \cite{{baseline}}. % unchanged comment\n"
+        item = segments(source)[0]
+        assert item.validate_source_map() == source
+        probe = item.target_probe(language)
+        assert sample in probe and name not in probe
+        for protected in item.protected:
+            assert protected in probe
+        assert r"$E=mc^2$" in probe and r"\cite{baseline}" in probe
+        assert "% unchanged comment" in probe
+        # The deterministic probe must not relax actual translation checks.
+        with pytest.raises(ValueError):
+            item.restore(item.masked.replace("⟪P0000⟫", "", 1))
+
+
+def test_font_probe_does_not_apply_model_word_join_rules_to_synthetic_text():
+    item = segments("We test mixedcase-1.5-72B-lowercase models.")[0]
+    assert item.validate_source_map() == item.source
+    assert "译文" in item.target_probe("简体中文")
+    # A real generated response with changed numeric attachments is still unsafe.
+    with pytest.raises(ValueError, match="受保护文字被错误拼接"):
+        item.restore(item.masked.replace("mixedcase", "99"))
+
+
 def test_display_title_omits_graphic_options_but_keeps_following_title_group():
     from app.latex import extract_paper_title
 

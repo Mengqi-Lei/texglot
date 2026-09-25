@@ -95,7 +95,7 @@ uv run python scripts/smoke_platform.py --portable-compiler
 
 It downloads the pinned compiler and uses a local model stub with an isolated temporary service. It writes results under `output/platform-smoke/`. It tests the native pipeline, **not** real-model translation quality. Tests of Windows branches on macOS are not a substitute for a Windows run. State the OS and checks you actually executed in the PR.
 
-[Continuous integration](.github/workflows/verify.yml) runs source, frontend and native pipeline checks on Linux, macOS and Windows for pushes to `main` and pull requests. The [desktop build workflow](.github/workflows/desktop.yml) is dispatched manually. Neither workflow publishes a release or requires model API keys; read the actual run results when assessing platform coverage.
+[Continuous integration](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/verify.yml) runs source, frontend and native pipeline checks on Linux, macOS and Windows for pushes to `main` and pull requests. The [desktop build workflow](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/desktop.yml) is dispatched manually. Neither workflow publishes a release or requires model API keys; read the actual run results when assessing platform coverage.
 
 ## Commits and pull requests
 

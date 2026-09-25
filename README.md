@@ -12,14 +12,15 @@
 </p>
 <p align="center"><strong>English</strong> · <a href="README_CN.md">简体中文</a></p>
 <p align="center">
-  <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.1.3.md">Release notes</a>
+  <a href="#news">News</a> · <a href="#quick-start">Quick start</a> · <a href="#example-attention-is-all-you-need">Example</a> · <a href="#command-line">CLI</a> · <a href="#zotero-plugin">Zotero plugin</a> · <a href="CONTRIBUTING.md">Contributing</a> · <a href="docs/releases/v1.2.0.md">Release notes</a>
 </p>
-
-
 
 https://github.com/user-attachments/assets/0f7d9dbb-3daf-412e-b3db-6f328421c396
 
+## News
 
+- **2026-09-25**: 🔥 TeXGlot for Zotero is released: start translations, reuse existing results and read both PDFs side by side inside Zotero. [Plugin guide](integrations/zotero/README.md)
+- **2026-09-10**: The first public TeXGlot release brings local arXiv / LaTeX translation, PDF comparison and a CLI.
 
 ## Overview
 
@@ -51,16 +52,16 @@ Choose the **desktop installer** for your computer from [Releases](https://githu
 
 | Computer | Installer | Install |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.1.3-macOS-arm64.dmg` | Open and drag into Applications |
-| Mac · Intel | `TeXGlot-1.1.3-macOS-x64.dmg` | Open and drag into Applications |
-| Windows · x64 | `TeXGlot-1.1.3-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
+| Mac · Apple Silicon | `TeXGlot-1.2.0-macOS-arm64.dmg` | Open and drag into Applications |
+| Mac · Intel | `TeXGlot-1.2.0-macOS-x64.dmg` | Open and drag into Applications |
+| Windows · x64 | `TeXGlot-1.2.0-Windows-x64-Setup.exe` | Run setup and open the desktop shortcut |
 
 Python, the interface and Tectonic are included. **No Python, Node.js or uv installation is required.** First compilation downloads TeX packages and fonts; papers with EPS figures additionally require Ghostscript. The initial packages have no publisher signing certificate / Apple notarization, so the OS may show an unknown-publisher warning. See the [desktop guide](docs/desktop.md) for installation, migration and platform validation. Only verified assets are attached to a release.
 
 <details>
 <summary>Install from source (developers and CLI users)</summary>
 
-Download and extract **`texglot-1.1.3-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
+Download and extract **`texglot-1.2.0-source.zip`** from [Releases](https://github.com/Mengqi-Lei/texglot/releases), or clone the repository:
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git
@@ -140,6 +141,14 @@ If the command is not found, run `uv tool update-shell` and reopen the terminal.
 
 Batch lists support comments and resolve relative input paths from the list's directory. Each task exports into a separate folder. A failed paper does not stop later papers unless you pass `--fail-fast`. `--json` writes results to stdout and progress to stderr; exit code `1` includes partial translations that need review. See the [complete CLI guide](docs/cli.en.md).
 
+## Zotero plugin
+
+**TeXGlot for Zotero** lets you start paper translations, reuse results from your TeXGlot library and read the original and translation side by side in Zotero's native reader. Translations become child attachments of the paper; existing PDFs and annotations are preserved. The plugin works with TeXGlot running on the same computer.
+
+<p align="center"><img src="docs/assets/zotero-reader.png" width="100%" alt="TeXGlot Zotero plugin: English original on the left, Chinese translation on the right, with the Transformer diagram and synchronized scrolling controls"></p>
+
+For installation, translation, reading controls and troubleshooting, see the **[Zotero plugin guide](integrations/zotero/README.md)**.
+
 ## How translation works
 
 1. **Import and preflight.** Safely unpack the source, find the main file and compile the original. Check the target-language font/template before model translation.
@@ -161,7 +170,7 @@ See the [scope and troubleshooting guide](docs/troubleshooting.md) for supported
 
 ## Development and contributions
 
-Contributions to translation quality, templates, accessibility, documentation and platform testing are welcome. Start with the [English contribution guide](CONTRIBUTING.md) or [中文贡献指南](CONTRIBUTING_CN.md) for local development, architecture, test commands, commit conventions and pull requests.
+Contributions to translation quality, templates, accessibility, documentation and platform testing are welcome. Start with the [English contribution guide](CONTRIBUTING.md) or [中文贡献指南](CONTRIBUTING_CN.md) for local development, architecture, test commands, commit conventions and pull requests. Plugin build and test instructions are in the [Zotero development guide](integrations/zotero/docs/development.md).
 
 ## Acknowledgements and license
 

@@ -387,11 +387,6 @@ def normalize_engine(text: str, engine: str) -> str:
                     else "\n"
                 )
                 removals.append((match.start(), match.end(), value))
-        # pdfinfo is PDF metadata, not paper content; XeTeX has no such primitive.
-        from .latex import group_end
-
-        for match in re.finditer(r"\\pdfinfo\s*\{", visible):
-            removals.append((match.start(), group_end(visible, match.end() - 1), "\n"))
         for start, end, value in sorted(removals, reverse=True):
             text = text[:start] + value + text[end:]
         # A pdfTeX-only switch misleads old hyperref templates under XeTeX.
@@ -448,9 +443,36 @@ def normalize_engine(text: str, engine: str) -> str:
 
 
 PDFTEX_OUTPUT_SETTINGS = re.compile(
-    r"(?:\\global\s*)?\\(?P<control>pdf(?:compresslevel|objcompresslevel|minorversion|majorversion|optionpdfminorversion|gentounicode))\s*=?\s*\d+\b"
+    r"(?:\\global\s*)?\\(?P<control>pdf(?:compresslevel|objcompresslevel|minorversion|majorversion|optionpdfminorversion|gentounicode|infoomitdate))\s*=?\s*[+-]?\d+(?![\w.])"
     r"|\\input\s*(?:\{glyphtounicode(?:\.tex)?\}|glyphtounicode(?:\.tex)?\b)"
 )
+PDFTEX_METADATA = re.compile(
+    r"(?:\\global\s*)?\\(?P<control>pdfinfo|pdftrailerid)\s*\{"
+)
+
+
+def pdftex_output_settings(text: str):
+    """Locate known PDF-output settings, never arbitrary undefined commands.
+
+    pdfTeX metadata and file-ID controls have no XeTeX implementation. Keep
+    argument handling shared between authored sources and diagnosed packages;
+    balanced groups can contain comments, nested braces or other settings.
+    """
+    from .latex import group_end
+
+    visible = visible_tex(text)
+    matches = [(m, m.end()) for m in PDFTEX_OUTPUT_SETTINGS.finditer(visible)]
+    for match in PDFTEX_METADATA.finditer(visible):
+        try:
+            end = group_end(visible, match.end() - 1, strict=True)
+        except ValueError:
+            continue  # Leave malformed metadata for the compiler to diagnose.
+        matches.append((match, end))
+    previous_end = 0
+    for match, end in sorted(matches, key=lambda item: item[0].start()):
+        if match.start() >= previous_end:
+            yield match, end
+            previous_end = end
 
 
 def normalize_pdftex_features(text: str, engine: str) -> str:
@@ -465,8 +487,8 @@ def normalize_pdftex_features(text: str, engine: str) -> str:
 
     visible = visible_tex(text)
     edits = []
-    for match in PDFTEX_OUTPUT_SETTINGS.finditer(visible):
-        edits.append((match.start(), match.end(), ""))
+    for match, end in pdftex_output_settings(text):
+        edits.append((match.start(), end, ""))
     for match in re.finditer(r"\\DisableLigatures\s*(?:\[[^]]*\]\s*)?\{", visible):
         end = group_end(text, match.end() - 1)
         edits.append((match.start(), end, ""))
@@ -487,7 +509,15 @@ def normalize_pdftex_features(text: str, engine: str) -> str:
                     start = match.start(1) + option.start(1)
                     end = match.start(1) + option.end()
                     edits.append((start, end, option[1] + "=false"))
-    for start, end, replacement in sorted(edits, reverse=True):
+    # Discard nested edits before applying offsets to the original source.
+    # Otherwise a setting inside metadata could remove following paper content.
+    outer_edits = []
+    previous_end = 0
+    for edit in sorted(edits, key=lambda edit: (edit[0], -edit[1])):
+        if edit[0] >= previous_end:
+            outer_edits.append(edit)
+            previous_end = edit[1]
+    for start, end, replacement in reversed(outer_edits):
         # Keep source line numbers stable for diagnostics and content mapping.
         replacement += "\n" * (text[start:end].count("\n") - replacement.count("\n"))
         text = text[:start] + replacement + text[end:]
@@ -1289,7 +1319,10 @@ async def recover_external_package(
     if (
         trace_line != line
         or command is None
-        or not PDFTEX_OUTPUT_SETTINGS.fullmatch(rf"\{command[1]}=0")
+        or not (
+            PDFTEX_OUTPUT_SETTINGS.fullmatch(rf"\{command[1]}=0")
+            or PDFTEX_METADATA.fullmatch(rf"\{command[1]}{{")
+        )
     ):
         return ""
     # A local or generated same-name file makes the package's origin ambiguous.
@@ -1304,21 +1337,21 @@ async def recover_external_package(
     if not original:
         return ""
     text = decode_tex(original)
-    matches = list(PDFTEX_OUTPUT_SETTINGS.finditer(visible_tex(text)))
+    matches = list(pdftex_output_settings(text))
     if not any(
         match["control"] == command[1]
         and text.count("\n", 0, match.start("control")) + 1 == int(line)
-        for match in matches
+        for match, _ in matches
         if match["control"] is not None
     ):
         return ""
     # Reuse the same output-setting policy as source preparation. Do not apply
     # unrelated font/layout changes to the external package or discard its code.
-    for match in reversed(matches):
+    for match, end in reversed(matches):
         text = (
             text[: match.start()]
-            + "\n" * text[match.start() : match.end()].count("\n")
-            + text[match.end() :]
+            + "\n" * text[match.start() : end].count("\n")
+            + text[end:]
         )
     header = (
         f"% TeXGlot: {name} adapted for XeTeX output settings.\n"

@@ -18,6 +18,7 @@ from .config import DATA
 from .i18n import english
 from .platforms import configure_stdio, process_options
 from .runtime import server_command
+from .version import CORE_VERSION
 
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
 LANGUAGES = {
@@ -150,7 +151,7 @@ def parser():
     p.add_argument(
         "--test", action="store_true", help="test API connection after --configure"
     )
-    p.add_argument("--version", action="version", version="TeXGlot 1.1.3")
+    p.add_argument("--version", action="version", version=f"TeXGlot {CORE_VERSION}")
     return p
 
 

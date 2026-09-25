@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 — 2026-09-25
+
+- Handle pdfTeX-only PDF date and file-ID settings consistently in source templates and diagnosed packages under XeTeX, preserving paper content, literal examples and malformed-source diagnostics. / 在 XeTeX 下统一处理模板及已定位宏包中的 pdfTeX 专用日期与文件标识设置，保留正文、代码示例及异常源码的报错边界。
+- Refuse task submission to older cores without library reuse instead of silently falling back to the legacy create endpoint and retranslating an existing paper. / 连接不支持文献库复用的旧核心时明确提示更新，不再静默回退到旧的新建接口而重复翻译。
+- Resolve arXiv versions from the selected PDF's first-page stamp, attachment metadata and saved file bindings, so ordinary Zotero records do not need a manually entered `vN`. When a local PDF cannot be verified, offer the official version with its paired original while preserving existing files and annotations. / 自动从 PDF 首页、附件信息和已保存的文件对应关系识别 arXiv 版本，无需手填 vN；本地版本无法确认时，提供使用官方版本及配套原文的继续选项，并保留已有文件与批注。
+- Keep deterministic target-font probes separate from model-translation validation, preventing mixed word/number compounds from blocking translation before model requests. / 将确定性的目标字体预检与模型译文校验分开，修复字母、数字组合在调用模型前触发错误还原检查的问题。
+- Reuse matching translations and active jobs from the local TeXGlot library before creating a Zotero translation, validate saved PDFs, recover missing Zotero files, and offer an explicit retranslation command that keeps existing results. / Zotero 翻译前先复用 TeXGlot 文献库中的同版本、同语言译文或正在执行的任务，检查 PDF 有效性并恢复丢失的 Zotero 译文文件；新增保留旧译文的重新翻译入口。
+- Add a compact TeXGlot status-icon column beside Title, with language/version tooltips, native show/hide controls, and automatic updates from translation tasks and child PDF attachments. / 在标题旁新增紧凑的 TeXGlot 状态图标列，悬停显示语言与版本，支持原生列显示开关，并随翻译任务及译文附件变化自动刷新。
+- Use the desktop TG logo for the add-on, status-column header and TeXGlot context-menu commands. / 插件图标、状态列表头及 TeXGlot 右键菜单选项统一使用桌面版 TG 标识。
+- Repair Zotero PDF double-clicks blocked by readers left behind after closing split tabs or windows, and prevent delayed split restoration from reviving an unloaded add-on. / 清理分屏标签或窗口关闭后残留的 Zotero 阅读器，修复被失效标签拦截的 PDF 双击；插件卸载时取消尚未执行的分屏恢复。
+- Open uniquely matched TeXGlot translations in split view by default when double-clicking a paper, with a saved context-menu toggle to restore single-PDF opening; PDF child attachments keep their single-document behavior. / 双击具有唯一对应译文的文献时默认进入左右对照；右键菜单可关闭并保存此行为，PDF 子附件仍分别打开单篇。
+
+[Release notes](docs/releases/v1.2.0.md) · [中文版本说明](docs/releases/v1.2.0_CN.md)
+
 ## 1.1.3 — 2026-09-16
 
 - Resolve compiler diagnostics that omit an included file's `.tex` suffix, allowing package-option conflicts in split preambles to recover while retaining the requested options. / 修复编译日志省略被引用文件 `.tex` 后缀时的路径识别，使分文件导言区的宏包选项冲突能够自动恢复，并保留原有选项。

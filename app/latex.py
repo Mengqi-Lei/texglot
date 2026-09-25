@@ -548,7 +548,13 @@ class Segment:
         return self.restore(self.masked)
 
     def target_probe(self, language: str) -> str:
-        """Exercise target fonts in the same slots that the model may translate."""
+        """Exercise target fonts in the validated source's editable text slots.
+
+        This is synthetic typesetting input, not a model translation. Replacing
+        prose can intentionally change a word joined to protected numbers; run
+        translation validation only on actual model output. Preserve the source
+        syntax and protected spans byte-for-byte in this deterministic probe.
+        """
         if language == "English":
             return self.restore(self.masked)
         sample = "譯文" if language == "繁體中文" else "译文"
@@ -560,7 +566,7 @@ class Segment:
                     r"[A-Za-z]+", lambda word: sample * max(1, len(word[0]) // 6), plain
                 )
             )
-            parts.append(match[0])
+            parts.append(self.protected[int(match[0][2:-1])])
             cursor = match.end()
         parts.append(
             re.sub(
@@ -569,11 +575,11 @@ class Segment:
                 self.masked[cursor:],
             )
         )
-        return self.restore("".join(parts))
+        return "".join(parts)
 
 
-def group_end(s: str, pos: int) -> int:
-    """Read nested delimiters, escaped delimiters and comments without normalization."""
+def group_end(s: str, pos: int, *, strict: bool = False) -> int:
+    """Read a group; strict callers must not mistake EOF for a closing delimiter."""
     if pos >= len(s) or s[pos] not in "[{":
         return pos
     close = {"[": "]", "{": "}"}[s[pos]]
@@ -586,11 +592,13 @@ def group_end(s: str, pos: int) -> int:
             j = s.find("\n", i)
             i = len(s) if j < 0 else j + 1
         elif s[i] == "{":
-            i = group_end(s, i)
+            i = group_end(s, i, strict=strict)
         elif s[i] == close:
             return i + 1
         else:
             i += 1
+    if strict:
+        raise ValueError("Unterminated TeX group")
     return len(s)
 
 

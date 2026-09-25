@@ -276,6 +276,7 @@ class JobManager:
         main="",
         language="简体中文",
         context_guidance: bool | None = None,
+        integration: dict | None = None,
     ):
         job_id = uuid.uuid4().hex[:16]
         folder = JOBS / job_id
@@ -308,6 +309,16 @@ class JobManager:
             "artifacts": {},
             "pages": 0,
         }
+        if integration is not None:
+            # Integration metadata is intentionally small and contains no
+            # source text or provider credentials.  It is persisted with the
+            # task so idempotent clients remain safe across service restarts.
+            job["integration"] = integration
+        if blob is not None:
+            # Preserve upload identity before preparation resolves/changes main.
+            # GUI, CLI and integrations can then share an existing translation.
+            job["upload_sha256"] = hashlib.sha256(blob).hexdigest()
+            job["requested_main"] = "" if name.lower().endswith(".tex") else main.strip()
         self.jobs[job_id] = job
         self.persist(job)
         self.start(job_id)

@@ -95,7 +95,7 @@ uv run python scripts/smoke_platform.py --portable-compiler
 
 脚本下载固定版本编译器，使用本地模型桩和隔离的临时服务，结果保存在 `output/platform-smoke/`。它验证原生处理流程，**不验证真实模型翻译质量**。macOS 上执行 Windows 分支测试不等于 Windows 实机测试；请在 PR 中说明实际执行的系统和检查。
 
-[持续集成](.github/workflows/verify.yml) 在 `main` 推送及 Pull Request 时执行 Linux、macOS、Windows 的源码、前端与原生流程检查。[桌面构建工作流](.github/workflows/desktop.yml) 由维护者手动触发。两个工作流均不发布 Release，也不需要模型密钥；平台覆盖以实际运行结果为准。
+[持续集成](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/verify.yml) 在 `main` 推送及 Pull Request 时执行 Linux、macOS、Windows 的源码、前端与原生流程检查。[桌面构建工作流](https://github.com/Mengqi-Lei/texglot/blob/main/.github/workflows/desktop.yml) 由维护者手动触发。两个工作流均不发布 Release，也不需要模型密钥；平台覆盖以实际运行结果为准。
 
 ## Commit 与 Pull Request
 

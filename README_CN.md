@@ -12,14 +12,15 @@
 </p>
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 <p align="center">
-  <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.1.3_CN.md">版本说明</a>
+  <a href="#news">News</a> · <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="#zotero-插件">Zotero 插件</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.2.0_CN.md">版本说明</a>
 </p>
-
-
 
 https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
 
+## News
 
+- **2026-09-25**：🔥 TeXGlot for Zotero 插件发布：在 Zotero 内发起翻译、复用已有译文并左右对照阅读。[插件指南](integrations/zotero/README_CN.md)
+- **2026-09-10**：TeXGlot 首个公开版本发布，支持本地 arXiv / LaTeX 论文翻译、PDF 对照阅读与 CLI。
 
 ## 简介
 
@@ -51,16 +52,16 @@ https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
 
 | 电脑 | 安装包 | 使用方式 |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.1.3-macOS-arm64.dmg` | 打开后拖入 Applications |
-| Mac · Intel | `TeXGlot-1.1.3-macOS-x64.dmg` | 打开后拖入 Applications |
-| Windows · x64 | `TeXGlot-1.1.3-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
+| Mac · Apple Silicon | `TeXGlot-1.2.0-macOS-arm64.dmg` | 打开后拖入 Applications |
+| Mac · Intel | `TeXGlot-1.2.0-macOS-x64.dmg` | 打开后拖入 Applications |
+| Windows · x64 | `TeXGlot-1.2.0-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
 
 安装包内置 Python、网页界面和 Tectonic，**无需安装 Python、Node.js 或 uv**。首次编译需要联网下载 TeX 宏包与字体；含 EPS 插图的论文还需要安装 Ghostscript。首批安装包尚未经过发布者签名／Apple 公证，系统可能显示未知发布者提示；平台验证状态、数据迁移与安装说明见[桌面指南](docs/desktop_CN.md)。只提供已验证的 Release 附件。
 
 <details>
 <summary>从源码安装（开发者与 CLI 用户）</summary>
 
-从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.1.3-source.zip`**，或克隆仓库：
+从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.2.0-source.zip`**，或克隆仓库：
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git
@@ -140,6 +141,14 @@ texglot --serve                             # 前台运行本地网页服务
 
 批量清单支持注释，其中的相对路径以清单所在目录为基准。每项任务输出到独立文件夹；单篇失败后继续处理后续论文，`--fail-fast` 可改为遇错停止。`--json` 将结果写入标准输出、进度写入标准错误；退出码 `1` 也包含需要检查的部分翻译。详见 [完整 CLI 说明](docs/cli.md)。
 
+## Zotero 插件
+
+**TeXGlot for Zotero** 让你在 Zotero 中发起论文翻译、复用 TeXGlot 文献库中的已有译文，并在原生阅读器内左右对照阅读。译文保存为原条目的子附件，原有 PDF 和批注保留。插件与本机运行的 TeXGlot 配合使用。
+
+<p align="center"><img src="docs/assets/zotero-reader.png" width="100%" alt="TeXGlot Zotero 插件：左侧英文原文、右侧中文译文，显示 Transformer 架构图及同步滚动控件"></p>
+
+安装步骤、翻译操作、阅读方式和常见问题，请查看 **[Zotero 插件使用指南](integrations/zotero/README_CN.md)**。
+
 ## 翻译流程
 
 1. **导入与预检。** 安全解压源码，识别主文件，编译原文；在调用模型前检查目标语言字体和模板兼容性。
@@ -161,7 +170,7 @@ texglot --serve                             # 前台运行本地网页服务
 
 ## 二次开发与贡献
 
-欢迎改进翻译质量、模板兼容性、无障碍交互、文档和平台支持。[中文贡献指南](CONTRIBUTING_CN.md) 与 [English contribution guide](CONTRIBUTING.md) 包含环境搭建、目录结构、测试命令、提交约定和 Pull Request 流程。
+欢迎改进翻译质量、模板兼容性、无障碍交互、文档和平台支持。[中文贡献指南](CONTRIBUTING_CN.md) 与 [English contribution guide](CONTRIBUTING.md) 包含环境搭建、目录结构、测试命令、提交约定和 Pull Request 流程。Zotero 插件的构建与测试见[插件开发文档](integrations/zotero/docs/development.md)。
 
 ## 致谢与许可
 
