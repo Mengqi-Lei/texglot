@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.2.1 — 2026-10-08
 
 - Use locally bundled Qwen, DeepSeek and DeepL brand icons in translation settings. / 翻译设置改用随应用打包的 Qwen、DeepSeek 和 DeepL 品牌图标。
 - Add DeepL as an independent translation engine with validated XML protection, bounded retries, native glossary support, character usage and engine-specific caches; shared by App, CLI and Zotero. / 新增独立 DeepL 翻译引擎，支持 XML 结构保护、有限重试、原生术语表、字符用量和独立缓存，App、CLI 与 Zotero 共用。
+
+[Release notes](docs/releases/v1.2.1.md) · [中文版本说明](docs/releases/v1.2.1_CN.md)
 
 ## 1.2.0 — 2026-09-25
 

@@ -12,7 +12,7 @@
 </p>
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 <p align="center">
-  <a href="#news">News</a> · <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="#zotero-插件">Zotero 插件</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.2.0_CN.md">版本说明</a>
+  <a href="#news">News</a> · <a href="#快速开始">快速开始</a> · <a href="#案例attention-is-all-you-need">案例</a> · <a href="#命令行">CLI</a> · <a href="#zotero-插件">Zotero 插件</a> · <a href="CONTRIBUTING_CN.md">参与贡献</a> · <a href="docs/releases/v1.2.1_CN.md">版本说明</a>
 </p>
 
 https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
@@ -52,16 +52,16 @@ https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
 
 | 电脑 | 安装包 | 使用方式 |
 | :--- | :--- | :--- |
-| Mac · Apple Silicon | `TeXGlot-1.2.0-macOS-arm64.dmg` | 打开后拖入 Applications |
-| Mac · Intel | `TeXGlot-1.2.0-macOS-x64.dmg` | 打开后拖入 Applications |
-| Windows · x64 | `TeXGlot-1.2.0-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
+| Mac · Apple Silicon | `TeXGlot-1.2.1-macOS-arm64.dmg` | 打开后拖入 Applications |
+| Mac · Intel | `TeXGlot-1.2.1-macOS-x64.dmg` | 打开后拖入 Applications |
+| Windows · x64 | `TeXGlot-1.2.1-Windows-x64-Setup.exe` | 双击安装，打开桌面快捷方式 |
 
 安装包内置 Python、网页界面和 Tectonic，**无需安装 Python、Node.js 或 uv**。首次编译需要联网下载 TeX 宏包与字体；含 EPS 插图的论文还需要安装 Ghostscript。首批安装包尚未经过发布者签名／Apple 公证，系统可能显示未知发布者提示；平台验证状态、数据迁移与安装说明见[桌面指南](docs/desktop_CN.md)。只提供已验证的 Release 附件。
 
 <details>
 <summary>从源码安装（开发者与 CLI 用户）</summary>
 
-从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.2.0-source.zip`**，或克隆仓库：
+从 [Releases](https://github.com/Mengqi-Lei/texglot/releases) 下载并解压 **`texglot-1.2.1-source.zip`**，或克隆仓库：
 
 ```bash
 git clone https://github.com/Mengqi-Lei/texglot.git
@@ -105,7 +105,6 @@ bash start-texglot.command
 
 预设均可修改，模型权限和费用由服务商账户决定。Qwen 请求默认关闭深度思考。密钥与接口信息可参考 [千问首次调用](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen) 和 [DeepSeek 文档](https://api-docs.deepseek.com/zh-cn/)。
 
-**开发版说明：** DeepL 支持目前已加入源码版，现有 1.2.0 桌面安装包尚未包含此功能。
 
 DeepL 使用独立的 **DeepL API key**，无需同时配置 LLM。选择 DeepL 后直接测试连接并保存；用量按字符显示。公式、引用和格式由 TeXGlot 保护并校验。可选填写 DeepL 术语表 ID（需指定匹配的源语言），原有 LLM 的自由文本术语偏好仍会保留。API 账号与网页会员的区别见 [DeepL API 文档](https://developers.deepl.com/docs/getting-started/auth)。
 
