@@ -137,13 +137,21 @@ def parser():
     p.add_argument("--model", help="model name (with --configure)")
     p.add_argument(
         "--provider",
-        choices=("qwen", "deepseek", "custom"),
+        choices=("qwen", "deepseek", "deepl", "custom"),
         help="provider preset or saved connection (with --configure) · 模型服务商",
     )
     p.add_argument(
         "--key-env",
         metavar="NAME",
         help="read API key from named environment variable (with --configure)",
+    )
+    p.add_argument(
+        "--deepl-source-language",
+        help="DeepL source language code, e.g. EN (with --configure)",
+    )
+    p.add_argument(
+        "--deepl-glossary-id",
+        help="DeepL glossary ID; requires a source language (with --configure)",
     )
     p.add_argument(
         "--clear-key", action="store_true", help="remove saved key (with --configure)"
@@ -371,7 +379,13 @@ def submit(service, source, language, main="", context_guidance=None):
 
 def configure(service, args):
     values = {}
-    for key in ("provider", "base_url", "model"):
+    for key in (
+        "provider",
+        "base_url",
+        "model",
+        "deepl_source_language",
+        "deepl_glossary_id",
+    ):
         if getattr(args, key) is not None:
             values[key] = getattr(args, key)
     if args.key_env:
@@ -394,7 +408,10 @@ def configure(service, args):
         values["base_url"] = (
             input(f"Base URL [{old['base_url']}]: ").strip() or old["base_url"]
         )
-        values["model"] = input(f"Model [{old['model']}]: ").strip() or old["model"]
+        from .providers import provider_for_url
+
+        if provider_for_url(values["base_url"]) != "deepl":
+            values["model"] = input(f"Model [{old['model']}]: ").strip() or old["model"]
         values["api_key"] = getpass.getpass(
             "API key (blank to keep for the same endpoint): "
         )
@@ -511,6 +528,8 @@ def run(args, service):
                     status=current["status"],
                     pages=current["pages"],
                     tokens=current["tokens"],
+                    characters=current.get("characters", 0),
+                    characters_estimated=current.get("characters_estimated", False),
                     error=current.get("error", ""),
                     warnings=current.get("warnings", []),
                     context_guidance=current.get(
@@ -592,6 +611,8 @@ def main(argv=None):
             args.provider,
             args.base_url,
             args.model,
+            args.deepl_source_language is not None,
+            args.deepl_glossary_id is not None,
             args.key_env,
             args.clear_key,
             args.test,

@@ -33,7 +33,7 @@ https://github.com/user-attachments/assets/c77fea68-7ade-4027-8ef2-7198465390d7
 | | 可以做什么 |
 | :--- | :--- |
 | **源码到 PDF** | 导入 arXiv 链接、ID 或 `.tex`、`.zip`、`.tar`、`.tar.gz`、`.tgz`、`.gz` 工程，下载译文 PDF、原文 PDF 和译后源码 ZIP。 |
-| **自选模型** | 支持 Qwen / 阿里云百炼、DeepSeek，以及兼容 Chat Completions 的服务，包括本地模型。 |
+| **自选模型** | 支持 DeepL、Qwen / 阿里云百炼、DeepSeek，以及兼容 Chat Completions 的服务，包括本地模型。 |
 | **上下文引导** | 可用论文摘要辅助理解主题与术语，初始默认开启；每项任务都可在界面或 CLI 独立选择。 |
 | **论文阅读** | 原文、译文和左右对照，左右互换、连续纵向阅读，按共同内容定位点同步滚动，Cmd/Ctrl+F 搜索整份 PDF，缩放并恢复阅读位置。 |
 | **本地批注** | 高亮、下划线和便签，通过侧栏搜索与管理；导出的 PDF 不附带 TeXGlot 批注。 |
@@ -92,17 +92,22 @@ bash start-texglot.command
 
 </details>
 
-### 2. 连接模型
+### 2. 连接翻译服务
 
-打开 **TeXGlot**（源码版访问 **http://127.0.0.1:8765**），进入 **模型设置**，选择服务商，填写 API 地址、模型与密钥，点击 **测试连接** 后保存。
+打开 **TeXGlot**（源码版访问 **http://127.0.0.1:8765**），进入 **翻译设置**，选择服务商，填写 API 地址、模型与密钥，点击 **测试连接** 后保存。
 
 | 服务商 | 预设模型 | API 地址 |
 | :--- | :--- | :--- |
 | Qwen / 阿里云百炼 | `qwen3.8-flash` | 从业务空间的 API Key 页面复制 **OpenAI 兼容地址**，须与密钥的地域和业务空间一致。 |
 | DeepSeek V4.1 Flash | `deepseek-flash` | `https://api.deepseek.com` |
+| DeepL | 无需填写模型 | `https://api.deepl.com`；旧版 Free key 自动使用 Free 接口。 |
 | 自定义 / 本地模型 | 已安装或有权限使用的模型 | 例如 Ollama 的 `http://localhost:11434/v1`；本地无鉴权服务可以不填密钥。 |
 
 预设均可修改，模型权限和费用由服务商账户决定。Qwen 请求默认关闭深度思考。密钥与接口信息可参考 [千问首次调用](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen) 和 [DeepSeek 文档](https://api-docs.deepseek.com/zh-cn/)。
+
+**开发版说明：** DeepL 支持目前已加入源码版，现有 1.2.0 桌面安装包尚未包含此功能。
+
+DeepL 使用独立的 **DeepL API key**，无需同时配置 LLM。选择 DeepL 后直接测试连接并保存；用量按字符显示。公式、引用和格式由 TeXGlot 保护并校验。可选填写 DeepL 术语表 ID（需指定匹配的源语言），原有 LLM 的自由文本术语偏好仍会保留。API 账号与网页会员的区别见 [DeepL API 文档](https://developers.deepl.com/docs/getting-started/auth)。
 
 ### 3. 翻译与阅读
 

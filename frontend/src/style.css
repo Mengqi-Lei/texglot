@@ -2035,7 +2035,7 @@ h1 {
 }
 .provider-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 22px;
 }
@@ -2079,6 +2079,16 @@ h1 {
   font-size: 15px;
   background: #f1f2f5;
 }
+.provider-icon img {
+  display: block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.provider-icon > svg {
+  margin: 0;
+  color: inherit;
+}
 .provider-icon.qwen {
   color: #6750b6;
   background: #eee9fb;
@@ -2086,6 +2096,9 @@ h1 {
 .provider-icon.deepseek {
   color: #3471c7;
   background: #eaf2fd;
+}
+.provider-icon.deepl {
+  background: #eaf0f5;
 }
 .provider-icon.custom {
   color: #72727a;

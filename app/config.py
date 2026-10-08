@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .providers import PROVIDERS, provider_for_url
 
@@ -29,6 +30,8 @@ class Settings(BaseModel):
     temperature: float = Field(default=0.2, ge=0, le=1)
     timeout: int = Field(default=180, ge=15, le=600)
     glossary: str = Field(default="", max_length=12000)
+    deepl_source_language: str = ""
+    deepl_glossary_id: str = ""
     compiler: str = "auto"
 
     @field_validator("base_url")
@@ -47,6 +50,12 @@ class Settings(BaseModel):
             raise ValueError("请输入有效的 API Base URL，不要包含密钥或查询参数")
         if u.scheme == "http" and u.hostname not in ("localhost", "127.0.0.1", "::1"):
             raise ValueError("远程 API 请使用 HTTPS；本地模型可使用 HTTP")
+        if provider_for_url(value) == "deepl":
+            if u.scheme != "https" or u.port not in (None, 443):
+                raise ValueError("DeepL 请使用官方 HTTPS API 地址")
+            if u.path.rstrip("/") not in ("", "/v2", "/v2/translate"):
+                raise ValueError("DeepL 请使用官方 HTTPS API 地址")
+            return f"https://{u.hostname.lower()}"
         return value.removesuffix("/chat/completions")
 
     @field_validator("model")
@@ -55,6 +64,32 @@ class Settings(BaseModel):
         if not value.strip() or len(value) > 200:
             raise ValueError("请输入模型名称")
         return value.strip()
+
+    @field_validator("deepl_source_language")
+    @classmethod
+    def validate_deepl_source_language(cls, value):
+        value = value.strip().upper()
+        if value and not re.fullmatch(r"[A-Z]{2,3}(?:-[A-Z]{2,4})?", value):
+            raise ValueError("请输入有效的 DeepL 源语言代码，例如 EN")
+        return value
+
+    @field_validator("deepl_glossary_id")
+    @classmethod
+    def validate_deepl_glossary(cls, value):
+        value = value.strip()
+        if value and not re.fullmatch(
+            r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", value
+        ):
+            raise ValueError("请输入有效的 DeepL 术语表 ID")
+        return value
+
+    @model_validator(mode="after")
+    def validate_translation_service(self):
+        if provider_for_url(self.base_url) == "deepl":
+            self.model = "DeepL"
+            if self.deepl_glossary_id and not self.deepl_source_language:
+                raise ValueError("使用 DeepL 术语表时，请指定源语言")
+        return self
 
     @field_validator("target_language")
     @classmethod
@@ -84,9 +119,11 @@ def load_settings() -> Settings:
     data = json.loads(CONFIG.read_text(encoding="utf-8")) if CONFIG.exists() else {}
     if "api_key" not in data:
         provider = provider_for_url(data.get("base_url", "https://api.deepseek.com"))
-        env = {"deepseek": "DEEPSEEK_API_KEY", "qwen": "DASHSCOPE_API_KEY"}.get(
-            provider
-        )
+        env = {
+            "deepseek": "DEEPSEEK_API_KEY",
+            "qwen": "DASHSCOPE_API_KEY",
+            "deepl": "DEEPL_API_KEY",
+        }.get(provider)
         if env:
             data["api_key"] = os.environ.get(env, "")
     return Settings(**data)

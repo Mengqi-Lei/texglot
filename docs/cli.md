@@ -118,12 +118,15 @@ texglot --configure --provider qwen \
   --base-url https://YOUR_WORKSPACE_ID.cn-beijing.maas.aliyuncs.com/compatible-mode/v1 \
   --key-env DASHSCOPE_API_KEY --test
 texglot --configure --provider deepseek --key-env DEEPSEEK_API_KEY --test
+texglot --configure --provider deepl --key-env DEEPL_API_KEY --test
 # 已分别保存过连接后，可直接切换：
 texglot --configure --provider qwen
 texglot --show-config
 ```
 
-无参数的 `--configure` 会交互式询问地址、模型和隐藏输入的密钥。脚本可用 `--key-env` 从已设置的环境变量读取密钥，避免把密钥写进命令参数。`--show-config` 只显示密钥是否存在。`--provider` 可选 `qwen`、`deepseek`、`custom`，仅用于 `--configure`。Qwen 预设模型为 `qwen3.8-flash`，首次配置必须填写百炼控制台提供的 OpenAI 兼容地址；以上工作空间 ID 需要替换为实际值。更换 API 地址时不会沿用旧服务密钥；已保存的相同地址可恢复自己的密钥，同地址留空保留。`--configure --clear-key` 清除当前地址保存的密钥，其他服务的配置不受影响。本地无鉴权模型可以留空。
+无参数的 `--configure` 会交互式询问地址、模型和隐藏输入的密钥。脚本可用 `--key-env` 从已设置的环境变量读取密钥，避免把密钥写进命令参数。`--show-config` 只显示密钥是否存在。`--provider` 可选 `qwen`、`deepseek`、`deepl`、`custom`，仅用于 `--configure`。Qwen 预设模型为 `qwen3.8-flash`，首次配置必须填写百炼控制台提供的 OpenAI 兼容地址；以上工作空间 ID 需要替换为实际值。更换 API 地址时不会沿用旧服务密钥；已保存的相同地址可恢复自己的密钥，同地址留空保留。`--configure --clear-key` 清除当前地址保存的密钥，其他服务的配置不受影响。本地无鉴权模型可以留空。
+
+DeepL 无需 `--model`。可用 `--deepl-source-language EN --deepl-glossary-id YOUR_GLOSSARY_ID` 配置已有 DeepL 术语表；传空字符串可清除对应设置。DeepL 按字符统计用量，批次 JSON 中的 `characters` 是任务累计用量；`characters_estimated` 标记服务没有返回计费字符数时的估算，`tokens` 保留给 LLM。切换引擎、源语言或术语表会区分段落缓存；已完成的整篇译文仍可按文献库复用规则打开。
 
 ## 本地服务与安装包
 

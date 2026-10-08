@@ -17,6 +17,9 @@ test("provider selection distinguishes official hosts from lookalikes", () => {
     "qwen",
   );
   assert.equal(providerId("https://api.deepseek.com"), "deepseek");
+  assert.equal(providerId("https://api.deepl.com"), "deepl");
+  assert.equal(providerId("https://api-free.deepl.com/v2/translate"), "deepl");
+  assert.equal(providerId("https://api.deepl.com.evil.example"), "custom");
   assert.equal(providerId("https://api.deepseek.com.evil.example"), "custom");
   assert.equal(
     providerId("https://workspace.cn-beijing.maas.aliyuncs.com.evil.example"),
@@ -26,6 +29,8 @@ test("provider selection distinguishes official hosts from lookalikes", () => {
 });
 
 test("saved key status matches backend endpoint normalization", () => {
+  assert.equal(normalizedEndpoint(" https://api.deepl.com/v2/translate/ "), "https://api.deepl.com");
+  assert.notEqual(normalizedEndpoint("https://api.deepl.com"), normalizedEndpoint("https://api-free.deepl.com"));
   assert.equal(
     normalizedEndpoint(" https://api.deepseek.com/v1/chat/completions/ "),
     "https://api.deepseek.com/v1",

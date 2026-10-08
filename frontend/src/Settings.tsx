@@ -5,6 +5,7 @@ import {
   Check,
   LoaderCircle,
   PlugZap,
+  Cable,
   ShieldCheck,
   ChevronDown,
   ArrowUpRight,
@@ -19,6 +20,15 @@ import {
   type Provider,
   type ProviderId,
 } from "./providers";
+import qwenIcon from "./assets/providers/qwen.svg";
+import deepseekIcon from "./assets/providers/deepseek.svg";
+import deeplIcon from "./assets/providers/deepl.svg";
+
+const providerIcons: Partial<Record<ProviderId, string>> = {
+  qwen: qwenIcon,
+  deepseek: deepseekIcon,
+  deepl: deeplIcon,
+};
 
 export default function Settings({
   value,
@@ -46,6 +56,7 @@ export default function Settings({
   );
   const drafts = useRef<Partial<Record<ProviderId, Config>>>({});
   const provider = providers.find((p) => p.id === selectedProvider);
+  const isDeepL = providerId(form.base_url) === "deepl";
   const savedKey =
     (value.has_api_key &&
       normalizedEndpoint(form.base_url) ===
@@ -55,7 +66,7 @@ export default function Settings({
         p.has_api_key &&
         normalizedEndpoint(p.base_url) === normalizedEndpoint(form.base_url),
     );
-  const ready = !!form.base_url.trim() && !!form.model.trim();
+  const ready = !!form.base_url.trim() && (isDeepL || !!form.model.trim());
   const chooseProvider = (next: Provider) => {
     if (next.id === selectedProvider) return;
     drafts.current[selectedProvider] = form;
@@ -156,8 +167,8 @@ export default function Settings({
       >
         <header>
           <div>
-            <h2 id="settings-title">{t("模型与翻译设置")}</h2>
-            <p>{t("配置模型服务、API 密钥和翻译偏好。")}</p>
+            <h2 id="settings-title">{t("翻译设置")}</h2>
+            <p>{t("配置翻译引擎、API 密钥和翻译偏好。")}</p>
           </div>
           <button
             autoFocus
@@ -170,11 +181,11 @@ export default function Settings({
         </header>
         <div className="settings-scroll">
           <fieldset className="connection-settings" disabled={!!busy}>
-            <legend className="settings-label">{t("模型服务")}</legend>
+            <legend className="settings-label">{t("翻译引擎")}</legend>
             <div
               className="provider-options"
               role="group"
-              aria-label={t("模型服务")}
+              aria-label={t("翻译引擎")}
             >
               {providers.map((p) => (
                 <button
@@ -184,8 +195,12 @@ export default function Settings({
                   className={selectedProvider === p.id ? "selected" : ""}
                   onClick={() => chooseProvider(p)}
                 >
-                  <span className={`provider-icon ${p.id}`}>
-                    {p.id === "qwen" ? "Q" : p.id === "deepseek" ? "D" : "↔"}
+                  <span className={`provider-icon ${p.id}`} aria-hidden="true">
+                    {providerIcons[p.id] ? (
+                      <img src={providerIcons[p.id]} width={22} height={22} alt="" />
+                    ) : (
+                      <Cable size={20} />
+                    )}
                   </span>
                   <span className="provider-name">
                     <strong>{p.id === "qwen" ? "Qwen" : t(p.name)}</strong>
@@ -195,7 +210,9 @@ export default function Settings({
                           ? "阿里云百炼"
                           : p.id === "deepseek"
                             ? "深度求索"
-                            : "兼容接口 / 本地",
+                            : p.id === "deepl"
+                              ? "专用翻译 API"
+                              : "兼容接口 / 本地",
                       )}
                     </small>
                   </span>
@@ -213,30 +230,54 @@ export default function Settings({
               </p>
             )}
             <div className="field-row model-fields">
-              <label className="field">
-                {t("模型名称")}
-                <input
-                  value={form.model}
-                  onChange={(e) => set("model", e.target.value)}
-                  list="provider-models"
-                  placeholder={
-                    selectedProvider === "qwen"
-                      ? "qwen3.8-flash"
-                      : selectedProvider === "deepseek"
-                        ? "deepseek-flash"
-                        : t("输入模型名称")
-                  }
-                  spellCheck={false}
-                />
-                <datalist id="provider-models">
-                  {selectedProvider === "qwen" && (
-                    <option value="qwen3.8-flash">Qwen 3.8 Flash</option>
-                  )}
-                  {selectedProvider === "deepseek" && (
-                    <option value="deepseek-flash">DeepSeek V4.1 Flash</option>
-                  )}
-                </datalist>
-              </label>
+              {!isDeepL && (
+                <label className="field">
+                  {t("模型名称")}
+                  <input
+                    value={form.model}
+                    onChange={(e) => set("model", e.target.value)}
+                    list="provider-models"
+                    placeholder={
+                      selectedProvider === "qwen"
+                        ? "qwen3.8-flash"
+                        : selectedProvider === "deepseek"
+                          ? "deepseek-flash"
+                          : t("输入模型名称")
+                    }
+                    spellCheck={false}
+                  />
+                  <datalist id="provider-models">
+                    {selectedProvider === "qwen" && (
+                      <option value="qwen3.8-flash">Qwen 3.8 Flash</option>
+                    )}
+                    {selectedProvider === "deepseek" && (
+                      <option value="deepseek-flash">
+                        DeepSeek V4.1 Flash
+                      </option>
+                    )}
+                  </datalist>
+                </label>
+              )}
+              {isDeepL && (
+                <label className="field">
+                  {t("源语言")}
+                  <select
+                    value={form.deepl_source_language ?? ""}
+                    onChange={(e) =>
+                      set("deepl_source_language", e.target.value)
+                    }
+                  >
+                    <option value="">{t("自动识别")}</option>
+                    <option value="EN">English</option>
+                    <option value="ZH">中文</option>
+                    <option value="DE">Deutsch</option>
+                    <option value="FR">Français</option>
+                    <option value="ES">Español</option>
+                    <option value="JA">日本語</option>
+                    <option value="KO">한국어</option>
+                  </select>
+                </label>
+              )}
               <label className="field narrow">
                 {t("并发段落")}
                 <select
@@ -256,26 +297,46 @@ export default function Settings({
                 {t("默认关闭深度思考，减少翻译等待与额外输出。")}
               </p>
             )}
-            <label className="field">
-              {t("服务地址")}
-              <input
-                type="url"
-                value={form.base_url}
-                onChange={(e) => set("base_url", e.target.value)}
-                placeholder={
-                  provider?.placeholder ?? "https://your-api.example/v1"
-                }
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <small>
-                {t(
-                  selectedProvider === "qwen"
-                    ? "从百炼 API Key 页面复制 OpenAI 兼容地址，须与密钥的业务空间和地域一致。"
-                    : "填写接口根地址，可包含 /v1，不需要 /chat/completions。",
-                )}
-              </small>
-            </label>
+            {isDeepL ? (
+              <label className="field">
+                {t("服务地址")}
+                <select
+                  value={normalizedEndpoint(form.base_url)}
+                  onChange={(e) => set("base_url", e.target.value)}
+                >
+                  <option value="https://api.deepl.com">api.deepl.com</option>
+                  <option value="https://api-free.deepl.com">
+                    api-free.deepl.com
+                  </option>
+                </select>
+                <small>
+                  {t(
+                    "使用 DeepL API key，旧版 Free key 会自动使用 Free 接口。无需填写模型名称。",
+                  )}
+                </small>
+              </label>
+            ) : (
+              <label className="field">
+                {t("服务地址")}
+                <input
+                  type="url"
+                  value={form.base_url}
+                  onChange={(e) => set("base_url", e.target.value)}
+                  placeholder={
+                    provider?.placeholder ?? "https://your-api.example/v1"
+                  }
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <small>
+                  {t(
+                    selectedProvider === "qwen"
+                      ? "从百炼 API Key 页面复制 OpenAI 兼容地址，须与密钥的业务空间和地域一致。"
+                      : "填写接口根地址，可包含 /v1，不需要 /chat/completions。",
+                  )}
+                </small>
+              </label>
+            )}
             <label className="field">
               <span className="key-label">
                 <span>API Key</span>
@@ -312,19 +373,39 @@ export default function Settings({
             label={t("默认上下文引导")}
             note={t("作为新任务的默认设置，不会更改已有任务。")}
           />
-          <label className="field">
-            {t("术语表")}
-            <span className="inline-note">{t("可选")}</span>
-            <textarea
-              rows={4}
-              value={form.glossary}
-              onChange={(e) => set("glossary", e.target.value)}
-              placeholder={t(
-                "attention = 注意力\nembedding = 嵌入\n保留 Transformer 原文",
-              )}
-            />
-            <small>{t("每行一条术语偏好，用于保持整篇论文的译法一致。")}</small>
-          </label>
+          {isDeepL ? (
+            <label className="field">
+              {t("DeepL 术语表 ID")}{" "}
+              <span className="inline-note">{t("可选")}</span>
+              <input
+                value={form.deepl_glossary_id ?? ""}
+                onChange={(e) => set("deepl_glossary_id", e.target.value)}
+                spellCheck={false}
+                autoComplete="off"
+              />
+              <small>
+                {t(
+                  "填写你在 DeepL 创建的术语表 ID，并指定匹配的源语言。原有的模型术语偏好仍会保留。",
+                )}
+              </small>
+            </label>
+          ) : (
+            <label className="field">
+              {t("术语表")}
+              <span className="inline-note">{t("可选")}</span>
+              <textarea
+                rows={4}
+                value={form.glossary}
+                onChange={(e) => set("glossary", e.target.value)}
+                placeholder={t(
+                  "attention = 注意力\nembedding = 嵌入\n保留 Transformer 原文",
+                )}
+              />
+              <small>
+                {t("每行一条术语偏好，用于保持整篇论文的译法一致。")}
+              </small>
+            </label>
+          )}
           <details className="advanced">
             <summary>
               {t("高级设置")}
@@ -356,24 +437,26 @@ export default function Settings({
                   onChange={(e) => set("timeout", +e.target.value)}
                 />
               </label>
-              <label className="field">
-                {t("温度")}
-                <input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.1}
-                  value={form.temperature}
-                  onChange={(e) => set("temperature", +e.target.value)}
-                />
-              </label>
+              {!isDeepL && (
+                <label className="field">
+                  {t("温度")}
+                  <input
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={form.temperature}
+                    onChange={(e) => set("temperature", +e.target.value)}
+                  />
+                </label>
+              )}
             </div>
           </details>
           <div className="privacy-note">
             <ShieldCheck size={18} />
             <p>
               {t(
-                "密钥只保存至本机服务，不会写入前端或导出文件。翻译段落会发送至你配置的模型服务。",
+                "密钥只保存至本机服务，不会写入前端或导出文件。翻译段落会发送至你选择的翻译服务。",
               )}
             </p>
           </div>

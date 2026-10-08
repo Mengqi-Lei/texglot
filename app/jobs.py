@@ -46,15 +46,15 @@ from .latex import (
     segments,
 )
 from .llm import (
-    PROMPT_VERSION,
     ProviderError,
-    Translator,
     normalize_language,
     redact,
     validate_translation_language,
 )
 from .paper_context import extract_paper_context
+from .providers import provider_for_url
 from .sources import download_arxiv, extract_source, fetch_arxiv_title, find_main
+from .translation import Translator, cache_settings
 
 JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
@@ -303,6 +303,8 @@ class JobManager:
             "done": 0,
             "total": 0,
             "tokens": 0,
+            "characters": 0,
+            "characters_estimated": False,
             "cached": 0,
             "warnings": [],
             "logs": [],
@@ -318,7 +320,9 @@ class JobManager:
             # Preserve upload identity before preparation resolves/changes main.
             # GUI, CLI and integrations can then share an existing translation.
             job["upload_sha256"] = hashlib.sha256(blob).hexdigest()
-            job["requested_main"] = "" if name.lower().endswith(".tex") else main.strip()
+            job["requested_main"] = (
+                "" if name.lower().endswith(".tex") else main.strip()
+            )
         self.jobs[job_id] = job
         self.persist(job)
         self.start(job_id)
@@ -374,6 +378,11 @@ class JobManager:
             await self.log(job, error[:1200])
 
     async def pipeline(self, job, settings: Settings):
+        if (
+            provider_for_url(settings.base_url) == "deepl"
+            and not settings.api_key.strip()
+        ):
+            raise ProviderError("请在翻译设置中填写 DeepL API key")
         separate_layout_notices(job)
         folder = JOBS / job["id"]
         source = folder / "source"
@@ -633,15 +642,7 @@ class JobManager:
             await log("未识别到论文摘要，本次不附加论文背景")
         config_hash = hashlib.sha256(
             json.dumps(
-                {
-                    "version": PROMPT_VERSION,
-                    "base": settings.base_url,
-                    "model": settings.model,
-                    "language": settings.target_language,
-                    "glossary": settings.glossary,
-                    "paper_context": context,
-                    "context_guidance": settings.context_guidance,
-                },
+                cache_settings(settings, context),
                 sort_keys=True,
             ).encode()
         ).hexdigest()
@@ -680,6 +681,7 @@ class JobManager:
         job["cached"] = len(translated)
         job["done"] = len(translated)
         client = Translator(settings)
+        structure_attempts = getattr(client, "max_structure_attempts", 3)
         semaphore = asyncio.Semaphore(settings.concurrency)
         failed = []
 
@@ -688,11 +690,11 @@ class JobManager:
                 return
             async with semaphore:
                 feedback = ""
-                for attempt in range(3):
+                for attempt in range(structure_attempts):
                     try:
                         output = await (
                             client.translate_slots(item, context, feedback)
-                            if attempt == 2
+                            if attempt == structure_attempts - 1
                             else client.translate(item, context, feedback)
                         )
                         validate_translation_language(
@@ -707,7 +709,7 @@ class JobManager:
                         raise
                     except ValueError as exc:
                         feedback = str(exc)
-                        if attempt == 2:
+                        if attempt == structure_attempts - 1:
                             failed.append(key)
                             rel, line = locations[key]
                             await log(
@@ -720,6 +722,10 @@ class JobManager:
                     progress=25 + int(60 * job["done"] / job["total"]),
                     message=f"正在翻译 · {job['done']} / {job['total']} 段落",
                     tokens=job.get("previous_tokens", 0) + client.tokens,
+                    characters=job.get("previous_characters", 0)
+                    + getattr(client, "characters", 0),
+                    characters_estimated=job.get("characters_estimated", False)
+                    or getattr(client, "characters_estimated", False),
                 )
 
         pending = [asyncio.create_task(one(k, v)) for k, v in unique.items()]
@@ -733,6 +739,13 @@ class JobManager:
         finally:
             job["previous_tokens"] = job.get("previous_tokens", 0) + client.tokens
             job["tokens"] = job["previous_tokens"]
+            job["previous_characters"] = job.get("previous_characters", 0) + getattr(
+                client, "characters", 0
+            )
+            job["characters"] = job["previous_characters"]
+            job["characters_estimated"] = job.get(
+                "characters_estimated", False
+            ) or getattr(client, "characters_estimated", False)
             await client.close()
             self.persist(job)
         table_count, spacing_count = write_sources(translated)
@@ -773,7 +786,12 @@ class JobManager:
             pages=len(reader.pages),
             message="翻译完成" if not failed else "已完成，部分段落保留原文",
         )
-        await log(f"PDF 已生成 · {len(reader.pages)} 页 · {job['tokens']:,} tokens")
+        if provider_for_url(settings.base_url) == "deepl":
+            await log(
+                f"PDF 已生成 · {len(reader.pages)} 页 · {job.get('characters', 0):,} 字符"
+            )
+        else:
+            await log(f"PDF 已生成 · {len(reader.pages)} 页 · {job['tokens']:,} tokens")
 
     @staticmethod
     def reachable_files(source: Path, main: str):

@@ -86,13 +86,16 @@ Settings saved in the GUI work in the CLI. You can also configure from the termi
 texglot --configure
 texglot --configure --provider qwen --base-url https://YOUR_WORKSPACE_ID.cn-beijing.maas.aliyuncs.com/compatible-mode/v1 --key-env DASHSCOPE_API_KEY --test
 texglot --configure --provider deepseek --key-env DEEPSEEK_API_KEY --test
+texglot --configure --provider deepl --key-env DEEPL_API_KEY --test
 texglot --configure --provider qwen
 texglot --show-config
 ```
 
 Plain `--configure` prompts for the endpoint, model and a hidden key. In scripts, set a secret environment variable and use `--key-env` to read it; avoid key literals in command arguments. `--show-config` reports only whether a key exists.
 
-`--provider qwen|deepseek|custom` is used with `--configure`. Qwen defaults to `qwen3.8-flash`; its initial configuration needs the OpenAI-compatible endpoint from your Alibaba workspace. Replace the workspace placeholder above. Switching to a previously saved provider restores its connection; a new endpoint never inherits another endpoint's key. An empty key preserves the saved key for the same address. `--configure --clear-key` removes only the current address's saved key.
+`--provider qwen|deepseek|deepl|custom` is used with `--configure`. Qwen defaults to `qwen3.8-flash`; its initial configuration needs the OpenAI-compatible endpoint from your Alibaba workspace. Replace the workspace placeholder above. Switching to a previously saved provider restores its connection; a new endpoint never inherits another endpoint's key. An empty key preserves the saved key for the same address. `--configure --clear-key` removes only the current address's saved key.
+
+DeepL does not need `--model`. Use `--deepl-source-language EN --deepl-glossary-id YOUR_GLOSSARY_ID` for an existing DeepL glossary; an empty string clears that setting. Batch JSON records cumulative DeepL usage in `characters`, with `characters_estimated` indicating a fallback estimate when billed counts are unavailable. `tokens` remains the LLM counter. Paragraph caches distinguish engines, source languages and glossaries; completed papers remain reusable under the library reuse rules.
 
 ## Service and storage
 

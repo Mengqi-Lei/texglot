@@ -18,6 +18,13 @@ PROVIDERS = {
         "placeholder": "https://api.deepseek.com",
         "docs": "https://api-docs.deepseek.com/",
     },
+    "deepl": {
+        "name": "DeepL",
+        "base_url": "https://api.deepl.com",
+        "model": "DeepL",
+        "placeholder": "https://api.deepl.com",
+        "docs": "https://developers.deepl.com/docs/getting-started/auth",
+    },
     "custom": {
         "name": "自定义",
         "base_url": "http://localhost:11434/v1",
@@ -30,6 +37,8 @@ PROVIDERS = {
 
 def provider_for_url(url: str) -> str:
     host = (urlsplit(url).hostname or "").lower()
+    if host in {"api.deepl.com", "api-free.deepl.com"}:
+        return "deepl"
     if host == "api.deepseek.com":
         return "deepseek"
     if host in {

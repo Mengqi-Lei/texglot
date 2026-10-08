@@ -9,6 +9,7 @@
 - pylatexenc — MIT — https://github.com/phfaist/pylatexenc ; standard Unicode-to-LaTeX math encodings for generated prose.
 - PDF.js (`pdfjs-dist`) — Apache-2.0 — https://github.com/mozilla/pdf.js
 - Lucide — ISC — https://github.com/lucide-icons/lucide
+- Lobe Icons — MIT — https://github.com/lobehub/lobe-icons/tree/c385b2b8d1f9e19aa86e628d4e23c91ee1111a47 ; locally bundled Qwen, DeepSeek and DeepL brand SVGs. Pinned sources and full license are retained in `frontend/src/assets/providers/`; the build includes the license in `THIRD_PARTY_LICENSES.txt`. Brand names and trademarks belong to their respective owners.
 - Vite — MIT — https://github.com/vitejs/vite
 - Electron (desktop runtime) — MIT; Chromium and bundled components retain their own notices — https://github.com/electron/electron
 - PyInstaller (desktop build tool) — GPL-2.0-or-later with bootloader exception permitting distributed applications — https://pyinstaller.org/

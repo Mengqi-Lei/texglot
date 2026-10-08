@@ -10,6 +10,8 @@ export type Settings = {
   temperature: number;
   timeout: number;
   glossary: string;
+  deepl_source_language?: string;
+  deepl_glossary_id?: string;
   compiler: string;
 };
 export type Job = {
@@ -30,6 +32,8 @@ export type Job = {
   done: number;
   total: number;
   tokens: number;
+  characters?: number;
+  characters_estimated?: boolean;
   cached: number;
   pages: number;
   warnings: string[];

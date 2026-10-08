@@ -9,7 +9,7 @@ export default defineConfig({
       closeBundle() {
         const notices = ["react", "react-dom", "scheduler", "lucide-react", "pdfjs-dist"]
           .map((name) => `${name}\n${"=".repeat(72)}\n${readFileSync(`node_modules/${name}/LICENSE`, "utf8")}`)
-          .join("\n\n");
+          .join("\n\n") + `\n\nLobe Icons — provider brand marks\n${"=".repeat(72)}\n${readFileSync("src/assets/providers/LICENSE", "utf8")}`;
         writeFileSync("dist/THIRD_PARTY_LICENSES.txt", notices, "utf8");
         for (const folder of ["cmaps", "standard_fonts", "wasm"]) {
           mkdirSync(`dist/pdfjs/${folder}`, { recursive: true });

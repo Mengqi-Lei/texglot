@@ -33,6 +33,7 @@ import {
   Terminal,
 } from "lucide-react";
 import Settings from "./Settings";
+import { providerId } from "./providers";
 import ContextGuidance from "./ContextGuidance";
 import SelectionGroup from "./SelectionGroup";
 import { useContentMotion, usePresence } from "./motion";
@@ -146,8 +147,20 @@ function JobDetail({
           {t("段落已处理")}
         </span>
         <span>
-          <b>{count(job.tokens)}</b>
-          {t("已使用 tokens")}
+          <b>
+            {count(
+              providerId(job.config?.base_url ?? "") === "deepl"
+                ? (job.characters ?? 0)
+                : job.tokens,
+            )}
+          </b>
+          {t(
+            providerId(job.config?.base_url ?? "") === "deepl"
+              ? job.characters_estimated
+                ? "已使用字符（估算）"
+                : "已使用字符"
+              : "已使用 tokens",
+          )}
         </span>
         <span>
           <b>{job.cached}</b>
@@ -404,7 +417,9 @@ export default function App() {
     const row = document.getElementById(`job-row-${id}`);
     if (!row) return;
     row.scrollIntoView({ block: "center", behavior: "instant" });
-    row.querySelector<HTMLButtonElement>(".job-summary")?.focus({ preventScroll: true });
+    row
+      .querySelector<HTMLButtonElement>(".job-summary")
+      ?.focus({ preventScroll: true });
     scrollToLinkedJob.current = null;
   }, [jobs, section, selected]);
   const submit = async (example = false) => {
@@ -558,11 +573,11 @@ export default function App() {
             </span>
             <button
               className="settings-button"
-              aria-label={t("模型设置")}
+              aria-label={t("翻译设置")}
               onClick={() => setShowSettings(true)}
             >
               <Settings2 size={17} />
-              <span>{t("模型设置")}</span>
+              <span>{t("翻译设置")}</span>
             </button>
           </div>
         </div>
@@ -752,7 +767,7 @@ export default function App() {
               </section>
               <div className="input-meta">
                 <button onClick={() => setShowSettings(true)}>
-                  <span>{t("模型")}</span>
+                  <span>{t("翻译引擎")}</span>
                   {settings.model}
                   <ChevronDown size={12} />
                 </button>
@@ -765,7 +780,7 @@ export default function App() {
                     {!compilerReady
                       ? t("还需要安装编译器。macOS：brew install tectonic")
                       : !settings.has_api_key
-                        ? t("连接你的模型 API 后，即可开始翻译。")
+                        ? t("连接翻译服务后，即可开始翻译。")
                         : ""}
                   </span>
                   <button onClick={() => setShowSettings(true)}>
@@ -890,7 +905,7 @@ export default function App() {
                             {job.config?.model && (
                               <small
                                 className="job-model"
-                                title={t("翻译模型") + ": " + job.config.model}
+                                title={t("翻译引擎") + ": " + job.config.model}
                               >
                                 {job.config.model}
                               </small>
@@ -999,7 +1014,7 @@ export default function App() {
             setSettings(s);
             setContextGuidance(s.context_guidance ?? true);
             setShowSettings(false);
-            toast("模型设置已保存");
+            toast("翻译设置已保存");
           }}
         />
       )}

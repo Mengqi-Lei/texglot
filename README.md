@@ -33,7 +33,7 @@ The name combines **TeX + Polyglot**. The browser interface and CLI use the same
 | | What you can do |
 | :--- | :--- |
 | **Source to PDF** | Import arXiv links/IDs or `.tex`, `.zip`, `.tar`, `.tar.gz`, `.tgz`, `.gz` projects. Download the translated PDF, original PDF and translated source ZIP. |
-| **Your model** | Use Qwen / Alibaba Model Studio, DeepSeek, or a compatible Chat Completions endpoint, including a local model service. |
+| **Your model** | Use DeepL, Qwen / Alibaba Model Studio, DeepSeek, or a compatible Chat Completions endpoint, including a local model service. |
 | **Context guidance** | Optionally use the paper's abstract to guide terminology. On by default; independently selectable for each task in the GUI and CLI. |
 | **Reading workspace** | Read original, translation or both; swap sides, scroll continuously, synchronize by shared content landmarks, search the full PDF with Cmd/Ctrl+F, zoom and resume your reading position. |
 | **Local annotations** | Highlight, underline and add notes. Search and manage annotations in a sidebar; exported PDFs stay free of TeXGlot annotations. |
@@ -92,17 +92,22 @@ No WSL is required. For source installations, prefer a short folder such as `D:\
 
 </details>
 
-### 2. Connect your model
+### 2. Connect a translation service
 
-Open **TeXGlot** (or **http://127.0.0.1:8765** for a source installation), choose **Model settings**, select a provider, enter its API base URL, model and key, then **Test connection** and save.
+Open **TeXGlot** (or **http://127.0.0.1:8765** for a source installation), choose **Translation settings**, select a provider, enter its API base URL, model and key, then **Test connection** and save.
 
 | Provider | Model preset | API base URL |
 | :--- | :--- | :--- |
 | Qwen / Alibaba Model Studio | `qwen3.8-flash` | Copy the **OpenAI-compatible** endpoint from your workspace's API Key page. It must match the key's region and workspace. |
 | DeepSeek V4.1 Flash | `deepseek-flash` | `https://api.deepseek.com` |
+| DeepL | No model name needed | `https://api.deepl.com`; legacy Free keys automatically use the Free endpoint. |
 | Custom / local | Your installed or available model | For example, `http://localhost:11434/v1` for Ollama. A local endpoint without authentication can use an empty key. |
 
 Presets are editable. Model availability and billing depend on your provider account. Qwen requests disable thinking by default. Refer to the [Qwen quick start](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen) or [DeepSeek documentation](https://api-docs.deepseek.com/) for credentials and endpoint details.
+
+**Development version:** DeepL support is available in source builds. The existing 1.2.0 desktop installers do not include it yet.
+
+DeepL uses its own **DeepL API key** and does not require an LLM account. Select DeepL, test the connection and save; usage is shown in characters. TeXGlot protects and validates formulas, citations and formatting. Optionally provide a DeepL glossary ID and its source language; existing free-form LLM terminology preferences are retained. See [DeepL API authentication](https://developers.deepl.com/docs/getting-started/auth) for API account requirements.
 
 ### 3. Translate and read
 

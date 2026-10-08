@@ -1562,3 +1562,56 @@ async def test_slot_context_anchors_cannot_leak_into_translation():
         assert len(requests) == 2
     finally:
         await client.close()
+
+
+async def test_deepl_quota_failure_keeps_cache_and_character_usage_for_resume(
+    pipeline, monkeypatch
+):
+    from app.deepl import DeepLTranslator
+
+    manager, job, folder, settings, _ = pipeline
+    settings.base_url = "https://api.deepl.com"
+    settings.model = "DeepL"
+    settings.api_key = "test-deepl-private"
+    calls = []
+    fail = True
+
+    def handler(request):
+        body = json.loads(request.content)
+        source = body["text"][0]
+        calls.append(source)
+        if fail and "second scientific" in source:
+            return httpx.Response(456)
+        return httpx.Response(
+            200,
+            json={
+                "translations": [
+                    {"text": text, "billed_characters": 40} for text in body["text"]
+                ]
+            },
+        )
+
+    def factory(s):
+        t = DeepLTranslator(s)
+        t.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        return t
+
+    monkeypatch.setattr(jobs, "Translator", factory)
+    await manager.run(job["id"])
+    assert job["status"] == "failed" and "字符额度" in job["error"]
+    assert "private" not in job["error"]
+    assert job["characters"] >= 40
+    first_count = sum("first scientific" in x for x in calls)
+    charged = job["characters"]
+    fail = False
+    await manager.run(job["id"])
+    assert job["status"] == "completed" and job["cached"] >= 1
+    assert sum("first scientific" in x for x in calls) == first_count == 1
+    assert job["characters"] == charged + 40 and job["tokens"] == 0
+    assert "字符" in job["message"]
+    with zipfile.ZipFile(folder / job["artifacts"]["source"]) as archive:
+        assert all(
+            b"test-deepl-private" not in archive.read(name)
+            for name in archive.namelist()
+        )
+    await manager.close()

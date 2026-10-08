@@ -41,7 +41,7 @@ from .integrations import (
     serialize_job as serialize_zotero_job,
 )
 from .jobs import ACTIVE, JOBS, JobManager
-from .llm import ProviderError, Translator
+from .llm import ProviderError
 from .reader import (
     AnnotationInput,
     AnnotationPatch,
@@ -50,6 +50,7 @@ from .reader import (
     document_info,
 )
 from .sources import MAX_UPLOAD, parse_arxiv
+from .translation import Translator
 
 manager = JobManager()
 reader_store = ReaderStore(JOBS)
@@ -189,18 +190,24 @@ async def settings_put(request: Request):
         return public_settings(save_settings(values))
     except ValidationError as exc:
         raise HTTPException(400, "; ".join(e["msg"] for e in exc.errors())) from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
 
 
 @app.post("/api/settings/test")
 async def settings_test(request: Request):
     values = await request.json()
-    client = Translator(merge_settings(load_settings(), values))
+    client = None
     try:
+        client = Translator(merge_settings(load_settings(), values))
         return await client.test()
+    except ValidationError as exc:
+        raise HTTPException(400, "; ".join(e["msg"] for e in exc.errors())) from None
     except (ProviderError, ValueError) as exc:
         raise HTTPException(400, str(exc)) from None
     finally:
-        await client.close()
+        if client is not None:
+            await client.close()
 
 
 @app.get("/api/jobs")

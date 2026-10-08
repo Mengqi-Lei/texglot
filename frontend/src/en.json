@@ -271,5 +271,19 @@
   "下一处匹配（Enter）": "Next match (Enter)",
   "关闭搜索（Esc）": "Close search (Esc)",
   "搜索范围": "Search in",
-  "Enter 下一处 · Shift+Enter 上一处": "Enter next · Shift+Enter previous"
+  "Enter 下一处 · Shift+Enter 上一处": "Enter next · Shift+Enter previous",
+  "翻译设置": "Translation settings",
+  "翻译引擎": "Translation engine",
+  "配置翻译引擎、API 密钥和翻译偏好。": "Configure your translation engine, API key, and preferences.",
+  "专用翻译 API": "Translation API",
+  "源语言": "Source language",
+  "自动识别": "Detect automatically",
+  "使用 DeepL API key，旧版 Free key 会自动使用 Free 接口。无需填写模型名称。": "Use a DeepL API key. Legacy Free keys automatically use the Free endpoint. No model name is required.",
+  "DeepL 术语表 ID": "DeepL glossary ID",
+  "填写你在 DeepL 创建的术语表 ID，并指定匹配的源语言。原有的模型术语偏好仍会保留。": "Enter a glossary ID created in DeepL and select its source language. Your existing LLM terminology preferences are kept.",
+  "已使用字符": "Characters used",
+  "已使用字符（估算）": "Characters used (estimated)",
+  "密钥只保存至本机服务，不会写入前端或导出文件。翻译段落会发送至你选择的翻译服务。": "Your key is stored by the local service, never returned to the browser or included in exports. Translation text is sent to your chosen service.",
+  "连接翻译服务后，即可开始翻译。": "Connect a translation service to get started.",
+  "翻译设置已保存": "Translation settings saved"
 }

@@ -3,6 +3,22 @@
 import re
 
 MESSAGES = {
+    "DeepL 请使用官方 HTTPS API 地址": "Use an official DeepL HTTPS API endpoint",
+    "请输入有效的 DeepL 源语言代码，例如 EN": "Enter a valid DeepL source language code, such as EN",
+    "请输入有效的 DeepL 术语表 ID": "Enter a valid DeepL glossary ID",
+    "使用 DeepL 术语表时，请指定源语言": "Select a source language when using a DeepL glossary",
+    "请在翻译设置中填写 DeepL API key": "Enter a DeepL API key in translation settings",
+    "DeepL 认证失败，请检查 API key 和 API 套餐": "DeepL authentication failed. Check your API key and API plan",
+    "DeepL 字符额度已用完或已达到用量上限，请检查 API 账户后继续任务": "DeepL character quota or usage limit reached. Check your API account before resuming",
+    "DeepL 连接超时或网络不可达，请检查网络后重试": "DeepL connection timed out or the network is unreachable. Check your connection and retry",
+    "DeepL 要求较长的重试等待，可稍后继续任务": "DeepL requested a long retry delay. Resume the task later",
+    "DeepL 服务暂时不可用，可稍后继续任务": "DeepL is temporarily unavailable. Resume the task later",
+    "DeepL 拒绝请求，请检查源语言、术语表和 API 套餐": "DeepL rejected the request. Check the source language, glossary and API plan",
+    "DeepL 返回格式无效，可稍后继续任务": "DeepL returned an invalid response. Resume the task later",
+    "DeepL 返回的段落结构无效": "DeepL returned an invalid paragraph structure",
+    "DeepL 修改、遗漏或重复了受保护标记": "DeepL changed, omitted or duplicated a protected marker",
+    "段落超过 DeepL 单次请求大小限制": "The paragraph exceeds the DeepL request size limit",
+    "段落包含无法发送至 DeepL 的 XML 字符": "The paragraph contains XML characters unsupported by DeepL",
     "命名标识符与相邻文字错误拼接": "A named identifier was incorrectly joined to adjacent text",
     "部分图表超出页高，已整体缩放以保留全部内容、标签和图表说明": "Some figures or tables exceeded the page height and were scaled together to preserve all content, labels, and captions.",
     "存在超出页高的浮动体，内容可能被裁切；请检查图表及编译日志": "Some floats still exceed the page height and may be clipped. Check the figures, tables, and compilation log.",
@@ -219,6 +235,7 @@ RULES = [
         r"\1 / \2 paragraphs failed validation and remain in the original language. Resume to retry",
     ),
     (r"PDF 已生成 · (\d+) 页 · ([\d,]+) tokens", r"PDF ready · \1 pages · \2 tokens"),
+    (r"PDF 已生成 · (\d+) 页 · ([\d,]+) 字符", r"PDF ready · \1 pages · \2 characters"),
     (
         r"未安装 (.+)，请安装后重试或切换编译器",
         r"\1 is not installed. Install it or choose another compiler",

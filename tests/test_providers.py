@@ -95,7 +95,10 @@ def test_provider_switch_remembers_exact_endpoint_keys_without_exposing_them(
     assert merge_settings(qwen, {"base_url": "https://other.example/v1"}).api_key == ""
     public = json.dumps(provider_options())
     assert "private-key" not in public and '"api_key"' not in public
-    assert all(p["has_api_key"] for p in provider_options() if p["id"] != "custom")
+    assert all(
+        p["has_api_key"] for p in provider_options() if p["id"] in {"qwen", "deepseek"}
+    )
+    assert not next(p for p in provider_options() if p["id"] == "deepl")["has_api_key"]
     before = config.CONFIG.read_bytes()
     merge_settings(qwen, {"provider": "deepseek"})
     assert config.CONFIG.read_bytes() == before  # connection tests never save
