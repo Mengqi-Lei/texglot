@@ -1461,7 +1461,10 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
 
 
 def input_references(
-    text: str, math_aliases: dict[str, MathAlias] | None = None
+    text: str,
+    math_aliases: dict[str, MathAlias] | None = None,
+    *,
+    literal_environments: frozenset[str] = frozenset(),
 ) -> list[tuple[str, bool]]:
     """Read literal input edges together with their TeX math/graphics context.
 
@@ -1471,7 +1474,7 @@ def input_references(
     """
     from .sources import visible_tex
 
-    visible = visible_tex(text)
+    visible = visible_tex(text, literal_environments=literal_environments)
     aliases = dict(math_aliases or {}) | collect_math_aliases(text)
     references = []
     pos = opaque_until = 0
@@ -1539,7 +1542,12 @@ def input_references(
 
 
 def classify_source_contexts(
-    root, main: str, source_files: list[str], *, math_aliases=None
+    root,
+    main: str,
+    source_files: list[str],
+    *,
+    math_aliases=None,
+    literal_environments=frozenset(),
 ) -> tuple[set[str], set[str]]:
     """Return opaque-only and mixed-use TeX files in a compiled source graph.
 
@@ -1559,7 +1567,11 @@ def classify_source_contexts(
     main_path = (root / main).resolve()
     edges = {}
     for path, name in paths.items():
-        references = input_references(path.read_text(encoding="utf-8"), math_aliases)
+        references = input_references(
+            path.read_text(encoding="utf-8"),
+            math_aliases,
+            literal_environments=literal_environments,
+        )
         edges[name] = []
         for filename, opaque in references:
             relative = Path(filename)
@@ -1611,14 +1623,30 @@ def segments(
     prose_arguments: dict[str, tuple[int, frozenset[int]]] | None = None,
     literal_code: bool = False,
     title_macros: dict[str, str] | None = None,
+    literal_environments: frozenset[str] = frozenset(),
 ) -> list[Segment]:
     result = []
     tokens: list[tuple[int, int, bool]] = []
     i = 0
-    from .sources import visible_tex, without_comments
+    from .sources import (
+        VERBATIM_ENVIRONMENTS,
+        collect_literal_environments,
+        literal_environment_end,
+        visible_tex,
+        without_comments,
+    )
+
+    literal_environments = (
+        literal_environments
+        | collect_literal_environments(text)
+        | VERBATIM_ENVIRONMENTS
+    )
     from .text_accents import accented_word_spans
 
-    in_body = not re.search(r"\\begin\s*\{document\}", visible_tex(text))
+    in_body = not re.search(
+        r"\\begin\s*\{document\}",
+        visible_tex(text, literal_environments=literal_environments),
+    )
     prose_macros = collect_text_macros(text) | (text_macros or set())
     aliases = dict(math_aliases or {}) | collect_math_aliases(text)
     literals = dict(literal_macros or {}) | collect_literal_macros(text)
@@ -1744,7 +1772,12 @@ def segments(
                 for a, b in title_definitions.items():
                     if i <= a < b < end:
                         flush()
-                        for sub in segments(text[a:b], max_chars, title_macros={}):
+                        for sub in segments(
+                            text[a:b],
+                            max_chars,
+                            title_macros={},
+                            literal_environments=literal_environments,
+                        ):
                             sub.start += a
                             sub.end += a
                             sub.role = "title"
@@ -1794,7 +1827,9 @@ def segments(
                     # the environment is still prose, not preamble machinery.
                     closing = re.search(
                         r"\\end\s*\{" + re.escape(env) + r"\}",
-                        visible_tex(text[i:]),
+                        visible_tex(
+                            text[i:], literal_environments=literal_environments
+                        ),
                     )
                     if closing:
                         for sub in segments(
@@ -1806,11 +1841,18 @@ def segments(
                             numeric_registers=registers,
                             prose_arguments=argument_roles,
                             literal_code=literal_code,
+                            literal_environments=literal_environments,
                         ):
                             sub.start += i
                             sub.end += i
                             result.append(sub)
                         i += closing.end()
+                    continue
+                if name == "begin" and env in literal_environments:
+                    # Literal listings are not editable prose, including apparent
+                    # Markdown/TeX instructions and unbalanced syntax in examples.
+                    flush()
+                    i = literal_environment_end(text, i, env)
                     continue
                 if name == "begin" and env in OPAQUE_ENV:
                     i = opaque_environment_end(text, i, env, aliases)
@@ -1866,6 +1908,7 @@ def segments(
                                 numeric_registers=registers,
                                 prose_arguments=argument_roles,
                                 literal_code=literal_code,
+                                literal_environments=literal_environments,
                             ):
                                 sub.start += a
                                 sub.end += a
@@ -1919,6 +1962,7 @@ def segments(
                             numeric_registers=registers,
                             prose_arguments=argument_roles,
                             literal_code=True,
+                            literal_environments=literal_environments,
                         ):
                             sub.start += a
                             sub.end += a

@@ -11,6 +11,7 @@ import tarfile
 import zipfile
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
@@ -239,7 +240,116 @@ def without_comments(text: str) -> str:
     return "".join(chars)
 
 
-def visible_tex(text: str, *, mask_comment_environments: bool = True) -> str:
+VERBATIM_ENVIRONMENTS = frozenset(
+    {
+        "verbatim",
+        "verbatim*",
+        "Verbatim",
+        "BVerbatim",
+        "LVerbatim",
+        "SaveVerbatim",
+        "lstlisting",
+        "minted",
+        "filecontents",
+        "filecontents*",
+        "comment",
+    }
+)
+LITERAL_ENVIRONMENT_DEFINITIONS = {
+    "newtcblisting": 1,
+    "renewtcblisting": 1,
+    "NewTCBListing": 2,
+    "RenewTCBListing": 2,
+    "DeclareTCBListing": 2,
+    "ProvideTCBListing": 2,
+    "lstnewenvironment": 2,
+    "DefineVerbatimEnvironment": 2,
+    "RecustomVerbatimEnvironment": 2,
+}
+
+
+def _literal_declarations(visible: str) -> frozenset[str]:
+    # Parse explicit listing constructors, never infer literalness from a name
+    # such as "prompt" or from the text inside an otherwise ordinary box.
+    from .latex import (
+        COMMAND,
+        MACRO_DEFINITIONS,
+        definition_end,
+        group_end,
+        skip_tex_space,
+    )
+
+    result = set()
+    cursor = 0
+    for match in COMMAND.finditer(visible):
+        if match.start() < cursor:
+            continue
+        name = match[0][1:].rstrip("*")
+        if name in MACRO_DEFINITIONS:
+            cursor = definition_end(visible, match.end(), name)
+            continue
+        if name not in LITERAL_ENVIRONMENT_DEFINITIONS:
+            continue
+        pos = skip_tex_space(visible, match.end())
+        try:
+            # tcolorbox permits an optional initialization argument before name.
+            if pos < len(visible) and visible[pos] == "[":
+                pos = skip_tex_space(visible, group_end(visible, pos, strict=True))
+            if pos >= len(visible) or visible[pos] != "{":
+                continue
+            end = group_end(visible, pos, strict=True)
+            environment = visible[pos + 1 : end - 1]
+            pos = skip_tex_space(visible, end)
+            while pos < len(visible) and visible[pos] == "[":
+                pos = skip_tex_space(visible, group_end(visible, pos, strict=True))
+            for _ in range(LITERAL_ENVIRONMENT_DEFINITIONS[name]):
+                if pos >= len(visible) or visible[pos] != "{":
+                    raise ValueError("Incomplete listing declaration")
+                pos = skip_tex_space(visible, group_end(visible, pos, strict=True))
+        except ValueError:
+            continue
+        cursor = pos
+        if (
+            re.fullmatch(r"[A-Za-z@][A-Za-z0-9_:@*.-]*", environment)
+            and environment != "document"
+        ):
+            result.add(environment)
+    return frozenset(result)
+
+
+@lru_cache(maxsize=64)
+def collect_literal_environments(text: str) -> frozenset[str]:
+    """Discover explicit verbatim declarations across a project's source context.
+
+    Re-scan with candidates masked so declarations printed inside a listing do
+    not become executable definitions, including includes ordered before styles.
+    """
+    candidates = _literal_declarations(_visible_tex(text, VERBATIM_ENVIRONMENTS))
+    return _literal_declarations(_visible_tex(text, VERBATIM_ENVIRONMENTS | candidates))
+
+
+def literal_environment_end(text: str, pos: int, environment: str) -> int:
+    ending = re.search(r"\\end\s*\{" + re.escape(environment) + r"\}", text[pos:])
+    return pos + ending.end() if ending else len(text)
+
+
+def visible_tex(
+    text: str,
+    *,
+    mask_comment_environments: bool = True,
+    literal_environments: frozenset[str] = frozenset(),
+) -> str:
+    environments = (
+        VERBATIM_ENVIRONMENTS
+        | collect_literal_environments(text)
+        | literal_environments
+    )
+    if not mask_comment_environments:
+        environments = environments - {"comment"}
+    return _visible_tex(text, environments)
+
+
+def _visible_tex(text: str, environments: frozenset[str]) -> str:
     """Mask comments and literal code while retaining exact source offsets."""
     # Literal contents must be skipped before interpreting percent signs. For
     # example, the active package after \verb|%| is not part of a comment.
@@ -259,13 +369,8 @@ def visible_tex(text: str, *, mask_comment_environments: bool = True) -> str:
         if text[i] != "\\":
             i += 1
             continue
-        environment = re.match(
-            r"\\begin\s*\{(verbatim\*?|Verbatim|lstlisting|minted|filecontents\*?"
-            + ("|comment" if mask_comment_environments else "")
-            + r")\}",
-            text[i:],
-        )
-        if environment:
+        environment = re.match(r"\\begin\s*\{([^{}]+)\}", text[i:])
+        if environment and environment[1] in environments:
             ending = re.search(
                 r"\\end\s*\{" + re.escape(environment[1]) + r"\}",
                 text[i + environment.end() :],

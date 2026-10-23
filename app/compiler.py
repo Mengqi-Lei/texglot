@@ -151,14 +151,17 @@ TABLE_FITTING = r"""% texglot: fit complete measured table containers v1
 """
 
 
-def prepare_float_sizing(root: Path) -> None:
+def prepare_float_sizing(root: Path, *, literal_environments=frozenset()) -> None:
     """Keep complete oversized standard figures and tables within a usable page."""
     sources = {
         path: path.read_text(encoding="utf-8")
         for path in root.rglob("*.tex")
         if path.is_file()
     }
-    visible = {path: visible_tex(text) for path, text in sources.items()}
+    visible = {
+        path: visible_tex(text, literal_environments=literal_environments)
+        for path, text in sources.items()
+    }
     if not any(
         re.search(r"\\begin\s*\{(?:figure|table)\*?\}", text)
         for text in visible.values()
@@ -184,7 +187,9 @@ LEGACY_LATIN_FAMILIES = {
 }
 
 
-def prepare_legacy_latin_fonts(root: Path, engine: str) -> None:
+def prepare_legacy_latin_fonts(
+    root: Path, engine: str, *, literal_environments=frozenset()
+) -> None:
     """Adapt explicit standard Type1 text selections to Unicode equivalents.
 
     Keep font sizes, series and shapes, along with the author's default fonts.
@@ -199,7 +204,10 @@ def prepare_legacy_latin_fonts(root: Path, engine: str) -> None:
         for path in root.rglob("*")
         if path.is_file() and path.suffix.lower() in TEX_SOURCE_SUFFIXES
     }
-    visible = {path: visible_tex(text) for path, text in sources.items()}
+    visible = {
+        path: visible_tex(text, literal_environments=literal_environments)
+        for path, text in sources.items()
+    }
     documents = {
         path
         for path, text in visible.items()
@@ -274,8 +282,8 @@ def prepare_legacy_latin_fonts(root: Path, engine: str) -> None:
             path.write_text(text, encoding="utf-8")
 
 
-def normalize_float_positions(text: str) -> str:
-    visible = visible_tex(text)
+def normalize_float_positions(text: str, *, literal_environments=frozenset()) -> str:
+    visible = visible_tex(text, literal_environments=literal_environments)
     for match in reversed(
         list(
             re.finditer(
@@ -293,10 +301,14 @@ def normalize_float_positions(text: str) -> str:
     return text
 
 
-def normalize_comment_terminators(text: str) -> str:
+def normalize_comment_terminators(
+    text: str, *, literal_environments=frozenset()
+) -> str:
     # comment.sty compares whole input lines. Trailing tabs accepted by TeX's
     # ordinary scanner otherwise make it consume through end-of-file.
-    visible = visible_tex(text, mask_comment_environments=False)
+    visible = visible_tex(
+        text, mask_comment_environments=False, literal_environments=literal_environments
+    )
     for match in reversed(
         list(re.finditer(r"(?m)^[ \t]*(\\end\s*\{comment\})[ \t]+(?=\r?$)", visible))
     ):
@@ -304,9 +316,9 @@ def normalize_comment_terminators(text: str) -> str:
     return text
 
 
-def normalize_pixel_dimensions(text: str) -> str:
+def normalize_pixel_dimensions(text: str, *, literal_environments=frozenset()) -> str:
     """Preserve pdfTeX's configurable pixel unit only in dimension arguments."""
-    visible = visible_tex(text)
+    visible = visible_tex(text, literal_environments=literal_environments)
     ranges = []
     for match in re.finditer(r"\\includegraphics\*?\s*\[([^]]*)\]", visible):
         for option in re.finditer(
@@ -341,20 +353,28 @@ def normalize_pixel_dimensions(text: str) -> str:
     return text
 
 
-def normalize_engine(text: str, engine: str) -> str:
-    text = normalize_comment_terminators(text)
-    text = normalize_float_positions(text)
+def normalize_engine(
+    text: str, engine: str, *, literal_environments=frozenset()
+) -> str:
+    text = normalize_comment_terminators(
+        text, literal_environments=literal_environments
+    )
+    text = normalize_float_positions(text, literal_environments=literal_environments)
     if engine in ("tectonic", "xelatex"):
-        text = normalize_pdftex_features(text, engine)
-        text = normalize_pixel_dimensions(text)
-        visible = visible_tex(text)
+        text = normalize_pdftex_features(
+            text, engine, literal_environments=literal_environments
+        )
+        text = normalize_pixel_dimensions(
+            text, literal_environments=literal_environments
+        )
+        visible = visible_tex(text, literal_environments=literal_environments)
         if (
             r"\pdfpxdimen" in visible
             and re.search(r"\\begin\s*\{document\}", visible)
             and PIXEL_COMPATIBILITY not in text
         ):
             text = PIXEL_COMPATIBILITY + text
-            visible = visible_tex(text)
+            visible = visible_tex(text, literal_environments=literal_environments)
         if (
             re.search(r"\\begin\s*\{document\}", visible)
             and XETEX_COMPATIBILITY not in text
@@ -373,7 +393,7 @@ def normalize_engine(text: str, engine: str) -> str:
             text = "\\PassOptionsToPackage{no-math}{fontspec}\n" + text
         # The importer has already decoded every TeX file to UTF-8. Legacy
         # input/font encodings conflict with XeTeX's native Unicode fonts.
-        visible = visible_tex(text)
+        visible = visible_tex(text, literal_environments=literal_environments)
         removals = []
         for match in re.finditer(
             r"\\(?:usepackage|RequirePackage)\s*(?:\[[^]]*\])?\s*\{([^}]+)\}", visible
@@ -391,7 +411,12 @@ def normalize_engine(text: str, engine: str) -> str:
             text = text[:start] + value + text[end:]
         # A pdfTeX-only switch misleads old hyperref templates under XeTeX.
         for match in reversed(
-            list(re.finditer(r"\\pdfoutput\s*=?\s*1\b", visible_tex(text)))
+            list(
+                re.finditer(
+                    r"\\pdfoutput\s*=?\s*1\b",
+                    visible_tex(text, literal_environments=literal_environments),
+                )
+            )
         ):
             text = text[: match.start()] + " " + text[match.end() :]
 
@@ -399,7 +424,7 @@ def normalize_engine(text: str, engine: str) -> str:
             list(
                 re.finditer(
                     r"(\\(?:usepackage|RequirePackage)\s*)\[([^]]+)\](\s*\{(?:hyperref|graphicx|graphics|color|xcolor)\})",
-                    visible_tex(text),
+                    visible_tex(text, literal_environments=literal_environments),
                 )
             )
         ):
@@ -411,7 +436,7 @@ def normalize_engine(text: str, engine: str) -> str:
                 start = match.start(2) + option.start(1)
                 end = match.start(2) + option.end(1)
                 text = text[:start] + "xetex" + text[end:]
-        visible = visible_tex(text)
+        visible = visible_tex(text, literal_environments=literal_environments)
         if (
             re.search(r"\\usepackage(?:\[[^]]*\])?\{(?:times|mathptmx)\}", visible)
             and "% texglot: Unicode-capable Times-compatible fonts" not in text
@@ -451,7 +476,7 @@ PDFTEX_METADATA = re.compile(
 )
 
 
-def pdftex_output_settings(text: str):
+def pdftex_output_settings(text: str, *, literal_environments=frozenset()):
     """Locate known PDF-output settings, never arbitrary undefined commands.
 
     pdfTeX metadata and file-ID controls have no XeTeX implementation. Keep
@@ -460,7 +485,7 @@ def pdftex_output_settings(text: str):
     """
     from .latex import group_end
 
-    visible = visible_tex(text)
+    visible = visible_tex(text, literal_environments=literal_environments)
     matches = [(m, m.end()) for m in PDFTEX_OUTPUT_SETTINGS.finditer(visible)]
     for match in PDFTEX_METADATA.finditer(visible):
         try:
@@ -475,7 +500,9 @@ def pdftex_output_settings(text: str):
             previous_end = end
 
 
-def normalize_pdftex_features(text: str, engine: str) -> str:
+def normalize_pdftex_features(
+    text: str, engine: str, *, literal_environments=frozenset()
+) -> str:
     """Drop unsupported output/typography controls, retaining document content.
 
     XeTeX writes through xdvipdfmx; pdfTeX compression and glyph-map settings
@@ -485,9 +512,11 @@ def normalize_pdftex_features(text: str, engine: str) -> str:
     """
     from .latex import group_end
 
-    visible = visible_tex(text)
+    visible = visible_tex(text, literal_environments=literal_environments)
     edits = []
-    for match, end in pdftex_output_settings(text):
+    for match, end in pdftex_output_settings(
+        text, literal_environments=literal_environments
+    ):
         edits.append((match.start(), end, ""))
     for match in re.finditer(r"\\DisableLigatures\s*(?:\[[^]]*\]\s*)?\{", visible):
         end = group_end(text, match.end() - 1)
@@ -538,11 +567,22 @@ def prepare_engine_sources(root: Path, engine: str) -> None:
                     visible_tex(document.read_text(encoding="utf-8")),
                 ):
                     (document.parent / resource.name).write_bytes(resource.read_bytes())
+    from .sources import collect_literal_environments
+
+    source_texts = {
+        path: path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in TEX_SOURCE_SUFFIXES
+    }
+    literal_environments = collect_literal_environments(
+        "\n".join(decode_tex(raw) for raw in source_texts.values())
+    )
     normalized = {}
-    for path in root.rglob("*"):
+    for path, original in source_texts.items():
         if path.is_file() and path.suffix.lower() in TEX_SOURCE_SUFFIXES:
-            original = path.read_bytes()
-            text = normalize_engine(decode_tex(original), engine)
+            text = normalize_engine(
+                decode_tex(original), engine, literal_environments=literal_environments
+            )
             normalized[path] = (original, text)
     needs_pixels = engine in ("tectonic", "xelatex") and any(
         r"\pdfpxdimen" in visible_tex(text) for _, text in normalized.values()
@@ -559,9 +599,9 @@ def prepare_engine_sources(root: Path, engine: str) -> None:
             path.write_bytes(output)
     from .minted import prepare_minted_cache
 
-    prepare_legacy_latin_fonts(root, engine)
-    prepare_minted_cache(root)
-    prepare_float_sizing(root)
+    prepare_legacy_latin_fonts(root, engine, literal_environments=literal_environments)
+    prepare_minted_cache(root, literal_environments=literal_environments)
+    prepare_float_sizing(root, literal_environments=literal_environments)
 
 
 def normalize_legacy_cjk(text: str, engine: str) -> str:
@@ -614,10 +654,10 @@ def normalize_legacy_cjk(text: str, engine: str) -> str:
     return text
 
 
-def fit_tables(text: str) -> tuple[str, int]:
+def fit_tables(text: str, *, literal_environments=frozenset()) -> tuple[str, int]:
     """Mark complete table boxes for TABLE_FITTING's runtime scope handling."""
     count = 0
-    visible = visible_tex(text)
+    visible = visible_tex(text, literal_environments=literal_environments)
     for match in reversed(
         list(re.finditer(r"\\begin\s*\{(table\*?)\}.*?\\end\s*\{\1\}", visible, re.S))
     ):
@@ -660,7 +700,9 @@ def fit_tables(text: str) -> tuple[str, int]:
     return text, count
 
 
-def normalize_float_spacing(text: str) -> tuple[str, int]:
+def normalize_float_spacing(
+    text: str, *, literal_environments=frozenset()
+) -> tuple[str, int]:
     """Neutralize literal negative spacers outside movable figures and tables.
 
     These spacers stay in the text flow when a float moves to another page.
@@ -670,7 +712,7 @@ def normalize_float_spacing(text: str) -> tuple[str, int]:
     """
     from .latex import COMMAND, MACRO_DEFINITIONS, definition_end, math_regions
 
-    visible = visible_tex(text)
+    visible = visible_tex(text, literal_environments=literal_environments)
     hidden = []
     if document := re.search(r"\\begin\s*\{document\}", visible):
         hidden.append((0, document.end()))
@@ -743,7 +785,10 @@ def normalize_float_spacing(text: str) -> tuple[str, int]:
 
 
 def break_long_code_identifiers(
-    text: str, *, math_aliases: dict[str, str] | None = None
+    text: str,
+    *,
+    math_aliases: dict[str, str] | None = None,
+    literal_environments=frozenset(),
 ) -> str:
     """Permit wraps at existing separators in long, literal texttt identifiers.
 
@@ -768,7 +813,7 @@ def break_long_code_identifiers(
         skip_tex_space,
     )
 
-    visible = visible_tex(text)
+    visible = visible_tex(text, literal_environments=literal_environments)
     aliases = collect_math_aliases(text) | (math_aliases or {})
     in_body = not re.search(r"\\begin\s*\{document\}", visible)
     definitions = {

@@ -6,7 +6,7 @@ from pathlib import Path
 from .sources import visible_tex
 
 
-def prepare_minted_cache(root: Path) -> int:
+def prepare_minted_cache(root: Path, *, literal_environments=frozenset()) -> int:
     """Add aliases for legacy style names without regenerating or executing code.
 
     Older minted caches define a style-specific ``PYGdefault`` command, while
@@ -19,17 +19,17 @@ def prepare_minted_cache(root: Path) -> int:
             text = path.read_text(encoding="utf-8")
         except UnicodeError:
             continue
-        visible = visible_tex(text)
+        visible = visible_tex(text, literal_environments=literal_environments)
         if re.search(r"\\(?:def|gdef|edef|xdef|let)\s*\\PYG(?![A-Za-z@])", visible):
             continue
-        prefixes = set(
-            re.findall(r"\\def\s*\\(PYG[A-Za-z]+)\s*#1\s*#2\s*\{", visible)
-        )
+        prefixes = set(re.findall(r"\\def\s*\\(PYG[A-Za-z]+)\s*#1\s*#2\s*\{", visible))
         if len(prefixes) != 1:
             continue
         prefix = prefixes.pop()
         escapes = set(
-            re.findall(r"\\def\s*\\(" + re.escape(prefix) + r"Z[A-Za-z]+)\s*\{", visible)
+            re.findall(
+                r"\\def\s*\\(" + re.escape(prefix) + r"Z[A-Za-z]+)\s*\{", visible
+            )
         )
         aliases = [prefix, *sorted(escapes)]
         block = "\n% texglot: legacy minted style aliases\n\\makeatletter\n"

@@ -217,8 +217,8 @@ async def test_layout_transform_failure_is_caught_before_paid_requests(
     manager, job, _, _, calls = pipeline
     original = jobs.fit_tables
 
-    def broken_layout(text):
-        text, count = original(text)
+    def broken_layout(text, **kwargs):
+        text, count = original(text, **kwargs)
         return text + r"\InvalidLayoutCommand", count
 
     compile_original = jobs.compile_pdf
@@ -1615,3 +1615,33 @@ async def test_deepl_quota_failure_keeps_cache_and_character_usage_for_resume(
             for name in archive.namelist()
         )
     await manager.close()
+
+
+async def test_project_listing_is_not_sent_to_provider_and_survives_retry(
+    pipeline, translator
+):
+    manager, job, folder, settings, calls = pipeline
+    source = folder / "source"
+    (source / "listing.sty").write_text(
+        r"\newtcblisting{promptbox}[2]{listing only,title={#2}}"
+    )
+    main = source / "main.tex"
+    main.write_text(
+        main.read_text().replace(
+            r"\begin{document}", r"\usepackage{listing}\begin{document}"
+        )
+    )
+    literal = "\\begin{promptbox}{label}{Title}\n```choice\nLeave this printed code unchanged.\n\\input{body}\n\\end{promptbox}\n"
+    (source / "body.tex").write_text(
+        "Scientific prose before.\n" + literal + "Scientific prose after.\n"
+    )
+    for _ in range(2):
+        await manager.pipeline(job, settings)
+        assert job["status"] == "completed"
+        assert literal in (folder / "translated/body.tex").read_text()
+    assert all(
+        "printed code" not in text and "```" not in text for text in translator.calls
+    )
+    assert any("before" in text for text in translator.calls)
+    assert any("after" in text for text in translator.calls)
+    assert job["cached"] == job["total"]

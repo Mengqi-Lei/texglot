@@ -87,7 +87,11 @@ def _definition_end(text, pos, name):
 
 
 def _document_source(
-    root: Path, main: str, source_files: list[str] | None = None
+    root: Path,
+    main: str,
+    source_files: list[str] | None = None,
+    *,
+    literal_environments: frozenset[str] = frozenset(),
 ) -> str:
     root = root.resolve()
     main_path = (root / main).resolve()
@@ -113,7 +117,7 @@ def _document_source(
         with path.open(encoding="utf-8") as file:
             text = file.read(remaining)
         remaining -= len(text)
-        text = visible_tex(text)
+        text = visible_tex(text, literal_environments=literal_environments)
         parts, cursor, pos = [], 0, 0
         while match := COMMAND.search(text, pos):
             name = match.group()[1:].rstrip("*")
@@ -157,7 +161,11 @@ def _document_source(
 
 
 def extract_paper_context(
-    root: Path, main: str, source_files: list[str] | None = None
+    root: Path,
+    main: str,
+    source_files: list[str] | None = None,
+    *,
+    literal_environments: frozenset[str] = frozenset(),
 ) -> str:
     """Use the first explicit abstract in include order; no arbitrary prose fallback.
 
@@ -166,7 +174,9 @@ def extract_paper_context(
     Macro-generated/conditional abstracts are not evaluated by this extractor.
     """
     try:
-        text = _document_source(root, main, source_files)
+        text = _document_source(
+            root, main, source_files, literal_environments=literal_environments
+        )
         structured_abstract = bool(
             re.search(r"\\documentclass\s*(?:\[[^]]*\]\s*)?\{aa\}", text)
         )

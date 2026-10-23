@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2 — 2026-10-23
+
+- Recognize explicitly declared verbatim/listing environments across source files, preserving code and prompt examples through segmentation, compiler preparation and layout adjustments. Keep printed commands out of dependency and abstract extraction, and refresh prepared sources when retrying older tasks. / 跨文件识别显式声明的原样代码环境，在分段、编译预处理及排版调整中完整保留代码与提示词示例，避免示例命令干扰依赖和摘要提取；重试旧任务时更新预处理源码。
+
+[Release notes](docs/releases/v1.2.2.md) · [中文版本说明](docs/releases/v1.2.2_CN.md)
+
 ## 1.2.1 — 2026-10-08
 
 - Use locally bundled Qwen, DeepSeek and DeepL brand icons in translation settings. / 翻译设置改用随应用打包的 Qwen、DeepSeek 和 DeepL 品牌图标。

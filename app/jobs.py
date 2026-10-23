@@ -53,13 +53,20 @@ from .llm import (
 )
 from .paper_context import extract_paper_context
 from .providers import provider_for_url
-from .sources import download_arxiv, extract_source, fetch_arxiv_title, find_main
+from .sources import (
+    collect_literal_environments,
+    download_arxiv,
+    extract_source,
+    fetch_arxiv_title,
+    find_main,
+    visible_tex,
+)
 from .translation import Translator, cache_settings
 
 JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
-SOURCE_PREPARATION_VERSION = "native-source-v3"
+SOURCE_PREPARATION_VERSION = "native-source-v4"
 TITLE_METADATA_VERSION = 3
 
 
@@ -528,6 +535,10 @@ class JobManager:
         macro_context = "\n".join(
             (prepared_source / rel).read_text(encoding="utf-8") for rel in dependencies
         )
+        literal_environments = collect_literal_environments(macro_context)
+        macro_context = visible_tex(
+            macro_context, literal_environments=literal_environments
+        )
         title_macros = collect_title_macros(macro_context)
         main_text = (work / main).read_text(encoding="utf-8")
         if job["kind"] == "arxiv" and not cached_arxiv_title(job):
@@ -546,7 +557,11 @@ class JobManager:
         numeric_registers = collect_numeric_registers(macro_context)
         prose_arguments = collect_prose_arguments(macro_context)
         opaque_files, mixed_files = classify_source_contexts(
-            prepared_source, main, reachable, math_aliases=math_aliases
+            prepared_source,
+            main,
+            reachable,
+            math_aliases=math_aliases,
+            literal_environments=literal_environments,
         )
         translation_files = [
             rel for rel in reachable if rel not in opaque_files | mixed_files
@@ -572,6 +587,7 @@ class JobManager:
                 numeric_registers=numeric_registers,
                 prose_arguments=prose_arguments,
                 title_macros=title_macros,
+                literal_environments=literal_environments,
             )
             files[rel] = (text, items)
             all_items.extend(items)
@@ -598,10 +614,18 @@ class JobManager:
             table_count = spacing_count = 0
             for rel, (text, items) in files.items():
                 output = apply_translations(text, items, outputs)
-                output, spacers = normalize_float_spacing(output)
+                output, spacers = normalize_float_spacing(
+                    output, literal_environments=literal_environments
+                )
                 spacing_count += spacers
-                output = break_long_code_identifiers(output, math_aliases=math_aliases)
-                output, fitted = fit_tables(output)
+                output = break_long_code_identifiers(
+                    output,
+                    math_aliases=math_aliases,
+                    literal_environments=literal_environments,
+                )
+                output, fitted = fit_tables(
+                    output, literal_environments=literal_environments
+                )
                 table_count += fitted
                 if rel == main:
                     output = prepare_chinese(output, settings.target_language, engine)
@@ -630,7 +654,12 @@ class JobManager:
         )
         await log(f"已提取 {len(unique)} 个段落，公式、引用和排版指令已保护")
         context = (
-            extract_paper_context(prepared_source, main, source_files=translation_files)
+            extract_paper_context(
+                prepared_source,
+                main,
+                source_files=translation_files,
+                literal_environments=literal_environments,
+            )
             if settings.context_guidance
             else ""
         )
