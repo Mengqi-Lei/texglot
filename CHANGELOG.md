@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3 — 2026-10-28
+
+- Translate prose inside explicitly defined robust formatting commands and their aliases, nested callouts, and custom icon-label descriptions; preserve code, math and ambiguous redefinitions. Protect TeX spacing units adjacent to title text. / 修复稳健格式命令及其别名、嵌套提示框和图标说明中的正文漏译，继续保护代码、公式及存在歧义的重定义，并保护紧贴标题文字的 TeX 间距单位。
+
+[Release notes](docs/releases/v1.2.3.md) · [中文版本说明](docs/releases/v1.2.3_CN.md)
+
 ## 1.2.2 — 2026-10-23
 
 - Recognize explicitly declared verbatim/listing environments across source files, preserving code and prompt examples through segmentation, compiler preparation and layout adjustments. Keep printed commands out of dependency and abstract extraction, and refresh prepared sources when retrying older tasks. / 跨文件识别显式声明的原样代码环境，在分段、编译预处理及排版调整中完整保留代码与提示词示例，避免示例命令干扰依赖和摘要提取；重试旧任务时更新预处理源码。

@@ -857,7 +857,9 @@ def dimension_end(text: str, pos: int) -> int:
     """Consume an unbraced TeX length/glue value without exposing its unit."""
     space = r"(?:\s|%[^\n]*(?:\n|$))*"
     number = r"[+-]?\s*(?:\d+(?:\.\d*)?|\.\d+)"
-    unit = r"(?:pt|pc|in|bp|cm|mm|dd|cc|sp|ex|em|mu|fil{1,3})(?![A-Za-z])"
+    # TeX consumes the unit keyword even when prose immediately follows it:
+    # \kern0.04emTitle is valid, and only Title may be translated.
+    unit = r"(?:pt|pc|in|bp|cm|mm|dd|cc|sp|ex|em|mu|fil{1,3})"
     register = r"\\[A-Za-z@]+\d*"
     value = rf"(?:{number}\s*(?:{unit}|{register})|[+-]?\s*{register})"
     expression = re.match(
@@ -883,7 +885,7 @@ def collect_text_macros(text: str) -> set[str]:
         set(
             "textbf textit textsc emph textrm textsf textnormal smallskip medskip bigskip indent noindent it bf bfseries itshape color textcolor tiny small footnotesize large Large normalsize underline mbox hl".split()
         )
-        | FONT_SWITCHES
+        | (FONT_SWITCHES - {"tt", "ttfamily"})
         | {
             "boldmath",
             "unboldmath",
@@ -896,15 +898,84 @@ def collect_text_macros(text: str) -> set[str]:
             "par",
         }
     )
-    for m in re.finditer(
-        r"\\(?:newcommand|renewcommand|providecommand)\*?\s*(?:\{\\([A-Za-z]+)\}|\\([A-Za-z]+))\s*\[1\]\s*\{",
-        visible,
-    ):
-        a = m.end() - 1
-        body = visible[a + 1 : group_end(visible, a) - 1]
-        commands = {c.group()[1:] for c in COMMAND.finditer(body)}
-        if "#1" in body and not any(c in body for c in "$_^") and commands <= allowed:
-            wrappers.add(m.group(1) or m.group(2))
+    # Only explicit, unambiguous declarations qualify. Skip whole definitions
+    # so a definition printed inside another macro is never treated as active.
+    definitions, aliases, counts = {}, {}, {}
+    declaration = re.compile(
+        r"\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand)\*?\s*(?:\{\\([A-Za-z@]+)\}|\\([A-Za-z@]+))\s*\[1\]\s*\{"
+    )
+    simple_def = re.compile(r"\\(?:def|gdef)\s*\\([A-Za-z@]+)\s*#1\s*\{")
+    cursor = 0
+    for command in COMMAND.finditer(visible):
+        if command.start() < cursor:
+            continue
+        kind = command[0][1:].rstrip("*")
+        if kind not in MACRO_DEFINITIONS | {"let"}:
+            continue
+        if kind == "let":
+            left = re.match(r"\s*\\([A-Za-z@]+)", visible[command.end() :])
+            if left:
+                counts[left[1]] = counts.get(left[1], 0) + 1
+            alias = re.match(
+                r"\s*\\([A-Za-z@]+)\s*=?\s*\\([A-Za-z@]+)", visible[command.end() :]
+            )
+            if alias:
+                name, target = alias.groups()
+                aliases[name] = target
+                cursor = command.end() + alias.end()
+            continue
+        cursor = definition_end(visible, command.end(), kind)
+        tail = visible[command.end() : cursor]
+        name_match = re.match(r"\s*\{?\\([A-Za-z@]+)", tail)
+        if not name_match:
+            continue
+        name = name_match[1]
+        counts[name] = counts.get(name, 0) + 1
+        match = declaration.match(visible, command.start()) or simple_def.match(
+            visible, command.start()
+        )
+        if match:
+            opening = match.end() - 1
+            end = group_end(visible, opening)
+            if end <= len(visible) and visible[end - 1] == "}":
+                definitions[name] = visible[opening + 1 : end - 1]
+    blocked_names = OPAQUE_COMMAND | TEXT_COMMAND | CODE_ARGUMENT_COMMANDS
+    # Resolve finite chains of formatting wrappers/aliases without expanding TeX.
+    for _ in range(len(definitions) + len(aliases) + 1):
+        previous = set(wrappers)
+        for name, body in definitions.items():
+            if counts[name] != 1 or name in blocked_names or name in wrappers:
+                continue
+            controls = {c[0][1:].rstrip("*") for c in COMMAND.finditer(body)}
+            if (
+                "#1" not in body
+                or any(c in body for c in "$_^")
+                or not controls <= allowed | wrappers
+            ):
+                continue
+            if re.search(r"#(?!1)|(?<!\\)[A-Za-z0-9]#1|#1[A-Za-z0-9]", body):
+                continue
+            probe = "TeXGlotWrapperParameter"
+            probed = body.replace("#1", " " + probe + " ")
+            exposed = "\n".join(
+                MARKER.sub("", item.masked)
+                for item in segments(
+                    probed,
+                    text_macros=wrappers,
+                    prose_arguments={},
+                    literal_code=True,
+                    _infer_text_macros=False,
+                )
+            )
+            # Parameters used as colors, dimensions, code or optional syntax
+            # remain protected even when they also appear as visible prose.
+            if exposed.count(probe) == probed.count(probe):
+                wrappers.add(name)
+        for name, target in aliases.items():
+            if counts[name] == 1 and name not in blocked_names and target in wrappers:
+                wrappers.add(name)
+        if previous == wrappers:
+            break
     return wrappers
 
 
@@ -1339,7 +1410,17 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
         | CODE_ARGUMENT_COMMANDS
         | constants
         | set(registers)
-        | {"begin", "end", "item", "fontsize", "selectfont", "boldmath", "unboldmath"}
+        | {
+            "begin",
+            "end",
+            "item",
+            "fontsize",
+            "selectfont",
+            "boldmath",
+            "unboldmath",
+            "quad",
+            "qquad",
+        }
     )
     prose_controls = (
         TEXT_COMMAND - CODE_ARGUMENT_COMMANDS
@@ -1348,6 +1429,15 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
         | {"item"}
     )
     parameter = re.compile(r"(?<!#)#([1-9])(?!\d)")
+    # Fixed-arity labels may be rendered by a project-specific icon command.
+    # Its argument stays opaque; only the separate literal description opens.
+    label_commands = {
+        m[1] or m[2]
+        for m in re.finditer(
+            r"\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand)\*?\s*(?:\{\\([A-Za-z@]+)\}|\\([A-Za-z@]+))\s*\[1\]\s*\{",
+            visible,
+        )
+    }
 
     def literal_label_description(body):
         # A literal identifier followed by ': #2' is a description wrapper even
@@ -1361,19 +1451,22 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
 
         body = ungroup(body)
         command = COMMAND.match(body)
-        if not command or command[0][1:] not in {"code", "texttt", "url", "path"}:
+        if (
+            not command
+            or command[0][1:] not in {"code", "texttt", "url", "path"} | label_commands
+        ):
             return False
         opening = skip_tex_space(body, command.end())
         if opening >= len(body) or body[opening] != "{":
             return False
         end = group_end(body, opening)
-        remainder = body[end:].strip()
-        return remainder.startswith(":") and bool(
+        remainder = re.sub(r"\\(?:[,;! ]|quad\b|qquad\b)", "", body[end:]).strip()
+        return remainder.startswith((":", "=")) and bool(
             parameter.fullmatch(ungroup(remainder[1:]))
         )
 
     pattern = re.compile(
-        r"\\(?:newcommand|renewcommand|providecommand)\*?\s*(?:\{\\([A-Za-z@]+)\}|\\([A-Za-z@]+))\s*\[([2-9])\]\s*\{"
+        r"\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand)\*?\s*(?:\{\\([A-Za-z@]+)\}|\\([A-Za-z@]+))\s*\[([2-9])\]\s*\{"
     )
     declarations = Counter(
         match[1] or match[2]
@@ -1383,6 +1476,7 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
         )
     )
     examined = Counter()
+    label_commands = {name for name in label_commands if declarations[name] == 1}
     schemas, ambiguous = {}, set()
     cursor = 0
     while match := pattern.search(visible, cursor):
@@ -1402,8 +1496,9 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
         unknown = {
             word for word in controls - known if re.fullmatch(r"[A-Za-z@]+", word)
         }
-        if unknown or not (
-            controls & prose_controls or literal_label_description(body)
+        label_description = literal_label_description(body)
+        if (unknown - label_commands if label_description else unknown) or not (
+            controls & prose_controls or label_description
         ):
             ambiguous.add(name)
             continue
@@ -1426,7 +1521,9 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
             ):
                 blocked.add(number)
             if preceding and preceding[1] not in FONT_SWITCHES | TEXT_DECLARATIONS | {
-                "item"
+                "item",
+                "quad",
+                "qquad",
             }:
                 blocked.add(number)
         # Parameter tokens delimit a preceding control word in real TeX. Keep
@@ -1624,6 +1721,7 @@ def segments(
     literal_code: bool = False,
     title_macros: dict[str, str] | None = None,
     literal_environments: frozenset[str] = frozenset(),
+    _infer_text_macros: bool = True,
 ) -> list[Segment]:
     result = []
     tokens: list[tuple[int, int, bool]] = []
@@ -1647,7 +1745,9 @@ def segments(
         r"\\begin\s*\{document\}",
         visible_tex(text, literal_environments=literal_environments),
     )
-    prose_macros = collect_text_macros(text) | (text_macros or set())
+    prose_macros = (collect_text_macros(text) if _infer_text_macros else set()) | (
+        text_macros or set()
+    )
     aliases = dict(math_aliases or {}) | collect_math_aliases(text)
     literals = dict(literal_macros or {}) | collect_literal_macros(text)
     registers = dict(numeric_registers or {}) | collect_numeric_registers(text)
@@ -1958,6 +2058,7 @@ def segments(
                             text[a:b],
                             max_chars,
                             math_aliases=aliases,
+                            text_macros=prose_macros,
                             literal_macros=literals,
                             numeric_registers=registers,
                             prose_arguments=argument_roles,
