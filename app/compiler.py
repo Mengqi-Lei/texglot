@@ -1536,17 +1536,50 @@ def recover_compile_configuration(
 
 
 async def _compile_with_recovery(root, main, out, engine, notify, **options):
-    for attempt in range(3):
+    from .minted import remove_unused_minted
+    from .pdf_graphics import graphic_failure, recover_pdf_graphic
+
+    configuration_repairs = image_repairs = 0
+    minted_repaired = False
+    while True:
         try:
             return await _compile_document(root, main, out, engine, notify, **options)
         except CompilationError as exc:
-            if attempt == 2:
+            if name := graphic_failure(exc.log):
+                if image_repairs >= 8:
+                    raise
+                repaired, detail = recover_pdf_graphic(root, main, name)
+                if repaired:
+                    image_repairs += 1
+                    await notify(detail)
+                    continue
+                raise CompilationError(
+                    detail + "\n" + str(exc),
+                    exc.log,
+                    tex_log=exc.tex_log,
+                    bundle=exc.bundle,
+                ) from exc
+            if "Package minted Error" in exc.log and "shell-escape" in exc.log:
+                paths = remove_unused_minted(root) if not minted_repaired else []
+                if paths:
+                    minted_repaired = True
+                    await notify("已移除未使用的 minted 宏包：" + "、".join(paths))
+                    continue
+                detail = "minted 需要外部命令执行，但当前编译已禁用此功能；请提供完整冻结缓存或改用 listings，并查看下方报错位置"
+                raise CompilationError(
+                    detail + "\n" + str(exc),
+                    exc.log,
+                    tex_log=exc.tex_log,
+                    bundle=exc.bundle,
+                ) from exc
+            if configuration_repairs >= 2:
                 raise
             change = recover_compile_configuration(root, main, exc)
             if not change:
                 change = await recover_external_package(root, main, out, engine, exc)
             if not change:
                 raise
+            configuration_repairs += 1
             await notify(f"已按编译诊断调整 {change}，正在重试")
 
 

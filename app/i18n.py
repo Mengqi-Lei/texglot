@@ -3,6 +3,7 @@
 import re
 
 MESSAGES = {
+    "minted 需要外部命令执行，但当前编译已禁用此功能；请提供完整冻结缓存或改用 listings，并查看下方报错位置": "minted requires external command execution, which is disabled. Provide a complete frozen cache or use listings; see the source location below",
     "DeepL 请使用官方 HTTPS API 地址": "Use an official DeepL HTTPS API endpoint",
     "请输入有效的 DeepL 源语言代码，例如 EN": "Enter a valid DeepL source language code, such as EN",
     "请输入有效的 DeepL 术语表 ID": "Enter a valid DeepL glossary ID",
@@ -146,6 +147,51 @@ MESSAGES = {
     "译文异常短，可能遗漏正文": "Translation is unusually short and may omit content",
 }
 RULES = [
+    (
+        r"插图文件无法访问：([^\n]+)；请检查文件权限和引用路径",
+        r"Cannot access figure file: \1. Check file permissions and its reference path",
+    ),
+    (r"已移除未使用的 minted 宏包：([^\n]+)", r"Removed unused minted package: \1"),
+    (
+        r"已修复 PDF 插图索引：([^\n]+)；原文件已保留",
+        r"Repaired PDF figure index: \1; original file preserved",
+    ),
+    (
+        r"插图路径超出工程目录或使用符号链接：([^\n]+)",
+        r"Figure path is outside the project or uses a symbolic link: \1",
+    ),
+    (
+        r"找不到插图文件：([^\n]+)；请补齐文件或检查引用路径后重试",
+        r"Figure file not found: \1. Add the file or correct its reference path and retry",
+    ),
+    (
+        r"插图文件存在但无法读取：([^\n]+)；请检查图片格式和文件完整性",
+        r"Figure file exists but cannot be read: \1. Check its format and integrity",
+    ),
+    (
+        r"PDF 插图无法读取：([^\n]+)；文件超过自动修复大小限制，请重新导出该插图",
+        r"Cannot read PDF figure: \1. File exceeds the automatic repair size limit; re-export it",
+    ),
+    (
+        r"PDF 插图已加密：([^\n]+)；请提供未加密的插图后重试",
+        r"PDF figure is encrypted: \1. Provide an unencrypted figure and retry",
+    ),
+    (
+        r"PDF 插图已损坏或格式不受支持：([^\n]+)；请重新导出该插图",
+        r"PDF figure is corrupt or unsupported: \1. Re-export this figure",
+    ),
+    (
+        r"PDF 插图存在且索引可读取，但编译器仍无法载入：([^\n]+)；请检查 PDF 格式兼容性",
+        r"PDF figure exists and its index is readable, but the compiler cannot load it: \1. Check PDF compatibility",
+    ),
+    (
+        r"PDF 插图修复备份已存在：([^\n]+)；为避免覆盖原文件，请检查源码工程",
+        r"PDF figure repair backup already exists: \1. Check the project to avoid overwriting the original",
+    ),
+    (
+        r"PDF 插图索引异常且无法自动修复：([^\n]+)；已保留原文件，请重新导出该插图",
+        r"PDF figure index cannot be repaired automatically: \1. Original file preserved; re-export the figure",
+    ),
     (
         r"已按编译诊断调整 (.+) 宏包选项，正在重试",
         r"Retrying with compiler-guided options for \1",

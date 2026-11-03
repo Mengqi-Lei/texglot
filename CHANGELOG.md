@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.4 — 2026-11-04
+
+- Recover compiler failures caused by unused minted package loads without enabling shell escape; retain used/frozen minted sources and provide actionable diagnostics. / 无需开放 shell escape 即可恢复未使用 minted 宏包造成的编译失败；保留实际使用或冻结缓存的源码，并提供明确的处理提示。
+- Repair compiler-diagnosed PDF figure cross-reference corruption with original-file backups and page-content checks; distinguish missing, unreadable and unrecoverable figures instead of hiding or replacing them. / 对编译器确认的 PDF 插图索引损坏进行修复，保留原文件并核对页面内容；区分缺失、无法读取及不可修复的图片，不隐藏或替换插图。
+
+[Release notes](docs/releases/v1.2.4.md) · [中文版本说明](docs/releases/v1.2.4_CN.md)
+
 ## 1.2.3 — 2026-10-28
 
 - Translate prose inside explicitly defined robust formatting commands and their aliases, nested callouts, and custom icon-label descriptions; preserve code, math and ambiguous redefinitions. Protect TeX spacing units adjacent to title text. / 修复稳健格式命令及其别名、嵌套提示框和图标说明中的正文漏译，继续保护代码、公式及存在歧义的重定义，并保护紧贴标题文字的 TeX 间距单位。

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import io
 import json
 import os
 import platform
@@ -16,7 +17,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import httpx
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import DecodedStreamObject, NameObject
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -29,6 +31,7 @@ from scripts.install_compiler import install  # noqa: E402
 
 SOURCE = r"""\documentclass{article}
 \usepackage[accsupp]{axessibility}
+\usepackage{graphicx,minted}
 \title{Platform check}
 \author{TeXGlot}
 \begin{document}
@@ -159,10 +162,30 @@ $b$ & 2 \\
             r"\begin{document}", r"\usepackage{graphicx}" + "\n" + r"\begin{document}"
         )
         section += "\n" + r"\includegraphics{figure.eps}" + "\n"
+    # Exercise the shipped recovery code on every native release platform.
+    # Three independent broken figures must not exhaust package-repair retries.
+    broken_figures = {}
+    for index in range(3):
+        writer = PdfWriter()
+        page = writer.add_blank_page(width=120, height=80)
+        drawing = DecodedStreamObject()
+        drawing.set_data(b"0 0 1 rg 10 10 50 30 re f")
+        page[NameObject("/Contents")] = writer._add_object(drawing)
+        stream = io.BytesIO()
+        writer.write(stream)
+        name = f"figure-{index}.pdf"
+        broken_figures[name] = re.sub(
+            rb"startxref\s+(\d+)",
+            lambda m: b"startxref\n" + str(int(m[1]) - 21).encode(),
+            stream.getvalue(),
+        )
+        section += rf"\includegraphics[width=0.15\linewidth]{{{name}}}" + "\n"
     with zipfile.ZipFile(archive, "w") as zipped:
         zipped.writestr("main.tex", main.encode("utf-8"))
         zipped.writestr("preamble.tex", r"\usepackage[table]{xcolor}".encode("utf-8"))
         zipped.writestr("sections/章节 一.tex", section.encode("utf-8"))
+        for name, content in broken_figures.items():
+            zipped.writestr(name, content)
         zipped.writestr(
             "native-proof.sty",
             (
@@ -287,6 +310,19 @@ $b$ & 2 \\
                     exported.read("preamble.tex").decode("utf-8")
                     == r"\usepackage[table]{xcolor}"
                 )
+                for name, original in broken_figures.items():
+                    assert exported.read(name + ".texglot-original") == original
+                    repaired = PdfReader(io.BytesIO(exported.read(name)), strict=True)
+                    assert (
+                        repaired.pages[0].get_contents().get_data()
+                        == b"0 0 1 rg 10 10 50 30 re f"
+                    )
+            assert any(
+                "已移除未使用的 minted" in entry["message"] for entry in details["logs"]
+            )
+            assert sum(
+                "已修复 PDF 插图索引" in entry["message"] for entry in details["logs"]
+            ) == 3
             report = {
                 "platform": platform.platform(),
                 "python": platform.python_version(),
@@ -304,6 +340,8 @@ $b$ & 2 \\
                 "custom_prose_arguments": True,
                 "booktabs_column_rules": True,
                 "included_package_option_recovery": True,
+                "unused_minted_recovery": True,
+                "pdf_figure_index_recovery": True,
                 "model": "local stub (no paid API)",
                 "result": result,
             }

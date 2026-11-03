@@ -8,6 +8,8 @@ TeXGlot translates **LaTeX source**, not arbitrary uploaded PDFs or scanned docu
 | :--- | :--- |
 | arXiv import fails | Confirm that the paper has downloadable TeX source and that arXiv is reachable. |
 | EPS figures | Install optional Ghostscript and resume. Original EPS files are retained; PDF copies are generated for compilation. See the [desktop guide](desktop.md). |
+| minted requires shell-escape | The unused package load is removed only when no project use is detected. Used listings and frozen caches are retained; supply a complete cache matching the compilation environment or use listings. External command execution remains disabled. |
+| An existing PDF figure cannot be loaded | Compiler-confirmed recoverable index corruption is repaired with a `.texglot-original` backup in the prepared project. Missing, encrypted or unrecoverable figures are reported by filename; add the file, check its reference path or re-export it. Missing content is never hidden behind placeholder figures. |
 | PSTricks / PostScript drawings | The default Tectonic bundle does not provide a full PostScript toolchain. Prefer pre-converted PDF figures. A separate full TeX setup needs the matching driver and external tools; verify the drawings as well as the exit status. |
 | Compilation fails | Include missing `.sty`, images and bibliography files; inspect the compile log. Templates needing shell escape or unavailable external tools may not work. An installed XeLaTeX/LuaLaTeX can be selected in settings. |
 | API errors | Check the endpoint, region, model access, balance and rate limits. Reduce concurrency or increase timeout when needed. |
