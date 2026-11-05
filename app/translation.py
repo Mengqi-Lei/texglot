@@ -1,7 +1,12 @@
 """Choose a translation backend without changing source or reader contracts."""
 
 from .deepl import DEEPL_VERSION, DeepLTranslator
-from .llm import PROMPT_VERSION
+from .llm import (
+    PROMPT_VERSION,
+    normalize_language,
+    strip_reasoning,
+    validate_translation_language,
+)
 from .llm import Translator as LLMTranslator
 from .providers import provider_for_url
 
@@ -10,6 +15,15 @@ def Translator(settings):
     if provider_for_url(settings.base_url) == "deepl":
         return DeepLTranslator(settings)
     return LLMTranslator(settings)
+
+
+def normalize_cached_translation(value: str, item, settings) -> str:
+    """Validate masked cache text before restoring it and saving any cleanup."""
+    if provider_for_url(settings.base_url) != "deepl":
+        value = strip_reasoning(value, source_text=item.masked)
+    value = normalize_language(value, settings.target_language)
+    validate_translation_language(item, value, settings.target_language)
+    return value
 
 
 def cache_settings(settings, context):

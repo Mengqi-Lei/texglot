@@ -3,6 +3,7 @@
 import re
 
 MESSAGES = {
+    "模型响应中的推理或答案标记不完整，请仅返回最终译文": "Incomplete reasoning or answer delimiters; return only the final translation",
     "minted 需要外部命令执行，但当前编译已禁用此功能；请提供完整冻结缓存或改用 listings，并查看下方报错位置": "minted requires external command execution, which is disabled. Provide a complete frozen cache or use listings; see the source location below",
     "DeepL 请使用官方 HTTPS API 地址": "Use an official DeepL HTTPS API endpoint",
     "请输入有效的 DeepL 源语言代码，例如 EN": "Enter a valid DeepL source language code, such as EN",
@@ -143,15 +144,24 @@ MESSAGES = {
     "当前受限编译器不支持内嵌 PSTricks 绘图，图形可能缺失；请先将图形转换为 PDF 后重新上传源码": "The restricted compiler cannot render embedded PSTricks drawings reliably. Convert the figures to PDF and upload the source again",
     "编译记录包含无效的 EPS 图片路径": "The compiler recorded an invalid EPS image path",
     "已按编译诊断调整 模板提供的传统数学排版模式，正在重试": "Retrying with the template's classic math configuration",
+    "已按编译诊断调整 amssymb 与 unicode-math 的符号冲突，正在重试": "Resolved the diagnosed amssymb / unicode-math symbol conflict; retrying",
     "模型返回了无效格式": "The model returned an invalid format",
     "译文异常短，可能遗漏正文": "Translation is unusually short and may omit content",
 }
 RULES = [
     (
+        r"结构修复片段 (\d+) 未返回完整译文",
+        r"Repair slot \1 did not return a complete translation",
+    ),
+    (
         r"插图文件无法访问：([^\n]+)；请检查文件权限和引用路径",
         r"Cannot access figure file: \1. Check file permissions and its reference path",
     ),
     (r"已移除未使用的 minted 宏包：([^\n]+)", r"Removed unused minted package: \1"),
+    (
+        r"已修正无法解析的字体文件名：([^\n]+)",
+        r"Corrected unresolved font file names in: \1",
+    ),
     (
         r"已修复 PDF 插图索引：([^\n]+)；原文件已保留",
         r"Repaired PDF figure index: \1; original file preserved",

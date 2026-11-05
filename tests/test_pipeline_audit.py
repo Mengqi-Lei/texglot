@@ -468,6 +468,126 @@ async def test_damaged_cache_can_resume_without_losing_other_valid_entries(
         )
 
 
+async def test_reasoning_cache_cleanup_is_persisted_and_only_invalid_entries_retry(
+    pipeline, translator
+):
+    manager, job, folder, settings, _ = pipeline
+    await manager.pipeline(job, settings)
+    path = next(folder.glob("cache-*.json"))
+    clean = json.loads(path.read_text())
+    keys = list(clean)
+    dirty = dict(clean)
+    dirty[keys[0]] = "<think>TEST_REASONING</think>" + clean[keys[0]]
+    dirty[keys[1]] = "<answer>" + clean[keys[1]] + "</answer>"
+    dirty[keys[2]] = "<think>unfinished"
+    path.write_text(json.dumps(dirty))
+    translator.calls.clear()
+    await manager.pipeline(job, settings)
+    assert job["cached"] == 2 and len(translator.calls) == 1
+    assert json.loads(path.read_text()) == clean
+    assert "TEST_REASONING" not in (folder / "translated/body.tex").read_text()
+    # A cache-only run must also persist cleanup, without a fresh API request.
+    dirty = {
+        key: "<think>TEST_REASONING</think>" + value for key, value in clean.items()
+    }
+    path.write_text(json.dumps(dirty))
+    translator.calls.clear()
+    await manager.pipeline(job, settings)
+    assert job["cached"] == 3 and translator.calls == []
+    assert json.loads(path.read_text()) == clean
+
+
+@pytest.mark.parametrize(
+    "first_response",
+    ["<think>unfinished", "<think>only reasoning</think>", "partial<think>unfinished"],
+)
+async def test_incomplete_reasoning_retries_before_caching(
+    pipeline, monkeypatch, first_response
+):
+    manager, job, folder, settings, _ = pipeline
+    (folder / "source/body.tex").write_text(
+        "The scientific result is useful and reliable."
+    )
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        content = first_response if len(requests) == 1 else "A valid translation."
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": content}}]}
+        )
+
+    client = Translator(settings)
+    await client.client.aclose()
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(jobs, "Translator", lambda _: client)
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and len(requests) == 2
+    assert json.loads(next(folder.glob("cache-*.json")).read_text())
+    assert set(json.loads(next(folder.glob("cache-*.json")).read_text()).values()) == {
+        "A valid translation."
+    }
+
+
+async def test_native_font_recovery_and_reasoning_cleanup_reach_clean_pdf_and_cache(
+    pipeline, monkeypatch
+):
+    from app.compiler import compile_pdf, find_compiler
+
+    if not find_compiler("tectonic"):
+        pytest.skip("Optional native Tectonic not installed")
+    manager, job, folder, settings, _ = pipeline
+    settings.target_language = "简体中文"
+    job["language"] = "简体中文"
+    main = folder / "source/main.tex"
+    main.write_text(
+        main.read_text().replace(
+            r"\documentclass{article}", r"\documentclass{paper}\usepackage{amssymb}"
+        )
+    )
+    (folder / "source/paper.cls").write_text(
+        "\\ProvidesClass{paper}\n\\LoadClass{article}\n"
+        "\\RequirePackage{unicode-math}\n"
+        "\\setmathfont{libertinusmath-regular.otf}\n"
+    )
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                "<think>TEST_REASONING</think><answer>这是经过验证的译文内容。</answer>"
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = Translator(settings)
+    await client.client.aclose()
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(jobs, "Translator", lambda _: client)
+    monkeypatch.setattr(jobs, "compile_pdf", compile_pdf)
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and len(requests) == 3
+    text = "\n".join(
+        page.extract_text()
+        for page in PdfReader(folder / job["artifacts"]["translated"]).pages
+    )
+    assert "译文内容" in text and "TEST_REASONING" not in text
+    with zipfile.ZipFile(folder / job["artifacts"]["source"]) as archive:
+        assert b"TEST_REASONING" not in archive.read("body.tex")
+        assert b"LibertinusMath-Regular.otf" in archive.read("paper.cls")
+    cache = json.loads(next(folder.glob("cache-*.json")).read_text())
+    assert set(cache.values()) == {"这是经过验证的译文内容。"}
+
+
 async def test_original_signature_covers_children_templates_assets_and_engine(
     pipeline, translator
 ):
@@ -866,6 +986,68 @@ async def test_missing_dependency_record_recompiles_original_before_reusing_cach
     await manager.pipeline(job, settings)
     assert calls.count("build-original") == 2
     assert translator.calls == [] and job["cached"] == 3
+
+
+async def test_font_recovery_resumes_a_failed_job_and_reuses_prepared_artifacts(
+    pipeline, translator, monkeypatch
+):
+    from app.compiler import compile_pdf, find_compiler
+
+    if not find_compiler("tectonic"):
+        pytest.skip("Optional native Tectonic not installed")
+    manager, job, folder, _, calls = pipeline
+    source = folder / "source"
+    main = source / "main.tex"
+    main.write_text(
+        main.read_text().replace(
+            r"\documentclass{article}",
+            r"\documentclass{paper}\usepackage{amssymb}",
+        )
+    )
+    authored_class = (
+        "\\ProvidesClass{paper}\n\\LoadClass{article}\n"
+        "\\RequirePackage{unicode-math}\n"
+        "\\setmathfont{libertinusmath-regular.otf}\n"
+    )
+    (source / "paper.cls").write_text(authored_class)
+    prepare = jobs.prepare_engine_sources
+
+    def legacy_prepare(root, engine):
+        prepare(root, engine)
+        path = root / "paper.cls"
+        path.write_text(authored_class)
+        return []
+
+    async def native_compile(root, main, out, engine, log):
+        calls.append(out.name)
+        return await compile_pdf(root, main, out, engine, log)
+
+    monkeypatch.setattr(jobs, "compile_pdf", native_compile)
+    monkeypatch.setattr(jobs, "prepare_engine_sources", legacy_prepare)
+    await manager.run(job["id"])
+    assert job["status"] == "failed" and "libertinusmath-regular" in job["error"]
+    assert translator.calls == []
+    monkeypatch.setattr(jobs, "prepare_engine_sources", prepare)
+    await manager.run(job["id"])
+    assert job["status"] == "completed"
+    for name in ["prepared-source", "translated"]:
+        assert "LibertinusMath-Regular.otf" in (folder / name / "paper.cls").read_text()
+        assert (
+            r"\IfPackageLoadedTF{unicode-math}"
+            in (folder / name / "main.tex").read_text()
+        )
+    assert (source / "paper.cls").read_text() == authored_class
+    translator.calls.clear()
+    original_compiles = calls.count("build-original")
+    await manager.run(job["id"])
+    assert job["status"] == "completed" and translator.calls == []
+    assert calls.count("build-original") == original_compiles
+    # A saved source-preparation version is refreshed while valid translations survive.
+    job["preparation_signature"][0] = "native-source-v4"
+    await manager.run(job["id"])
+    assert job["status"] == "completed" and translator.calls == []
+    assert calls.count("build-original") == original_compiles + 1
+    assert job["preparation_signature"][0] == jobs.SOURCE_PREPARATION_VERSION
 
 
 async def test_unavailable_dependency_record_is_explicit_fallback(

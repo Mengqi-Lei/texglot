@@ -73,6 +73,7 @@ class Model(BaseHTTPRequestHandler):
             )
         else:
             content = translate(prompt["paragraph"])
+        content = "<think>TEST_REASONING</think><answer>" + content + "</answer>"
         output = json.dumps(
             {
                 "choices": [{"message": {"content": content}, "finish_reason": "stop"}],
@@ -123,6 +124,26 @@ async def run(output, portable_compiler, engine=None, eps=False):
     )
     source = folder / "论文 sample.tex"
     source.write_text(SOURCE, encoding="utf-8")
+    font_archive = folder / "字体与代码示例.zip"
+    with zipfile.ZipFile(font_archive, "w") as zipped:
+        zipped.writestr(
+            "font-proof.cls",
+            "\\ProvidesClass{font-proof}\n\\LoadClass{article}\n"
+            "\\RequirePackage{unicode-math}\n"
+            "\\setmathfont{libertinusmath-regular.otf}\n",
+        )
+        zipped.writestr(
+            "listing.sty",
+            "\\RequirePackage{fancyvrb}\n"
+            "\\DefineVerbatimEnvironment{ExampleCode}{Verbatim}{}\n",
+        )
+        zipped.writestr(
+            "main.tex",
+            "\\documentclass{font-proof}\n\\usepackage{amssymb}\n"
+            "\\usepackage{listing}\n\\begin{document}\nNative description.\n"
+            "\\begin{ExampleCode}\n\\usepackage{amssymb}\n\\end{ExampleCode}\n"
+            "$\\mathbb{R}+\\eth$\n\\end{document}\n",
+        )
     archive = folder / "多文件 paper.zip"
     section = SOURCE[SOURCE.index(r"\section") : SOURCE.index(r"\end{document}")]
     main = SOURCE.replace(
@@ -241,6 +262,7 @@ $b$ & 2 \\
             ) + [
                 str(source),
                 str(archive),
+                str(font_archive),
                 "--port",
                 str(port),
                 "--json",
@@ -267,9 +289,9 @@ $b$ & 2 \\
             if cli.returncode:
                 raise RuntimeError(f"CLI failed ({cli.returncode}); inspect cli.log")
             result = json.loads(stdout)
-            assert result["completed"] == 2
+            assert result["completed"] == 3
             pages = []
-            for paper in result["results"]:
+            for paper in result["results"][:2]:
                 pdf = PdfReader(paper["files"]["translated"])
                 text = "\n".join(p.extract_text() for p in pdf.pages)
                 assert "平台检查" in re.sub(r"\s+", "", text)
@@ -320,16 +342,50 @@ $b$ & 2 \\
             assert any(
                 "已移除未使用的 minted" in entry["message"] for entry in details["logs"]
             )
-            assert sum(
-                "已修复 PDF 插图索引" in entry["message"] for entry in details["logs"]
-            ) == 3
+            assert (
+                sum(
+                    "已修复 PDF 插图索引" in entry["message"]
+                    for entry in details["logs"]
+                )
+                == 3
+            )
+            font_paper = result["results"][2]
+            font_pdf = PdfReader(font_paper["files"]["translated"])
+            font_text = "\n".join(page.extract_text() for page in font_pdf.pages)
+            assert "本地说明" in re.sub(r"\s+", "", font_text)
+            assert r"\usepackage{amssymb}" in font_text
+            assert not font_paper["warnings"]
+            with zipfile.ZipFile(font_paper["files"]["source"]) as exported:
+                assert b"LibertinusMath-Regular.otf" in exported.read("font-proof.cls")
+                assert b"\\IfPackageLoadedTF{unicode-math}" in exported.read("main.tex")
+                exported_main = (
+                    exported.read("main.tex").decode("utf-8").replace("\r\n", "\n")
+                )
+                assert (
+                    "\\begin{ExampleCode}\n\\usepackage{amssymb}\n\\end{ExampleCode}"
+                    in exported_main
+                )
+            pages.append(len(font_pdf.pages))
+            for completed in result["results"]:
+                pdf = PdfReader(completed["files"]["translated"])
+                assert all(
+                    "TEST_REASONING" not in page.extract_text() for page in pdf.pages
+                )
+                caches = list((data / "jobs" / completed["id"]).glob("cache-*.json"))
+                assert caches
+                for cache in caches:
+                    assert "TEST_REASONING" not in cache.read_text(encoding="utf-8")
             report = {
                 "platform": platform.platform(),
                 "python": platform.python_version(),
                 "frozen_engine": bool(engine),
                 "eps_conversion": eps,
                 "pages": pages,
-                "source_types": ["tex", "zip with Unicode include"],
+                "source_types": [
+                    "tex",
+                    "zip with Unicode include",
+                    "font recovery zip",
+                ],
                 "status": paper["status"],
                 "unicode_paths": True,
                 "compiler_recorded_dynamic_input": True,
@@ -342,6 +398,10 @@ $b$ & 2 \\
                 "included_package_option_recovery": True,
                 "unused_minted_recovery": True,
                 "pdf_figure_index_recovery": True,
+                "font_filename_recovery": True,
+                "unicode_math_package_recovery": True,
+                "literal_examples_retained": True,
+                "reasoning_outputs_clean": True,
                 "model": "local stub (no paid API)",
                 "result": result,
             }

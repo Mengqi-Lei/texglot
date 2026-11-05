@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.5 — 2026-11-05
+
+- Strip explicit leading reasoning/answer envelopes from LLM responses while preserving authored tags, JSON string contents and slot-boundary whitespace. Retry incomplete answers and persist validated cleanup of older LLM caches. / 清理 LLM 响应中明确的前置推理及答案封装，保留原文标签、JSON 字符串内容与分段边界空格；不完整回答进入有限重试，旧 LLM 缓存清理并校验后写回。
+- Resolve the known Libertinus math font filename mismatch in acmart templates, preserving project fonts, explicit lookup rules and code examples. Refresh older prepared sources on retry while retaining valid translations. / 修复 acmart 模板中已知的 Libertinus 数学字体文件名不匹配，保护工程自带字体、自定义查找规则和代码示例；重试时更新旧预处理源码并复用有效译文。
+- Recover confirmed amssymb / unicode-math conflicts using compiler load records and a conditional package load. Preserve cross-file code examples, package order/options and the author's non-Unicode-math branch. / 根据实际编译加载记录确认 amssymb 与 unicode-math 的冲突，以条件加载恢复编译，保留跨文件代码示例、宏包顺序与选项及作者的传统数学分支。
+
+[Release notes](docs/releases/v1.2.5.md) · [中文版本说明](docs/releases/v1.2.5_CN.md)
+
 ## 1.2.4 — 2026-11-04
 
 - Recover compiler failures caused by unused minted package loads without enabling shell escape; retain used/frozen minted sources and provide actionable diagnostics. / 无需开放 shell escape 即可恢复未使用 minted 宏包造成的编译失败；保留实际使用或冻结缓存的源码，并提供明确的处理提示。
@@ -100,8 +108,8 @@
 - Repair diagnosed template, package, bibliography and font incompatibilities; retain prepared sources across retries. / 修复诊断明确的模板、宏包、参考文献及字体兼容问题，重试时复用预处理源码。
 - Convert compiler-selected EPS assets without confusing scoped paths or duplicate filenames; preserve complete table wrappers. / 按编译器实际选择转换 EPS，避免局部路径和同名文件混淆，保留完整表格边界。
 - Protect source identifiers, drawing regions and custom delimited math; render generated Unicode math with standard TeX encodings. / 保护源码标识符、绘图区域与自定义分隔符公式，以标准 TeX 编码显示生成的 Unicode 数学符号。
-- Preserve macOS compiler isolation for data directories outside the home directory. / 自定义数据目录位于用户主目录之外时，仍保持 macOS 编译器的数据隔离。
 - Discard stale TeX auxiliary files before a new compilation. / 新一轮编译前清理旧 TeX 辅助文件。
+- Preserve macOS compiler isolation for data directories outside the home directory. / 自定义数据目录位于用户主目录之外时，仍保持 macOS 编译器的数据隔离。
 - Export final repaired sources, report only final-pass reference warnings, and detect unsupported PSTricks drawing operations. / 导出最终修复源码，仅报告最后一遍引用警告，识别不支持的 PSTricks 绘图操作。
 
 [Release notes](docs/releases/v1.0.2.md) · [中文版本说明](docs/releases/v1.0.2_CN.md)
@@ -116,14 +124,102 @@
 
 ## 1.0.0
 
-First public release. / 首个公开版本。
+- Hardened the translation pipeline with compiler-recorded source dependencies, context-aware protection for math/graphics fragments, and recoverable job/API/cache failures. / 深度加固核心翻译流程，按编译器实际依赖确定正文范围，保护继承公式或绘图上下文的子文件，并完善任务、API 与缓存异常恢复。
+- Expanded compatibility for author-supplied styles, legacy minted caches, pixel dimensions and float/comment syntax; ambiguous EPS paths are rejected before they can silently select the wrong image. / 改善作者自带模板、旧 minted 缓存、像素单位、浮动位置及注释环境兼容；不确定的 EPS 路径提前明确报错，防止静默替错图。
+- Strengthened lossless LaTeX boundaries across comments, nested mathematics, table rules, numeric registers and pre-document abstracts; preserve complete accented words and code identifiers. / 加强跨注释、嵌套数学、表格规则、数值寄存器及导言区摘要的无损保护与提取，完整保留重音单词和代码标识符。
+- Improved bounded translation repair with exact text-span context, isolated retries for invalid entries, and a structured fallback for failed lines. / 翻译修复使用明确的原文片段位置，只重试无效条目，并为失败的行补充有界结构化恢复。
+- Repair now preserves complete sentences and permits validated value reordering within formatting scopes; supported title macros also populate paper titles. / 修复优先保留完整句子，允许数值在原有格式作用域内按语义调整顺序，并支持明确标题宏的翻译与文献命名。
+- Fit oversized figures and tables using their actual complete boxes, retaining every panel, caption and label; preserve normal-size floats and report any remaining overflow. / 按实际完整图表尺寸处理超高内容，保留子图、说明与标签；正常图表保持原样，未消除的溢出明确提示。
+- Preserve complete alphanumeric model identifiers and provide the unmasked source paragraph for factual context. Allow up to one minute for an owned CLI service to become ready, while rejecting conflicting services immediately. / 完整保护含数字的模型标识符，并提供同段未遮盖原文核对事实关系；CLI 自行启动服务时最多等待一分钟就绪，冲突服务仍立即拒绝。
 
-- Translate arXiv links and local LaTeX projects into PDF and editable source, with source preflight, formula/reference protection, validation and resumable caches. / 将 arXiv 链接和本地 LaTeX 工程翻译为 PDF 与可编辑源码，提供编译预检、公式与引用保护、结果校验和可恢复缓存。
-- Configure Qwen, DeepSeek or a compatible model endpoint; optionally use abstract context for each task. / 自行配置 Qwen、DeepSeek 或兼容服务，为每项任务选择是否启用摘要引导。
-- Read original and translated PDFs continuously or side by side, synchronize reading positions, and keep highlights, underlines and notes locally. / 连续阅读或对照原译 PDF，同步阅读位置，本地保存高亮、下划线和便签。
-- Use the CLI for single papers, batches, task resumption and JSON exports. / 通过 CLI 翻译单篇或批量论文，恢复任务并导出 JSON 结果。
-- Support Chinese and English interfaces, with Simplified Chinese, Traditional Chinese and English translation targets. / 提供中英文界面，翻译目标支持简体中文、繁体中文和英文。
-- Provide macOS Apple Silicon / Intel DMGs, a Windows x64 installer, and source/Python distributions. / 提供 Apple Silicon 与 Intel Mac DMG、Windows x64 安装器，以及源码和 Python 分发包。
-- Include bilingual setup and contribution guides, an Attention Is All You Need walkthrough, automated regression tests and retained third-party licenses. / 提供双语安装与贡献指南、Attention Is All You Need 案例、自动回归测试和完整第三方许可。
+- Expanded real-paper compatibility: legacy CJK/encoding packages, pdfTeX metadata and math-font setup; EPS figures can be converted with an optional external Ghostscript installation. / 改善旧式中文宏包、编码、pdfTeX 元信息和数学字体兼容性，支持使用外部 Ghostscript 转换 EPS 插图。
+- Fixed missed ICML titles and theorem aliases, protected unbraced TeX dimensions and accented letters, and tightened formatting-argument validation. Dense proof repairs retain complete clauses and exact source math. / 修复 ICML 标题与定理宏漏译，保护无括号排版尺寸和重音字符，加强格式参数检查，长证明按完整语句修复并保持公式绑定。
 
-[Release notes](docs/releases/v1.0.0.md) · [中文版本说明](docs/releases/v1.0.0_CN.md)
+- Retained upstream Electron/Chromium notices in desktop bundles and corrected Windows test fixtures for native ACLs, line endings and environment limits. / 桌面包保留 Electron／Chromium 原始许可，修正 Windows 权限、换行与环境变量限制相关测试。
+
+- Added native desktop packaging: macOS DMG and Windows per-user EXE installer, with an isolated Electron window, bundled Python engine, Tectonic and retained third-party licenses. / 新增 macOS DMG 与 Windows 当前用户安装器，内置独立桌面窗口、Python 引擎、Tectonic 和第三方许可。
+- Desktop startup handles existing services and port conflicts; quitting cleans up translation workers and preserves saved tasks. Added native frozen-engine and installer verification. / 桌面启动处理已有服务与端口冲突，退出时清理进程并保留任务，增加冻结引擎及安装包验证。
+
+- Standardized launchers as `start-texglot.command`, `start-texglot.cmd` and `install-texglot.cmd`; the default example now translates Attention Is All You Need with the selected language and guidance. / 安装启动入口统一英文名，默认示例改为按所选语言与引导模式翻译 Attention Is All You Need。
+
+- Unified all four documentation screenshots at 2560 × 1800 with Chrome-native Retina PNG captures and aligned Attention prose, translation and experimental results; updated bilingual acknowledgements. / 四张文档截图统一为 Chrome 原生 2560 × 1800 Retina PNG，首页收窄，对照截图展示位置接近的 Attention 正文、译文与实验结果，同步更新双语致谢。
+
+- First public release materials: English and Chinese README, contributor guides, CLI and platform documentation. / 首个公开版本材料，提供中英文 README、贡献指南、CLI 与平台说明。
+- Reproducible Attention Is All You Need walkthrough with a pinned arXiv version and verified Qwen run. / 固定版本 Attention 案例及 Qwen 实测结果。
+- Clean release export with source ZIP, wheel, sdist, checksums, retained licenses and bilingual release notes. / 干净源码导出、安装包、校验和、完整第三方许可及双语发布说明。
+- Existing translation and reading features retained; no task-data migration. Native Windows installer and frozen-engine checks now pass; interactive Windows client verification remains pending. / 翻译与阅读能力保持，无数据迁移；Windows 原生安装与冻结引擎验证通过，客户端交互验收仍待补充。
+
+## 0.5.0 — 2026-09-09
+
+- 新增 Windows 原生安装与启动入口，macOS/Linux 与 Windows 共用 Python 安装流程；自动准备 Python 3.13 和校验过的 Tectonic 0.17.0 便携编译器。
+- 服务锁分别使用 Windows 字节锁与 POSIX 文件锁；适配后台进程、端口独占及编译进程树的取消与超时处理。
+- 配置、缓存、源码、日志和 CLI 输出统一 UTF-8；修复 macOS 沙箱对中文目录的转义，并补充 Windows 文件名限制提示。
+- 补充独立原生平台自测脚本与三平台 CI 模板。macOS 实机完整验证通过；Windows 原生运行尚待实机验收。
+
+## 0.4.0 — 2026-09-09
+
+- 新增阿里云百炼 Qwen 服务预设，默认模型为 `qwen3.7-plus`，支持业务空间专属地址及现有 DashScope 地址。翻译默认关闭深度思考，复杂片段修复支持 JSON 输出。
+- 模型设置整合 Qwen、DeepSeek 和自定义服务；分别记忆连接信息与密钥，切换时按完整地址恢复，避免将密钥传给其他服务。
+- 更新中英文设置界面、移动端按钮和表单布局，加入键盘焦点循环；文献列表显示每篇实际使用的模型。
+- CLI 新增 `--configure --provider qwen|deepseek|custom`，支持 `DASHSCOPE_API_KEY`，保留原有单篇和批量翻译流程。
+- 补充百炼新格式密钥脱敏，并将新增的连接存储文件纳入编译器隔离。
+- Qwen 真实翻译 YOLOv10 全部 112 个片段，生成 20 页中文 PDF；本地 LaTeX 示例和结构化修复验证通过。
+
+## 0.3.6 — 2026-09-09
+
+- 实测 YOLOv10、ResNet、ViT、LoRA、DDPM 的 arXiv 源码翻译；修复后 5 篇均完整生成中文 PDF，650 个片段通过检查。
+- 修复 LaTeX 命令与中英文译文粘连引起的编译失败，改进数字、百分号、引用及格式作用域检查。
+- 数字与数量级单位共同保护，避免 billion 等单位翻译导致数值含义改变；复杂片段增加按文字片段重组结构的修复方式。
+- 补译字号命令和自定义标题宏中的文字；识别纯文本名称宏，防止为保持宏顺序而交换模型和数据集的语义。
+- 缺少 .bib 时使用源码随附的 .bbl，并读取最终 TeX 日志检查引用问题。
+- 清理文献标题中的源码换行标记，新增只读翻译审计脚本和五篇论文验证记录。
+
+## 0.3.5 — 2026-09-09
+
+- 新建翻译中的上下文引导改为语言选择右侧的紧凑开关，移除独立说明区。
+- 名称后新增问号浮层，支持悬停、点按、键盘聚焦、Esc 关闭及点按外部关闭；浮层保持在窗口范围内。
+- 窄窗口按可用宽度自动换行，翻译按钮独占一行；检查中文与英文布局。
+
+## 0.3.4 — 2026-09-09
+
+- 新增默认开启的「上下文引导」开关。新建翻译可单次切换，模型设置可保存默认值，任务详情可选择下次重新处理的模式；中英文界面同步支持。
+- CLI 支持 `--context-guidance` / `--no-context-guidance`，适用于单篇、批量与恢复任务；搭配 `--configure` 保存默认值。
+- 关闭时跳过摘要提取，模型请求不发送 `paper_context` 或摘要引导指令。任务保留自己的模式，开关状态参与缓存区分，修改全局默认值不会改变已有任务。
+
+## 0.3.3 — 2026-09-09
+
+- `paper_context` 改为源码摘要，按主文件引用顺序识别，支持常见摘要环境、命令与多文件摘要；不再取路径排序后的前四个片段。
+- 摘要背景最多 6000 字符，保留数字、公式及原文措辞；超长时优先在句末截断，无可读摘要时留空，结构校验重试仍保留摘要。
+- 提示词明确摘要只用于理解背景，模型仅翻译指定段落；摘要内容纳入缓存标识，旧策略与不同摘要的缓存隔离，旧缓存文件保留。
+
+## 0.3.2 — 2026-09-09
+
+- 最近翻译和文献库的详情改为在对应条目下方就地展开；展开状态通过箭头和无障碍属性明确呈现。
+- 切换展开条目时保持所点击文献的位置；收起详情后将键盘焦点返回对应条目。
+- 筛选后不再显示已被过滤文献的详情，不同任务的主文件选择和日志展开状态也不再串用。
+
+## 0.3.1 — 2026-09-08
+
+- 仓库重命名为 `texglot-dev`，作为内部早期开发与调试仓库；正式开源版本另行整理。
+- 修复对照阅读按整篇滚动比例同步造成的累计错位，改用章节、图表等内容定位点。
+- 识别原译文中内容相同的插图，补充浮动图跨章节重排时的区域对应；页码跳转以实际可见内容同步。
+- 重新开启同步时，以译文当前位置重新对齐原文。
+- 修复单侧与对照视图往返切换、缩放、批注侧栏和窗口尺寸变化时的定位；保留当前内容与视口位置。
+- 修复页码输入框未编辑时失焦仍跳到页首的问题，补充切换规则、页面几何和版本匹配回归测试。
+
+## 0.3.0 — 2026-09-08
+
+- 阅读器改为连续纵向阅读，按需渲染相邻页面，并记录上次阅读位置、缩放及对照设置。
+- 原文与译文支持可切换的同步滚动，按文档进度跟随，也可分别滚动或按页码跳转。
+- 新增五色高亮、下划线、页面便签、文字批注、搜索、跳转、改色、删除和撤销。
+- 批注自动保存至本地，与具体 PDF 版本绑定；未发出的文字草稿可在刷新后恢复，并防止多个窗口静默覆盖同一批注。
+- 所有批注独立于 PDF 和源码导出，中英文界面同步支持新功能。
+- 将现有 TeXGlot 项目接入 GitHub，保留 Apache 2.0 许可证，提供自动构建和测试模板；当前授权缺少 `workflow` 权限，暂未启用。
+
+## 0.2.0 — 2026-09-08
+
+- 新增中英文界面切换、TG 折页 Logo、CLI 与批量处理，支持从终端恢复任务和导出结果。
+
+## 0.1.0 — 2026-09-08
+
+- 本地 arXiv / LaTeX 源码翻译、可配置模型 API、结构保护、缓存恢复、原文与译文 PDF 导出。

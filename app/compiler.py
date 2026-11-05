@@ -553,7 +553,7 @@ def normalize_pdftex_features(
     return text
 
 
-def prepare_engine_sources(root: Path, engine: str) -> None:
+def prepare_engine_sources(root: Path, engine: str) -> list[str]:
     """Adapt author-supplied TeX packages as well as the document entry points."""
     if engine == "tectonic":
         # Prefer the author's classes. Supply complete, pinned upstream runtime
@@ -602,6 +602,15 @@ def prepare_engine_sources(root: Path, engine: str) -> None:
     prepare_legacy_latin_fonts(root, engine, literal_environments=literal_environments)
     prepare_minted_cache(root, literal_environments=literal_environments)
     prepare_float_sizing(root, literal_environments=literal_environments)
+    from .fonts import prepare_font_files
+
+    repaired = prepare_font_files(
+        root, engine, literal_environments=literal_environments
+    )
+    notices = []
+    if repaired:
+        notices.append("已修正无法解析的字体文件名：" + "、".join(sorted(repaired)))
+    return notices
 
 
 def normalize_legacy_cjk(text: str, engine: str) -> str:
@@ -1451,6 +1460,23 @@ def recover_compile_configuration(
     document = root / main
     source = document.read_text(encoding="utf-8")
     visible = visible_tex(source)
+    # Diagnose the failing package and the actual load record, not declarations
+    # in unused classes or conditional branches elsewhere in the source tree.
+    trace = error.tex_log.partition("! LaTeX Error")[0]
+    if re.search(
+        r"(?m)^(?:error:[ \t]*)?(?:[^\r\n]*[/\\])?amssymb\.sty:\d+:"
+        r"[^\r\n]*LaTeX Error: Command `\\[A-Za-z]+' already defined",
+        error.log,
+    ) and re.search(r"(?m)^Package: unicode-math[ \t]", trace):
+        from .fonts import guard_amssymb_load
+
+        loaded_paths = {document.resolve()}
+        for filename in re.findall(r"\(([^()\r\n]+)", trace):
+            path = diagnostic_source_path(root, main, filename.strip().strip('"'))
+            if path is not None:
+                loaded_paths.add(path)
+        if guard_amssymb_load(root, loaded_paths):
+            return "amssymb 与 unicode-math 的符号冲突"
     # Some dual-engine templates offer classic pdfTeX mathematics but
     # automatically load unicode-math on XeTeX. If the latter fails on legacy
     # math macros, retain the author's classic math route and Unicode text.

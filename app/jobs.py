@@ -47,7 +47,6 @@ from .latex import (
 )
 from .llm import (
     ProviderError,
-    normalize_language,
     redact,
     validate_translation_language,
 )
@@ -61,12 +60,12 @@ from .sources import (
     find_main,
     visible_tex,
 )
-from .translation import Translator, cache_settings
+from .translation import Translator, cache_settings, normalize_cached_translation
 
 JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
-SOURCE_PREPARATION_VERSION = "native-source-v4"
+SOURCE_PREPARATION_VERSION = "native-source-v5"
 TITLE_METADATA_VERSION = 3
 
 
@@ -455,7 +454,8 @@ class JobManager:
             if prepared_source.exists():
                 shutil.rmtree(prepared_source)
             shutil.copytree(source, prepared_source)
-            prepare_engine_sources(prepared_source, engine)
+            for notice in prepare_engine_sources(prepared_source, engine):
+                await log(notice)
             relocated = rebase_project_paths(prepared_source, main)
             if relocated:
                 await log(
@@ -693,20 +693,23 @@ class JobManager:
                 cache = {}
                 await log("翻译缓存无法读取，已保留副本；本次重新翻译相关段落")
         translated = {}
+        cache_changed = False
         for key, item in unique.items():
             if key in cache:
                 try:
                     if not isinstance(cache[key], str):
                         raise ValueError("Invalid cached translation")
-                    cache[key] = normalize_language(
-                        cache[key], settings.target_language
+                    normalized = normalize_cached_translation(
+                        cache[key], item, settings
                     )
-                    validate_translation_language(
-                        item, cache[key], settings.target_language
-                    )
-                    translated[key] = item.restore(cache[key])
+                    translated[key] = item.restore(normalized)
+                    cache_changed = cache_changed or normalized != cache[key]
+                    cache[key] = normalized
                 except ValueError:
                     cache.pop(key, None)
+                    cache_changed = True
+        if cache_changed:
+            atomic_json(cache_path, cache)
         job["cached"] = len(translated)
         job["done"] = len(translated)
         client = Translator(settings)
