@@ -609,9 +609,7 @@ def prepare_engine_sources(root: Path, engine: str) -> list[str]:
     )
     notices = []
     if repaired:
-        notices.append(
-            "已修正无法解析的字体文件名：" + "、".join(sorted(repaired))
-        )
+        notices.append("已修正无法解析的字体文件名：" + "、".join(sorted(repaired)))
     return notices
 
 
@@ -1462,12 +1460,22 @@ def recover_compile_configuration(
     document = root / main
     source = document.read_text(encoding="utf-8")
     visible = visible_tex(source)
-    # unicode-math declares the AMS symbols before the document body runs, so
-    # a later amssymb load makes LaTeX stop at the first redefined command.
-    if re.search(r"LaTeX Error: Command `\\[A-Za-z]+' already defined", error.log):
-        from .fonts import remove_amssymb_loads
+    # Diagnose the failing package and the actual load record, not declarations
+    # in unused classes or conditional branches elsewhere in the source tree.
+    trace = error.tex_log.partition("! LaTeX Error")[0]
+    if re.search(
+        r"(?m)^(?:error:[ \t]*)?(?:[^\r\n]*[/\\])?amssymb\.sty:\d+:"
+        r"[^\r\n]*LaTeX Error: Command `\\[A-Za-z]+' already defined",
+        error.log,
+    ) and re.search(r"(?m)^Package: unicode-math[ \t]", trace):
+        from .fonts import guard_amssymb_load
 
-        if remove_amssymb_loads(root, error.log):
+        loaded_paths = {document.resolve()}
+        for filename in re.findall(r"\(([^()\r\n]+)", trace):
+            path = diagnostic_source_path(root, main, filename.strip().strip('"'))
+            if path is not None:
+                loaded_paths.add(path)
+        if guard_amssymb_load(root, loaded_paths):
             return "amssymb 与 unicode-math 的符号冲突"
     # Some dual-engine templates offer classic pdfTeX mathematics but
     # automatically load unicode-math on XeTeX. If the latter fails on legacy

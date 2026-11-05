@@ -868,6 +868,68 @@ async def test_missing_dependency_record_recompiles_original_before_reusing_cach
     assert translator.calls == [] and job["cached"] == 3
 
 
+async def test_font_recovery_resumes_a_failed_job_and_reuses_prepared_artifacts(
+    pipeline, translator, monkeypatch
+):
+    from app.compiler import compile_pdf, find_compiler
+
+    if not find_compiler("tectonic"):
+        pytest.skip("Optional native Tectonic not installed")
+    manager, job, folder, _, calls = pipeline
+    source = folder / "source"
+    main = source / "main.tex"
+    main.write_text(
+        main.read_text().replace(
+            r"\documentclass{article}",
+            r"\documentclass{paper}\usepackage{amssymb}",
+        )
+    )
+    authored_class = (
+        "\\ProvidesClass{paper}\n\\LoadClass{article}\n"
+        "\\RequirePackage{unicode-math}\n"
+        "\\setmathfont{libertinusmath-regular.otf}\n"
+    )
+    (source / "paper.cls").write_text(authored_class)
+    prepare = jobs.prepare_engine_sources
+
+    def legacy_prepare(root, engine):
+        prepare(root, engine)
+        path = root / "paper.cls"
+        path.write_text(authored_class)
+        return []
+
+    async def native_compile(root, main, out, engine, log):
+        calls.append(out.name)
+        return await compile_pdf(root, main, out, engine, log)
+
+    monkeypatch.setattr(jobs, "compile_pdf", native_compile)
+    monkeypatch.setattr(jobs, "prepare_engine_sources", legacy_prepare)
+    await manager.run(job["id"])
+    assert job["status"] == "failed" and "libertinusmath-regular" in job["error"]
+    assert translator.calls == []
+    monkeypatch.setattr(jobs, "prepare_engine_sources", prepare)
+    await manager.run(job["id"])
+    assert job["status"] == "completed"
+    for name in ["prepared-source", "translated"]:
+        assert "LibertinusMath-Regular.otf" in (folder / name / "paper.cls").read_text()
+        assert (
+            r"\IfPackageLoadedTF{unicode-math}"
+            in (folder / name / "main.tex").read_text()
+        )
+    assert (source / "paper.cls").read_text() == authored_class
+    translator.calls.clear()
+    original_compiles = calls.count("build-original")
+    await manager.run(job["id"])
+    assert job["status"] == "completed" and translator.calls == []
+    assert calls.count("build-original") == original_compiles
+    # A saved source-preparation version is refreshed while valid translations survive.
+    job["preparation_signature"][0] = "native-source-v4"
+    await manager.run(job["id"])
+    assert job["status"] == "completed" and translator.calls == []
+    assert calls.count("build-original") == original_compiles + 1
+    assert job["preparation_signature"][0] == jobs.SOURCE_PREPARATION_VERSION
+
+
 async def test_unavailable_dependency_record_is_explicit_fallback(
     pipeline, translator, monkeypatch
 ):

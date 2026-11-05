@@ -1,103 +1,107 @@
-"""Resolve font requests that a Unicode engine cannot satisfy as written."""
+"""Conservative font-file compatibility and diagnosed Unicode math recovery."""
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-from .sources import TEX_SOURCE_SUFFIXES, visible_tex
+from .latex import MACRO_DEFINITIONS, definition_end, group_end, skip_tex_space
+from .sources import TEX_SOURCE_SUFFIXES, collect_literal_environments, visible_tex
 
-# TeX Live ships the Libertinus math font as LibertinusMath-Regular.otf. The
-# acmart class asks for the same font in lower case, and a case-sensitive
-# lookup - the Tectonic bundle, or a TeX Live tree on a case-sensitive file
-# system - cannot resolve that spelling.
+# The bundled file is case-sensitive; some acmart versions request lower case.
 CANONICAL_FONT_FILES = {
     "libertinusmath-regular.otf": "LibertinusMath-Regular.otf",
 }
-
-# Font commands that name a font. \newfontfamily takes the new command
-# between the macro and its arguments, so the arguments are read separately.
 FONT_COMMANDS = re.compile(
-    r"\\(?:setmathfont|setmainfont|setsansfont|setmonofont|newfontfamily|"
-    r"newfontfamilyb|fontspec)\*?"
+    r"\\(setmathfont|setmainfont|setsansfont|setmonofont|newfontfamily|"
+    r"newfontface|fontspec)(?![A-Za-z@])\*?"
 )
-
 PACKAGE_LOAD = re.compile(
-    r"\\(?:usepackage|RequirePackage)\s*(?:\[[^\]]*\])?\s*\{([^{}]*)\}"
+    r"\\(?:usepackage|RequirePackage)(?![A-Za-z@])\s*"
+    r"(?:\[[^\[\]]*\]\s*)?\{([^{}]*)\}"
 )
-
-AMSSYMB_NOTE = (
-    "% texglot: amssymb redeclares the AMS symbols that unicode-math already "
-    "provides, so this load was removed"
-)
+AMSSYMB_NOTE = "% texglot: skip amssymb only when unicode-math is already loaded"
 
 
 def canonical_font_file(name: str) -> str:
-    """Return the canonical file name of a requested font, or an empty string."""
-    value = name.strip()
-    if not value:
-        return ""
-    key = value.lower()
+    key = name.strip().casefold()
     if not key.endswith(".otf"):
         key += ".otf"
     return CANONICAL_FONT_FILES.get(key, "")
 
 
-def _font_arguments(text: str, start: int) -> list[tuple[int, int]]:
-    """Return the braced arguments that follow a font command."""
-    from .latex import group_end
+def _project_sources(root: Path) -> dict[Path, str]:
+    paths = [
+        path
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in TEX_SOURCE_SUFFIXES
+    ]
+    if any(
+        path.is_symlink() or not path.resolve().is_relative_to(root.resolve())
+        for path in paths
+    ):
+        return {}
+    try:
+        return {path.resolve(): path.read_text(encoding="utf-8") for path in paths}
+    except (OSError, UnicodeError):
+        return {}
 
-    pos = start
-    while pos < len(text) and text[pos].isspace():
-        pos += 1
-    # \newfontfamily names the command it defines before the font itself.
-    if text.startswith("\\", pos):
-        token = re.match(r"\\[A-Za-z@]+", text[pos:])
-        if token is None:
-            return []
-        pos += token.end()
-    while pos < len(text) and text[pos].isspace():
-        pos += 1
-    # Font features may precede the font name.
-    if text.startswith("[", pos):
-        end = text.find("]", pos)
-        if end < 0:
-            return []
-        pos = end + 1
-    ranges = []
-    while pos < len(text):
-        while pos < len(text) and text[pos].isspace():
-            pos += 1
+
+def _font_argument(text: str, command) -> tuple[int, int, str] | None:
+    """Read the font argument, without consuming subsequent braced prose."""
+    pos = skip_tex_space(text, command.end())
+    try:
+        if command[1] in {"newfontfamily", "newfontface"}:
+            if text.startswith("{", pos):
+                pos = group_end(text, pos, strict=True)
+            else:
+                name = re.match(r"\\[A-Za-z@]+", text[pos:])
+                if name is None:
+                    return None
+                pos += name.end()
+            pos = skip_tex_space(text, pos)
+        options = ""
+        if text.startswith("[", pos):
+            end = group_end(text, pos, strict=True)
+            options = text[pos + 1 : end - 1]
+            pos = skip_tex_space(text, end)
         if not text.startswith("{", pos):
-            break
-        try:
-            end = group_end(text, pos)
-        except ValueError:
-            break
-        ranges.append((pos + 1, end - 1))
-        pos = end
-    return ranges
+            return None
+        end = group_end(text, pos, strict=True)
+        after = skip_tex_space(text, end)
+        if text.startswith("[", after):
+            finish = group_end(text, after, strict=True)
+            options += "," + text[after + 1 : finish - 1]
+        return pos + 1, end - 1, options
+    except ValueError:
+        return None
 
 
 def repair_font_requests(
     text: str, *, literal_environments=frozenset(), provided=frozenset()
 ) -> str:
-    """Point font requests at the canonical file name of the same font.
-
-    Only requests for a known font file are rewritten, and only when the
-    project does not ship that file itself.
-    """
     visible = visible_tex(text, literal_environments=literal_environments)
     edits = []
-    for match in FONT_COMMANDS.finditer(visible):
-        for start, end in _font_arguments(visible, match.end()):
-            requested = visible[start:end].strip()
-            canonical = canonical_font_file(requested)
-            if not canonical or canonical == requested:
-                continue
-            if requested.lower() in provided:
-                continue
-            edits.append((start, end, canonical))
+    for command in FONT_COMMANDS.finditer(visible):
+        argument = _font_argument(visible, command)
+        if argument is None:
+            continue
+        start, end, options = argument
+        # Respect authored lookup rules, including features supplied by macros.
+        if "\\" in options or re.search(r"\b(?:Path|Extension)\s*=", options):
+            continue
+        name = re.fullmatch(r"\s*(\S+)\s*", visible[start:end])
+        if name is None:
+            continue
+        requested = name[1]
+        canonical = canonical_font_file(requested)
+        if not canonical or requested == canonical:
+            continue
+        key = requested.casefold()
+        if key in provided or (not key.endswith(".otf") and key + ".otf" in provided):
+            continue
+        # Change only the name token; keep surrounding comments and newlines.
+        edits.append((start + name.start(1), start + name.end(1), canonical))
     for start, end, value in reversed(edits):
         text = text[:start] + value + text[end:]
     return text
@@ -106,84 +110,92 @@ def repair_font_requests(
 def prepare_font_files(
     root: Path, engine: str, *, literal_environments=frozenset()
 ) -> list[str]:
-    """Repair font file names that a case-sensitive lookup cannot resolve."""
     if engine not in {"tectonic", "xelatex", "lualatex"}:
         return []
-    provided = {path.name.lower() for path in root.rglob("*") if path.is_file()}
+    sources = _project_sources(root)
+    literals = literal_environments | collect_literal_environments(
+        "\n".join(sources.values())
+    )
+    provided = {path.name.casefold() for path in root.rglob("*") if path.is_file()}
     changed = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in TEX_SOURCE_SUFFIXES:
-            continue
-        text = path.read_text(encoding="utf-8")
+    for path, text in sorted(sources.items()):
         updated = repair_font_requests(
-            text, literal_environments=literal_environments, provided=provided
+            text, literal_environments=literals, provided=provided
         )
-        if updated == text:
-            continue
-        path.write_text(updated, encoding="utf-8")
-        changed.append(path.relative_to(root).as_posix())
+        if updated != text:
+            path.write_text(updated, encoding="utf-8")
+            changed.append(path.relative_to(root.resolve()).as_posix())
     return changed
 
 
-def unicode_math_active(root: Path, log: str = "") -> bool:
-    """Report whether the document loads unicode-math, which owns AMS symbols."""
-    if "unicode-math" in log:
-        return True
-    for path in root.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in TEX_SOURCE_SUFFIXES:
+def _package_loads(visible: str):
+    cursor = 0
+    for command in re.finditer(r"\\([A-Za-z@]+)\*?", visible):
+        if command.start() < cursor:
             continue
-        try:
-            text = visible_tex(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError):
+        if command[1] in MACRO_DEFINITIONS:
+            cursor = definition_end(visible, command.end(), command[1])
             continue
-        for match in PACKAGE_LOAD.finditer(text):
-            if "unicode-math" in [name.strip() for name in match.group(1).split(",")]:
-                return True
-    return False
+        match = PACKAGE_LOAD.match(visible, command.start())
+        if match:
+            cursor = match.end()
+            yield match
 
 
-def remove_amssymb_loads(root: Path, log: str = "") -> list[str]:
-    """Remove amssymb loads that clash with an already loaded unicode-math.
+def _guarded_load(text: str, match, parts, index: int) -> str:
+    """Keep package order/options and preserve the non-Unicode-math branch."""
+    prefix, suffix = (
+        text[match.start() : match.start(1)],
+        text[match.end(1) : match.end()],
+    )
+    start = match.start(1) + parts[index].start()
+    end = match.start(1) + parts[index].end()
+    loads = []
+    if index:
+        loads.append(prefix + text[match.start(1) : start - 1] + suffix)
+    original = prefix + text[start:end] + suffix
+    loads.append(r"\IfPackageLoadedTF{unicode-math}{}{" + original + "}")
+    if index + 1 < len(parts):
+        loads.append(prefix + text[end + 1 : match.end(1)] + suffix)
+    return "\n".join(loads)
 
-    unicode-math declares the AMS symbols itself and does so before the
-    document body runs. amssymb declares the same commands again, and LaTeX
-    stops at the first command that is already defined. Without unicode-math
-    the load stays, because amssymb then provides symbols of its own.
+
+def guard_amssymb_load(root: Path, loaded_paths: set[Path]) -> list[str]:
+    """Guard one unambiguous literal load after a confirmed compiler clash.
+
+    The caller verifies the failing package and actual unicode-math load record.
+    Global literal definitions protect examples in other files. A runtime guard
+    also keeps the original load available when an authored branch uses it alone.
     """
-    if not unicode_math_active(root, log):
+    if any(root.rglob("amssymb.sty")):
         return []
-    changed = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in {".tex", ".sty", ".cls"}:
+    sources = _project_sources(root)
+    literals = collect_literal_environments("\n".join(sources.values()))
+    candidates = []
+    for path in sorted(loaded_paths):
+        if path not in sources:
             continue
-        text = path.read_text(encoding="utf-8")
-        visible = visible_tex(text)
-        edits = []
-        for match in PACKAGE_LOAD.finditer(visible):
-            names = [name.strip() for name in match.group(1).split(",")]
+        text = sources[path]
+        if AMSSYMB_NOTE in text:
+            return []
+        visible = visible_tex(text, literal_environments=literals)
+        for match in _package_loads(visible):
+            parts = list(re.finditer(r"[^,]+", match[1]))
+            names = [part[0].strip() for part in parts]
             if "amssymb" not in names:
                 continue
-            if len(names) == 1:
-                edits.append((match.start(), match.end(), None))
-            else:
-                remaining = ",".join(name for name in names if name != "amssymb")
-                edits.append((match.start(1), match.end(1), remaining))
-        if not edits:
-            continue
-        for start, end, value in reversed(edits):
-            if value is not None:
-                text = text[:start] + value + text[end:]
-                continue
-            # Keep the note on its own line so that it cannot swallow code
-            # that follows the load on the same line.
-            line_start = text.rfind("\n", 0, start) + 1
-            line_end = text.find("\n", end)
-            line_end = len(text) if line_end < 0 else line_end
-            alone = (
-                not text[line_start:start].strip() and not text[end:line_end].strip()
-            )
-            replacement = AMSSYMB_NOTE if alone else ""
-            text = text[:start] + replacement + text[end:]
-        path.write_text(text, encoding="utf-8")
-        changed.append(path.relative_to(root).as_posix())
-    return changed
+            if names.count("amssymb") != 1 or any(
+                not re.fullmatch(r"[A-Za-z0-9_.-]+", name) for name in names
+            ):
+                return []
+            candidates.append((path, match, parts, names.index("amssymb")))
+    if len(candidates) != 1:
+        return []
+    path, match, parts, index = candidates[0]
+    text = sources[path]
+    replacement = _guarded_load(text, match, parts, index)
+    path.write_text(
+        AMSSYMB_NOTE + "\n" + text[: match.start()] + replacement + text[match.end() :],
+        encoding="utf-8",
+    )
+    return [path.relative_to(root.resolve()).as_posix()]
