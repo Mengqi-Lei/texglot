@@ -553,7 +553,7 @@ def normalize_pdftex_features(
     return text
 
 
-def prepare_engine_sources(root: Path, engine: str) -> None:
+def prepare_engine_sources(root: Path, engine: str) -> list[str]:
     """Adapt author-supplied TeX packages as well as the document entry points."""
     if engine == "tectonic":
         # Prefer the author's classes. Supply complete, pinned upstream runtime
@@ -602,6 +602,17 @@ def prepare_engine_sources(root: Path, engine: str) -> None:
     prepare_legacy_latin_fonts(root, engine, literal_environments=literal_environments)
     prepare_minted_cache(root, literal_environments=literal_environments)
     prepare_float_sizing(root, literal_environments=literal_environments)
+    from .fonts import prepare_font_files
+
+    repaired = prepare_font_files(
+        root, engine, literal_environments=literal_environments
+    )
+    notices = []
+    if repaired:
+        notices.append(
+            "已修正无法解析的字体文件名：" + "、".join(sorted(repaired))
+        )
+    return notices
 
 
 def normalize_legacy_cjk(text: str, engine: str) -> str:
@@ -1451,6 +1462,13 @@ def recover_compile_configuration(
     document = root / main
     source = document.read_text(encoding="utf-8")
     visible = visible_tex(source)
+    # unicode-math declares the AMS symbols before the document body runs, so
+    # a later amssymb load makes LaTeX stop at the first redefined command.
+    if re.search(r"LaTeX Error: Command `\\[A-Za-z]+' already defined", error.log):
+        from .fonts import remove_amssymb_loads
+
+        if remove_amssymb_loads(root, error.log):
+            return "amssymb 与 unicode-math 的符号冲突"
     # Some dual-engine templates offer classic pdfTeX mathematics but
     # automatically load unicode-math on XeTeX. If the latter fails on legacy
     # math macros, retain the author's classic math route and Unicode text.

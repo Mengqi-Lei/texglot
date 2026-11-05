@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Resolve font file names that a case-sensitive lookup cannot find, so document classes requesting the Libertinus math font in lower case - acmart v2.x and similar - compile instead of stopping at the font error. A project that ships its own font file keeps it. / 修正大小写敏感查找无法解析的字体文件名，使以小写名称请求 Libertinus 数学字体的文档类（acmart v2.x 等）可以正常编译，不再停在字体报错处；工程自带的字体文件保持不变。
+- Recover the amssymb and unicode-math symbol clash after a confirmed compiler diagnostic: the redundant load is removed only when unicode-math already provides the AMS symbols, and the paper content stays untouched. / 在编译器确认冲突后恢复 amssymb 与 unicode-math 的符号冲突：仅在 unicode-math 已提供 AMS 符号时移除多余加载，论文内容保持不变。
+- Keep only the final answer of a response that carries a reasoning block, so model reasoning in the model language no longer mixes into the translation, the cache or the PDF. / 只保留带推理块响应中的最终答案，模型的推理过程不再混入译文、缓存与 PDF。
+
 ## 1.2.4 — 2026-11-04
 
 - Recover compiler failures caused by unused minted package loads without enabling shell escape; retain used/frozen minted sources and provide actionable diagnostics. / 无需开放 shell escape 即可恢复未使用 minted 宏包造成的编译失败；保留实际使用或冻结缓存的源码，并提供明确的处理提示。

@@ -170,6 +170,31 @@ def normalize_language(text: str, language: str) -> str:
     )
 
 
+# Some endpoints answer with a reasoning block before the final text. That
+# block is model output about the request, never part of the paper, so it must
+# not reach the translation, the cache or the PDF.
+REASONING_BLOCK = re.compile(
+    r"<(think|thinking|reasoning|thought|scratchpad)\b[^>]*>.*?</\1\s*>", re.S | re.I
+)
+OPEN_REASONING = re.compile(
+    r"<(think|thinking|reasoning|thought|scratchpad)\b[^>]*>", re.I
+)
+ANSWER_BLOCK = re.compile(r"\A<answer\b[^>]*>(.*)</answer\s*>\Z", re.S | re.I)
+
+
+def strip_reasoning(text: str) -> str:
+    """Keep only the final answer of a response that carries a reasoning block."""
+    value = REASONING_BLOCK.sub("", text)
+    # An unterminated block means the model never reached its answer.
+    opening = OPEN_REASONING.search(value)
+    if opening:
+        value = value[: opening.start()]
+    answer = ANSWER_BLOCK.match(value.strip())
+    if answer:
+        value = answer.group(1)
+    return value.strip()
+
+
 def validate_translation_language(segment, output: str, language: str):
     if language not in ("简体中文", "繁體中文"):
         return
@@ -308,7 +333,10 @@ class Translator:
                 if choice.get("finish_reason") == "length":
                     raise ValueError("模型输出被截断")
                 content = choice["message"].get("content")
-                if not isinstance(content, str) or not content.strip():
+                if not isinstance(content, str):
+                    raise ValueError("模型没有返回有效文本")
+                content = strip_reasoning(content)
+                if not content.strip():
                     raise ValueError("模型没有返回有效文本")
                 return content.strip()
             except (httpx.TransportError, ssl.SSLError):

@@ -1,7 +1,12 @@
 """Choose a translation backend without changing source or reader contracts."""
 
 from .deepl import DEEPL_VERSION, DeepLTranslator
-from .llm import PROMPT_VERSION
+from .llm import (
+    PROMPT_VERSION,
+    normalize_language,
+    strip_reasoning,
+    validate_translation_language,
+)
 from .llm import Translator as LLMTranslator
 from .providers import provider_for_url
 
@@ -10,6 +15,17 @@ def Translator(settings):
     if provider_for_url(settings.base_url) == "deepl":
         return DeepLTranslator(settings)
     return LLMTranslator(settings)
+
+
+def cached_translation(value: str, item, settings) -> str:
+    """Return a stored translation that can be restored into the source.
+
+    A cache entry keeps the raw model answer, so an earlier run may still
+    carry a reasoning block that must not reach the paper.
+    """
+    text = normalize_language(strip_reasoning(value), settings.target_language)
+    validate_translation_language(item, text, settings.target_language)
+    return item.restore(text)
 
 
 def cache_settings(settings, context):
