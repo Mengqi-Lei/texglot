@@ -3,6 +3,7 @@
 import re
 
 MESSAGES = {
+    "模型响应中的推理或答案标记不完整，请仅返回最终译文": "Incomplete reasoning or answer delimiters; return only the final translation",
     "minted 需要外部命令执行，但当前编译已禁用此功能；请提供完整冻结缓存或改用 listings，并查看下方报错位置": "minted requires external command execution, which is disabled. Provide a complete frozen cache or use listings; see the source location below",
     "DeepL 请使用官方 HTTPS API 地址": "Use an official DeepL HTTPS API endpoint",
     "请输入有效的 DeepL 源语言代码，例如 EN": "Enter a valid DeepL source language code, such as EN",
@@ -148,6 +149,10 @@ MESSAGES = {
     "译文异常短，可能遗漏正文": "Translation is unusually short and may omit content",
 }
 RULES = [
+    (
+        r"结构修复片段 (\d+) 未返回完整译文",
+        r"Repair slot \1 did not return a complete translation",
+    ),
     (
         r"插图文件无法访问：([^\n]+)；请检查文件权限和引用路径",
         r"Cannot access figure file: \1. Check file permissions and its reference path",

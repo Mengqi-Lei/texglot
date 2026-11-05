@@ -16,6 +16,7 @@ TeXGlot translates **LaTeX source**, not arbitrary uploaded PDFs or scanned docu
 | Compilation fails | Include missing `.sty`, images and bibliography files; inspect the compile log. Templates needing shell escape or unavailable external tools may not work. An installed XeLaTeX/LuaLaTeX can be selected in settings. |
 | API errors | Check the endpoint, region, model access, balance and rate limits. Reduce concurrency or increase timeout when needed. |
 | Some prose stays untranslated | Review task warnings and resume to retry failed segments. Unknown macros, authors and bibliography entries may intentionally remain unchanged. |
+| Model reasoning appears in the translation | Update and use Resume / Retry. Recognized LLM response envelopes are cleaned before use, including older cached responses. Incomplete answers are retried. Tags quoted in the source and valid translation caches are preserved. |
 | Different page counts | Translation changes text length and pagination. Synchronization uses shared content landmarks where available; otherwise it falls back to page-local positions. It is not sentence-level alignment. |
 | Source installation times out during frontend build | The local build stops after 10 minutes. Inspect the output; if directory access is hanging, extract the source into an ordinary local project folder and rerun setup. Dependency downloads are not subject to this build timeout. |
 | `texglot` is missing | Reopen the terminal after `uv tool update-shell`, or use `uv run python -m app.cli` in the checkout. |

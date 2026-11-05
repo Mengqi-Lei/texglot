@@ -60,7 +60,7 @@ from .sources import (
     find_main,
     visible_tex,
 )
-from .translation import Translator, cache_settings, cached_translation
+from .translation import Translator, cache_settings, normalize_cached_translation
 
 JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
@@ -693,14 +693,23 @@ class JobManager:
                 cache = {}
                 await log("翻译缓存无法读取，已保留副本；本次重新翻译相关段落")
         translated = {}
+        cache_changed = False
         for key, item in unique.items():
             if key in cache:
                 try:
                     if not isinstance(cache[key], str):
                         raise ValueError("Invalid cached translation")
-                    translated[key] = cached_translation(cache[key], item, settings)
+                    normalized = normalize_cached_translation(
+                        cache[key], item, settings
+                    )
+                    translated[key] = item.restore(normalized)
+                    cache_changed = cache_changed or normalized != cache[key]
+                    cache[key] = normalized
                 except ValueError:
                     cache.pop(key, None)
+                    cache_changed = True
+        if cache_changed:
+            atomic_json(cache_path, cache)
         job["cached"] = len(translated)
         job["done"] = len(translated)
         client = Translator(settings)

@@ -2,10 +2,9 @@
 
 ## Unreleased
 
+- Strip explicit leading reasoning/answer envelopes from LLM responses while preserving authored tags, JSON string contents and slot-boundary whitespace. Retry incomplete answers and persist validated cleanup of older LLM caches. / 清理 LLM 响应中明确的前置推理及答案封装，保留原文标签、JSON 字符串内容与分段边界空格；不完整回答进入有限重试，旧 LLM 缓存清理并校验后写回。
 - Resolve the known Libertinus math font filename mismatch in acmart templates, preserving project fonts, explicit lookup rules and code examples. Refresh older prepared sources on retry while retaining valid translations. / 修复 acmart 模板中已知的 Libertinus 数学字体文件名不匹配，保护工程自带字体、自定义查找规则和代码示例；重试时更新旧预处理源码并复用有效译文。
 - Recover confirmed amssymb / unicode-math conflicts using compiler load records and a conditional package load. Preserve cross-file code examples, package order/options and the author's non-Unicode-math branch. / 根据实际编译加载记录确认 amssymb 与 unicode-math 的冲突，以条件加载恢复编译，保留跨文件代码示例、宏包顺序与选项及作者的传统数学分支。
-
-- Keep only the final answer of a response that carries a reasoning block, so model reasoning in the model language no longer mixes into the translation, the cache or the PDF. / 只保留带推理块响应中的最终答案，模型的推理过程不再混入译文、缓存与 PDF。
 
 ## 1.2.4 — 2026-11-04
 

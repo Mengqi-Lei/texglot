@@ -170,29 +170,63 @@ def normalize_language(text: str, language: str) -> str:
     )
 
 
-# Some endpoints answer with a reasoning block before the final text. That
-# block is model output about the request, never part of the paper, so it must
-# not reach the translation, the cache or the PDF.
-REASONING_BLOCK = re.compile(
-    r"<(think|thinking|reasoning|thought|scratchpad)\b[^>]*>.*?</\1\s*>", re.S | re.I
+RESPONSE_TAG_NAMES = "think|thinking|reasoning|thought|scratchpad|answer"
+RESPONSE_TAG = re.compile(
+    rf"<(/?)({RESPONSE_TAG_NAMES})(?=[\s>])"
+    r"(?:[^<>\"']|\"[^\"]*\"|'[^']*')*>",
+    re.I,
 )
-OPEN_REASONING = re.compile(
-    r"<(think|thinking|reasoning|thought|scratchpad)\b[^>]*>", re.I
-)
-ANSWER_BLOCK = re.compile(r"\A<answer\b[^>]*>(.*)</answer\s*>\Z", re.S | re.I)
+RESPONSE_MARKER = re.compile(rf"</?({RESPONSE_TAG_NAMES})(?=[\s/>]|$)", re.I)
+INCOMPLETE_RESPONSE = "模型响应中的推理或答案标记不完整，请仅返回最终译文"
 
 
-def strip_reasoning(text: str) -> str:
-    """Keep only the final answer of a response that carries a reasoning block."""
-    value = REASONING_BLOCK.sub("", text)
-    # An unterminated block means the model never reached its answer.
-    opening = OPEN_REASONING.search(value)
-    if opening:
-        value = value[: opening.start()]
-    answer = ANSWER_BLOCK.match(value.strip())
-    if answer:
-        value = answer.group(1)
-    return value.strip()
+def _response_block(text: str, opening) -> tuple[str, int]:
+    # Reasoning is free-form text, not XML. Only balance the enclosing tag;
+    # another tag mentioned in that reasoning need not form an XML element.
+    name, depth = opening[2].casefold(), 1
+    for token in RESPONSE_TAG.finditer(text, opening.end()):
+        if token[2].casefold() != name:
+            continue
+        depth += -1 if token[1] else 1
+        if depth == 0:
+            return text[opening.end() : token.start()], token.end()
+    raise ValueError(INCOMPLETE_RESPONSE)
+
+
+def strip_reasoning(text: str, *, source_text="", json_output=False) -> str:
+    """Unwrap explicit response envelopes, preserving tags present in source.
+
+    Never substitute inside prose or JSON strings. Ambiguous/truncated output
+    takes the existing bounded repair path instead of silently losing text.
+    """
+    literal_tags = (
+        set()
+        if json_output
+        else {token[1].casefold() for token in RESPONSE_MARKER.finditer(source_text)}
+    )
+    value = text
+    for depth in range(9):
+        opening = RESPONSE_TAG.match(value, len(value) - len(value.lstrip()))
+        if opening is None or opening[2].casefold() in literal_tags:
+            break
+        if depth == 8 or opening[1]:
+            raise ValueError(INCOMPLETE_RESPONSE)
+        content, end = _response_block(value, opening)
+        remainder = value[end:]
+        if opening[2].casefold() == "answer":
+            if remainder.strip():
+                raise ValueError(INCOMPLETE_RESPONSE)
+            value = content
+        else:
+            value = remainder
+    if not value.strip():
+        raise ValueError("模型没有返回有效文本")
+    if not json_output and any(
+        token[1].casefold() not in literal_tags
+        for token in RESPONSE_MARKER.finditer(value)
+    ):
+        raise ValueError(INCOMPLETE_RESPONSE)
+    return value
 
 
 def validate_translation_language(segment, output: str, language: str):
@@ -262,7 +296,12 @@ class Translator:
         await self.client.aclose()
 
     async def complete(
-        self, messages: list[dict], max_tokens=7000, *, json_output=False
+        self,
+        messages: list[dict],
+        max_tokens=7000,
+        *,
+        json_output=False,
+        source_text="",
     ) -> str:
         s = self.settings
         body = {
@@ -333,12 +372,11 @@ class Translator:
                 if choice.get("finish_reason") == "length":
                     raise ValueError("模型输出被截断")
                 content = choice["message"].get("content")
-                if not isinstance(content, str):
+                if not isinstance(content, str) or not content.strip():
                     raise ValueError("模型没有返回有效文本")
-                content = strip_reasoning(content)
-                if not content.strip():
-                    raise ValueError("模型没有返回有效文本")
-                return content.strip()
+                return strip_reasoning(
+                    content, source_text=source_text, json_output=json_output
+                ).strip()
             except (httpx.TransportError, ssl.SSLError):
                 if attempt < 2:
                     await asyncio.sleep(2**attempt)
@@ -438,7 +476,8 @@ class Translator:
             [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": content},
-            ]
+            ],
+            source_text=segment.masked,
         )
         output = recover_copied_tokens(output, segment)
         if expansion is not None:
@@ -530,6 +569,7 @@ class Translator:
                     },
                 ],
                 json_output=True,
+                source_text="\n".join(requested.values()),
             )
             fenced = re.fullmatch(r"```(?:json)?\s*\n(.*?)\n```", output, re.S)
             if fenced:
@@ -546,6 +586,15 @@ class Translator:
                 number = int(key) + 1
                 value = translated.get(key)
                 if isinstance(value, str):
+                    try:
+                        if value.strip():
+                            value = strip_reasoning(value, source_text=requested[key])
+                    except ValueError:
+                        failures[key] = (
+                            "invalid_response_envelope",
+                            f"结构修复片段 {number} 未返回完整译文",
+                        )
+                        continue
                     value = normalize_generated_prose(value)
                 if key not in translated:
                     failures[key] = ("missing", f"结构修复片段 {number} 未返回")
