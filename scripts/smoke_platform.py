@@ -358,9 +358,12 @@ $b$ & 2 \\
             with zipfile.ZipFile(font_paper["files"]["source"]) as exported:
                 assert b"LibertinusMath-Regular.otf" in exported.read("font-proof.cls")
                 assert b"\\IfPackageLoadedTF{unicode-math}" in exported.read("main.tex")
+                exported_main = (
+                    exported.read("main.tex").decode("utf-8").replace("\r\n", "\n")
+                )
                 assert (
-                    b"\\begin{ExampleCode}\n\\usepackage{amssymb}\n\\end{ExampleCode}"
-                    in exported.read("main.tex")
+                    "\\begin{ExampleCode}\n\\usepackage{amssymb}\n\\end{ExampleCode}"
+                    in exported_main
                 )
             pages.append(len(font_pdf.pages))
             for completed in result["results"]:
