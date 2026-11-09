@@ -1,4 +1,6 @@
 {
+  "模型拒绝请求（HTTP {status}），请检查模型设置{detail}": "The provider rejected the request (HTTP {status}); check your model settings{detail}",
+  "请使用官方 Chat Completions 兼容地址：{url}": "Use the official Chat Completions compatibility URL: {url}",
   "正在识别主文件": "Detecting main file",
   "收起详情": "Collapse details",
   "获取源码": "Fetch source",

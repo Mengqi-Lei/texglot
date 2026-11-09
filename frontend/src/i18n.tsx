@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import en from "./en.json";
+import { providerErrorMessage } from "./providers";
 export type Locale = "zh" | "en";
 const key = "texglot-ui-locale";
 export function savedLocale(): Locale {
@@ -26,6 +27,10 @@ export function translate(
   text: string,
   values: Record<string, string | number> = {},
 ): string {
+  if (locale === "en" && !(text in en)) {
+    const error = providerErrorMessage(text);
+    if (error) return translate(locale, error.key, error.values);
+  }
   let value =
     locale === "en" ? ((en as Record<string, string>)[text] ?? text) : text;
   if (locale === "en" && values.count === 1)

@@ -9,6 +9,7 @@ import ssl
 import time
 from email.utils import parsedate_to_datetime
 from functools import lru_cache
+from urllib.parse import urlsplit
 
 import httpx
 from opencc import OpenCC
@@ -22,7 +23,7 @@ from .latex import (
     validate_generated_prose,
 )
 from .paper_context import limit_context
-from .providers import provider_for_url
+from .providers import official_chat_api, provider_for_url
 
 # Bump for global translation/context changes. Mask changes invalidate affected
 # Segment keys; recovery improvements apply to new/uncached work and preserve
@@ -283,11 +284,65 @@ def redact(text: str, key="") -> str:
     return re.sub(r"sk-[A-Za-z0-9._-]+", "[密钥已隐藏]", text)
 
 
+def _api_error(response: httpx.Response) -> dict:
+    """Use structured provider errors, never raw proxy HTML or request dumps."""
+    if len(response.content) > 65536:
+        return {}
+    try:
+        payload = response.json()
+    except ValueError:
+        return {}
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if isinstance(error, str):
+        return {"message": error}
+    if not isinstance(error, dict):
+        return {}
+    return {
+        field: error[field]
+        for field in ("message", "param", "code", "type")
+        if isinstance(error.get(field), str)
+    }
+
+
+def _default_temperature_required(error: dict) -> bool:
+    message = error.get("message", "").lower()
+    if error.get("param") == "temperature" and error.get("code") in {
+        "unsupported_parameter",
+        "unsupported_value",
+    }:
+        return True
+    # Anthropic's compatibility layer uses invalid_request_error without param.
+    # Require an explicit parameter restriction, not a general request failure.
+    return error.get("type") == "invalid_request_error" and bool(
+        re.search(
+            r"\btemperature\b.{0,100}(?:not supported|not allowed|unsupported|"
+            r"only\b.{0,60}\b(?:default|1)\b|must (?:be|equal)\b.{0,40}\b1\b)"
+            r"|(?:does not support|unsupported)\s+(?:the\s+)?[\"']?temperature\b"
+            r"|only supports?\s+temperature\s*(?:=|of|:)\s*1\b",
+            message,
+        )
+    )
+
+
+def _api_error_detail(error: dict, key: str) -> str:
+    detail = error.get("message", "")
+    if not detail:
+        return ""
+    # Redact before truncation so even a key straddling the limit stays private.
+    detail = redact(detail, key)
+    detail = re.sub(
+        r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [密钥已隐藏]", detail
+    )
+    detail = " ".join(detail.split())
+    return detail[:500] + ("…" if len(detail) > 500 else "")
+
+
 class Translator:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.tokens = 0
         self.requests = 0
+        self._omit_temperature = False
         self.client = httpx.AsyncClient(
             timeout=httpx.Timeout(settings.timeout, connect=20)
         )
@@ -312,6 +367,16 @@ class Translator:
             "stream": False,
         }
         provider = provider_for_url(s.base_url)
+        official = official_chat_api(s.base_url)
+        if official and urlsplit(s.base_url).path != "/v1":
+            raise ProviderError(
+                "请使用官方 Chat Completions 兼容地址："
+                f"https://{urlsplit(s.base_url).hostname}/v1"
+            )
+        if official == "openai":
+            body["max_completion_tokens"] = body.pop("max_tokens")
+        if self._omit_temperature:
+            body.pop("temperature", None)
         if provider == "deepseek":
             body["thinking"] = {"type": "disabled"}
         elif provider == "qwen" and s.model.lower().startswith("qwen"):
@@ -349,7 +414,22 @@ class Translator:
                         f"模型服务暂时不可用（HTTP {code}），可稍后继续任务"
                     )
                 if code >= 400:
-                    raise ProviderError(f"模型拒绝请求（HTTP {code}），请检查模型设置")
+                    error = _api_error(response)
+                    if (
+                        code == 400
+                        and official
+                        and "temperature" in body
+                        and _default_temperature_required(error)
+                        and attempt < 2
+                    ):
+                        # Keep the token budget and every other request field.
+                        # Reuse this capability for later paragraphs in this job.
+                        body.pop("temperature")
+                        self._omit_temperature = True
+                        continue
+                    detail = _api_error_detail(error, s.api_key)
+                    message = f"模型拒绝请求（HTTP {code}），请检查模型设置"
+                    raise ProviderError(message + (f"：{detail}" if detail else ""))
                 data = response.json()
                 if not isinstance(data, dict):
                     raise TypeError("Completion must be an object")

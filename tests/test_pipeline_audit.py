@@ -131,6 +131,24 @@ def translator(monkeypatch):
     return ControlledTranslator
 
 
+async def test_split_preamble_reaches_completion_and_reuses_translation_cache(
+    pipeline, translator
+):
+    manager, job, folder, settings, _ = pipeline
+    main = folder / "source/main.tex"
+    main.write_text(
+        main.read_text().replace(r"\documentclass{article}", r"\input{preamble}")
+    )
+    (folder / "source/preamble.tex").write_text(r"\documentclass{article}")
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and job["main"] == "main.tex"
+    assert "preamble.tex" in job["source_files"]
+    calls = len(translator.calls)
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and job["cached"] == 3
+    assert len(translator.calls) == calls
+
+
 @pytest.mark.parametrize("limit", [3, 12])
 async def test_paragraph_concurrency_is_bounded_and_the_queue_drains(
     pipeline, translator, monkeypatch, limit

@@ -417,18 +417,112 @@ def retry_delay(value: str | None, fallback: float) -> float:
     return max(fallback, seconds)
 
 
+def _main_file_parts(text: str, literals: frozenset[str]) -> tuple[str, str | None]:
+    """Inspect executable declarations before a file's own document boundary.
+
+    This is a bounded static check, not a TeX interpreter. Macro definitions,
+    literal examples, explicit false branches and text after endinput are not
+    evidence of a document entry. Unknown conditionals retain both alternatives.
+    """
+    from .latex import COMMAND, MACRO_DEFINITIONS, definition_end, skip_tex_space
+
+    visible = visible_tex(text, literal_environments=literals)
+    chunks, cursor = [], 0
+    branches = []
+    active = True
+    for command in COMMAND.finditer(visible):
+        if command.start() < cursor:
+            continue
+        chunks.append(visible[cursor : command.start()])
+        name = command[0][1:].rstrip("*")
+        cursor = command.end()
+        if name in MACRO_DEFINITIONS:
+            cursor = definition_end(visible, cursor, name)
+            continue
+        if name == "newif":
+            flag = COMMAND.match(visible, skip_tex_space(visible, cursor))
+            if flag:
+                cursor = flag.end()
+            continue
+        if name.startswith("if"):
+            condition = {"iftrue": True, "iffalse": False}.get(name)
+            branches.append((active, condition))
+            active = active and condition is not False
+            continue
+        if name == "else" and branches:
+            parent, condition = branches[-1]
+            active = parent and condition is not True
+            continue
+        if name == "fi" and branches:
+            active, _ = branches.pop()
+            continue
+        if not active:
+            continue
+        if name == "endinput":
+            return "".join(chunks), None
+        if name == "begin":
+            boundary = re.match(r"\s*\{\s*document\s*\}", visible[cursor:])
+            if boundary:
+                return "".join(chunks), visible[cursor + boundary.end() :]
+        chunks.append(command[0])
+    chunks.append(visible[cursor:])
+    return "".join(chunks), None
+
+
 def find_main(root: Path, selected: str = "") -> tuple[str, list[str]]:
+    from .latex import COMMAND, input_references
+
+    root = root.resolve()
+    sources = {}
+    for path in sorted(root.rglob("*")):
+        if (
+            path.suffix.lower() in TEX_SOURCE_SUFFIXES
+            and not path.is_symlink()
+            and path.resolve().is_relative_to(root)
+            and path.is_file()
+        ):
+            sources[path] = path.read_text(encoding="utf-8")
+    literals = collect_literal_environments("\n".join(sources.values()))
+    parts = {path: _main_file_parts(text, literals) for path, text in sources.items()}
+    declaration = re.compile(
+        r"\\(?:documentclass|documentstyle)\s*(?:\[[^\]]*\]\s*)?\{[^{}]+\}"
+    )
+
+    def has_class(path: Path, main: Path, seen: set[Path], depth=0):
+        if path in seen or depth > 64:
+            return False
+        seen.add(path)
+        prefix, body = parts[path]
+        # An included complete document is not a preamble for another entry.
+        if path != main and body is not None:
+            return False
+        if any(
+            declaration.match(prefix, token.start())
+            for token in COMMAND.finditer(prefix)
+        ):
+            return True
+        for name, opaque in input_references(prefix, literal_environments=literals):
+            if opaque:
+                continue
+            filename = Path(name)
+            if filename.is_absolute():
+                continue
+            if not filename.suffix:
+                filename = filename.with_suffix(".tex")
+            for base in (main.parent, path.parent, root):
+                target = (base / filename).resolve()
+                if target.is_relative_to(root) and target in parts:
+                    if has_class(target, main, seen, depth + 1):
+                        return True
+                    break
+        return False
+
     candidates = []
     bodies = {}
-    for p in sorted(root.rglob("*.tex")):
-        text = visible_tex(p.read_text(encoding="utf-8"))
-        if re.search(r"\\(?:documentclass|documentstyle)\b", text) and re.search(
-            r"\\begin\s*\{document\}", text
-        ):
+    for p, (_, body) in parts.items():
+        if p.suffix == ".tex" and body is not None and has_class(p, p, set()):
             candidates.append(p.relative_to(root).as_posix())
-            bodies[p.relative_to(root).as_posix()] = text.split(r"\begin{document}", 1)[
-                -1
-            ]
+            bodies[p.relative_to(root).as_posix()] = body
     if not candidates:
         raise ValueError("未找到包含 documentclass 和 begin{document} 的主文件")
     if selected:

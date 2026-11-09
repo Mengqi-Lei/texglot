@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.6 — 2026-11-10
+
+- Support official OpenAI and Claude Chat Completions endpoints: normalize base URLs, preserve saved connections, use OpenAI's current output-token parameter, and retry explicit temperature restrictions with the model default. Show bounded, redacted provider error details. / 适配官方 OpenAI 与 Claude 的 Chat Completions 接口：规范地址并保留已保存连接，使用 OpenAI 当前的输出长度参数，对明确的温度限制按模型默认值有限重试，并显示经过脱敏和长度限制的具体错误原因。
+- Detect document classes in referenced preamble files, including PanoNav (arXiv 2511.06840), while excluding code examples, unused definitions and out-of-project references. / 支持从被引用的导言文件识别文档声明，修复 PanoNav（arXiv 2511.06840）等工程的主文件识别失败；排除代码示例、未执行宏定义及工程外引用。
+
+[Release notes](docs/releases/v1.2.6.md) · [中文版本说明](docs/releases/v1.2.6_CN.md)
+
 ## 1.2.5 — 2026-11-05
 
 - Strip explicit leading reasoning/answer envelopes from LLM responses while preserving authored tags, JSON string contents and slot-boundary whitespace. Retry incomplete answers and persist validated cleanup of older LLM caches. / 清理 LLM 响应中明确的前置推理及答案封装，保留原文标签、JSON 字符串内容与分段边界空格；不完整回答进入有限重试，旧 LLM 缓存清理并校验后写回。

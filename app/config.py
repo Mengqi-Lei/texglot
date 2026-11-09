@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from .providers import PROVIDERS, provider_for_url
+from .providers import PROVIDERS, normalize_official_chat_url, provider_for_url
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE_CHECKOUT = (ROOT / "pyproject.toml").is_file() and (ROOT / "frontend").is_dir()
@@ -56,7 +56,7 @@ class Settings(BaseModel):
             if u.path.rstrip("/") not in ("", "/v2", "/v2/translate"):
                 raise ValueError("DeepL 请使用官方 HTTPS API 地址")
             return f"https://{u.hostname.lower()}"
-        return value.removesuffix("/chat/completions")
+        return normalize_official_chat_url(value).removesuffix("/chat/completions")
 
     @field_validator("model")
     @classmethod
@@ -137,7 +137,16 @@ def public_settings(settings: Settings) -> dict:
 
 def load_connections() -> dict:
     path = CONFIG.with_name("connections.json")
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    # Older settings can store the official host without /v1. Preserve its key
+    # when switching providers after endpoint normalization; never cross hosts.
+    return {
+        normalize_official_chat_url(url): {
+            **connection,
+            "base_url": normalize_official_chat_url(connection["base_url"]),
+        }
+        for url, connection in saved.items()
+    }
 
 
 def provider_options() -> list[dict]:

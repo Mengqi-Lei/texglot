@@ -33,6 +33,24 @@ export function providerId(url: string): ProviderId {
 }
 
 export function normalizedEndpoint(url: string) {
+  try {
+    const parsed = new URL(url.trim());
+    if (
+      parsed.protocol === "https:" &&
+      !parsed.port &&
+      !parsed.username &&
+      !parsed.password &&
+      !parsed.search &&
+      !parsed.hash &&
+      ["api.openai.com", "api.anthropic.com"].includes(parsed.hostname) &&
+      ["", "/v1", "/chat/completions", "/v1/chat/completions"].includes(
+        parsed.pathname.replace(/\/+$/, ""),
+      )
+    )
+      return `${parsed.origin}/v1`;
+  } catch {
+    /* Preserve incomplete input. */
+  }
   if (providerId(url.trim()) === "deepl") {
     try {
       const parsed = new URL(url.trim());
@@ -50,4 +68,28 @@ export function normalizedEndpoint(url: string) {
     .trim()
     .replace(/\/+$/, "")
     .replace(/\/chat\/completions$/, "");
+}
+
+export function providerErrorMessage(
+  text: string,
+): { key: string; values: Record<string, string> } | undefined {
+  const rejected = text.match(
+    /^模型拒绝请求（HTTP (\d{3})），请检查模型设置(?:：([\s\S]*))?$/,
+  );
+  if (rejected)
+    return {
+      key: "模型拒绝请求（HTTP {status}），请检查模型设置{detail}",
+      values: {
+        status: rejected[1],
+        detail: rejected[2] ? `: ${rejected[2]}` : "",
+      },
+    };
+  const endpoint = text.match(
+    /^请使用官方 Chat Completions 兼容地址：(https:\/\/\S+)$/,
+  );
+  if (endpoint)
+    return {
+      key: "请使用官方 Chat Completions 兼容地址：{url}",
+      values: { url: endpoint[1] },
+    };
 }

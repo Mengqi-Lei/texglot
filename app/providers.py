@@ -35,6 +35,40 @@ PROVIDERS = {
 }
 
 
+def official_chat_api(url: str) -> str:
+    """Recognize direct official endpoints without changing the saved UI preset.
+
+    Third-party gateways (including lookalike hosts and nonstandard ports) keep
+    their own Chat Completions contract, regardless of the configured model name.
+    """
+    parsed = urlsplit(url)
+    if (
+        parsed.scheme != "https"
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+        or parsed.port not in (None, 443)
+    ):
+        return ""
+    return {
+        "api.openai.com": "openai",
+        "api.anthropic.com": "anthropic",
+    }.get((parsed.hostname or "").lower(), "")
+
+
+def normalize_official_chat_url(url: str) -> str:
+    parsed = urlsplit(url)
+    if official_chat_api(url) and parsed.path.rstrip("/") in (
+        "",
+        "/v1",
+        "/chat/completions",
+        "/v1/chat/completions",
+    ):
+        return f"https://{parsed.hostname.lower()}/v1"
+    return url
+
+
 def provider_for_url(url: str) -> str:
     host = (urlsplit(url).hostname or "").lower()
     if host in {"api.deepl.com", "api-free.deepl.com"}:
