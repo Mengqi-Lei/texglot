@@ -24,6 +24,7 @@ class Settings(BaseModel):
     base_url: str = "https://api.deepseek.com"
     model: str = PROVIDERS["deepseek"]["model"]
     api_key: str = ""
+    extra_headers: dict[str, str] = Field(default_factory=dict)
     target_language: str = "简体中文"
     context_guidance: bool = True
     concurrency: int = Field(default=3, ge=1, le=12)
@@ -64,6 +65,29 @@ class Settings(BaseModel):
         if not value.strip() or len(value) > 200:
             raise ValueError("请输入模型名称")
         return value.strip()
+
+    @field_validator("extra_headers")
+    @classmethod
+    def validate_extra_headers(cls, value):
+        if not isinstance(value, dict):
+            raise ValueError("额外请求头必须是键值对")
+        if len(value) > 20:
+            raise ValueError("额外请求头最多 20 条")
+        blocked = {"authorization", "host", "content-length", "content-type"}
+        clean: dict[str, str] = {}
+        for name, raw in value.items():
+            name = str(name).strip()
+            text = str(raw).strip()
+            if not name:
+                continue
+            if not re.fullmatch(r"[A-Za-z0-9!#$%&'*+.^_`|~-]+", name):
+                raise ValueError(f"无效的请求头名称：{name}")
+            if name.lower() in blocked:
+                raise ValueError(f"不能自定义 {name}（由 TeXGlot 管理）")
+            if len(text) > 4000 or "\r" in text or "\n" in text:
+                raise ValueError(f"无效的请求头值：{name}")
+            clean[name] = text
+        return clean
 
     @field_validator("deepl_source_language")
     @classmethod
@@ -194,7 +218,12 @@ def merge_settings(old_settings: Settings, values: dict) -> Settings:
             old["api_key"] = load_connections().get(new_url, {}).get("api_key", "")
     if values.pop("clear_api_key", False):
         old["api_key"] = ""
-    return Settings(**(old | values))
+    merged = old | values
+    if "extra_headers" not in values:
+        # Custom headers usually belong to one gateway; never carry them to another host.
+        if Settings(base_url=merged["base_url"]).base_url != old["base_url"]:
+            merged["extra_headers"] = {}
+    return Settings(**merged)
 
 
 def save_settings(values: dict) -> Settings:

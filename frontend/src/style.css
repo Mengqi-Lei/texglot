@@ -1171,6 +1171,9 @@ h1 {
   margin-top: 8px;
   line-height: 1.6;
 }
+.field small.field-error {
+  color: #b44636;
+}
 .inline-note {
   color: #86868b;
   font-weight: 400;

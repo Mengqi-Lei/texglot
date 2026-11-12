@@ -287,5 +287,8 @@
   "已使用字符（估算）": "Characters used (estimated)",
   "密钥只保存至本机服务，不会写入前端或导出文件。翻译段落会发送至你选择的翻译服务。": "Your key is stored by the local service, never returned to the browser or included in exports. Translation text is sent to your chosen service.",
   "连接翻译服务后，即可开始翻译。": "Connect a translation service to get started.",
-  "翻译设置已保存": "Translation settings saved"
+  "翻译设置已保存": "Translation settings saved",
+  "额外请求头": "Extra request headers",
+  "随每次模型请求发送，换服务地址时清空。": "Sent with every model request; cleared when the base URL changes.",
+  "请求头必须是 JSON 对象，例如 {\"x-org-id\": \"org_...\"}": "Headers must be a JSON object, e.g. {\"x-org-id\": \"org_...\"}"
 }

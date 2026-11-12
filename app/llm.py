@@ -384,6 +384,7 @@ class Translator:
         if json_output and provider in ("deepseek", "qwen"):
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {s.api_key}"} if s.api_key else {}
+        headers.update(s.extra_headers)
         for attempt in range(3):
             try:
                 self.requests += 1

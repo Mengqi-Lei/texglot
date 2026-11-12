@@ -30,6 +30,29 @@ const providerIcons: Partial<Record<ProviderId, string>> = {
   deepl: deeplIcon,
 };
 
+const headersToText = (headers: Record<string, string> | undefined) =>
+  JSON.stringify(headers ?? {}, null, 2);
+
+// Accepts a JSON object of string values; returns null when the text is not valid.
+const parseHeaders = (text: string): Record<string, string> | null => {
+  if (!text.trim()) return {};
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const out: Record<string, string> = {};
+  for (const [name, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof raw === "string") out[name] = raw;
+    else if (typeof raw === "number" || typeof raw === "boolean")
+      out[name] = String(raw);
+    else return null;
+  }
+  return out;
+};
+
 export default function Settings({
   value,
   closing,
@@ -50,6 +73,10 @@ export default function Settings({
     [busy, setBusy] = useState(""),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
+  const [headersText, setHeadersText] = useState(() =>
+      headersToText(value.extra_headers),
+    ),
+    [headersInvalid, setHeadersInvalid] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>(
     providerId(value.base_url),
@@ -66,18 +93,20 @@ export default function Settings({
         p.has_api_key &&
         normalizedEndpoint(p.base_url) === normalizedEndpoint(form.base_url),
     );
-  const ready = !!form.base_url.trim() && (isDeepL || !!form.model.trim());
+  const ready =
+    !!form.base_url.trim() && (isDeepL || !!form.model.trim()) && !headersInvalid;
   const chooseProvider = (next: Provider) => {
     if (next.id === selectedProvider) return;
     drafts.current[selectedProvider] = form;
-    setForm(
-      drafts.current[next.id] ?? {
-        ...form,
-        base_url: next.base_url,
-        model: next.model,
-        api_key: "",
-      },
-    );
+    const nextForm = drafts.current[next.id] ?? {
+      ...form,
+      base_url: next.base_url,
+      model: next.model,
+      api_key: "",
+    };
+    setForm(nextForm);
+    setHeadersText(headersToText(nextForm.extra_headers));
+    setHeadersInvalid(false);
     setSelectedProvider(next.id);
     setMessage("");
     setError("");
@@ -99,10 +128,22 @@ export default function Settings({
     setForm((f) => ({
       ...f,
       [key]: v,
-      ...(key === "base_url" ? { api_key: "" } : {}),
+      ...(key === "base_url" ? { api_key: "", extra_headers: {} } : {}),
     }));
+    if (key === "base_url") {
+      setHeadersText("{}");
+      setHeadersInvalid(false);
+    }
     setMessage("");
     setError("");
+  };
+  const setHeaders = (text: string) => {
+    setHeadersText(text);
+    setMessage("");
+    setError("");
+    const parsed = parseHeaders(text);
+    setHeadersInvalid(!parsed);
+    if (parsed) setForm((f) => ({ ...f, extra_headers: parsed }));
   };
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
@@ -406,6 +447,24 @@ export default function Settings({
               </small>
             </label>
           )}
+          <label className="field">
+            {t("额外请求头")} <span className="inline-note">{t("可选")}</span>
+            <textarea
+              rows={4}
+              value={headersText}
+              onChange={(e) => setHeaders(e.target.value)}
+              spellCheck={false}
+              autoComplete="off"
+              placeholder={'{\n  "x-org-id": "org_..."\n}'}
+            />
+            {headersInvalid ? (
+              <small role="alert" className="field-error">
+                {t('请求头必须是 JSON 对象，例如 {"x-org-id": "org-..."}')}
+              </small>
+            ) : (
+              <small>{t("随每次模型请求发送，换服务地址时清空。")}</small>
+            )}
+          </label>
           <details className="advanced">
             <summary>
               {t("高级设置")}

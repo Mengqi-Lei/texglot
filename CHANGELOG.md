@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Support custom HTTP headers on model requests, configurable in Translation settings or through `extra_headers`, so gateway endpoints that require extra auth headers (such as `x-org-id`) work without a local proxy. Header names and values are validated, TeXGlot-managed headers cannot be overridden, and headers are cleared when the base URL changes. / 支持为模型请求自定义 HTTP 头，可在翻译设置或 `extra_headers` 中配置，让需要额外鉴权头（如 `x-org-id`）的网关无需本地代理即可使用；请求头名称与取值经过校验、不能覆盖 TeXGlot 管理的头，并在更换服务地址时清空。
+
 ## 1.2.6 — 2026-11-10
 
 - Support official OpenAI and Claude Chat Completions endpoints: normalize base URLs, preserve saved connections, use OpenAI's current output-token parameter, and retry explicit temperature restrictions with the model default. Show bounded, redacted provider error details. / 适配官方 OpenAI 与 Claude 的 Chat Completions 接口：规范地址并保留已保存连接，使用 OpenAI 当前的输出长度参数，对明确的温度限制按模型默认值有限重试，并显示经过脱敏和长度限制的具体错误原因。

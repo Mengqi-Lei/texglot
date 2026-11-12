@@ -4,6 +4,7 @@ export type Settings = {
   model: string;
   api_key?: string;
   has_api_key?: boolean;
+  extra_headers?: Record<string, string>;
   target_language: string;
   context_guidance: boolean;
   concurrency: number;
@@ -70,6 +71,7 @@ export const statusNames: Record<string, string> = {
 export const defaults: Settings = {
   base_url: "https://api.deepseek.com",
   model: "deepseek-flash",
+  extra_headers: {},
   target_language: "简体中文",
   context_guidance: true,
   concurrency: 3,
