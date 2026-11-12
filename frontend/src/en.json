@@ -1,4 +1,5 @@
 {
+  "API 认证失败，请检查 key、额外请求头和模型权限": "API authentication failed. Check the key, extra headers and model permissions",
   "模型拒绝请求（HTTP {status}），请检查模型设置{detail}": "The provider rejected the request (HTTP {status}); check your model settings{detail}",
   "请使用官方 Chat Completions 兼容地址：{url}": "Use the official Chat Completions compatibility URL: {url}",
   "正在识别主文件": "Detecting main file",
@@ -287,5 +288,23 @@
   "已使用字符（估算）": "Characters used (estimated)",
   "密钥只保存至本机服务，不会写入前端或导出文件。翻译段落会发送至你选择的翻译服务。": "Your key is stored by the local service, never returned to the browser or included in exports. Translation text is sent to your chosen service.",
   "连接翻译服务后，即可开始翻译。": "Connect a translation service to get started.",
-  "翻译设置已保存": "Translation settings saved"
+  "翻译设置已保存": "Translation settings saved",
+  "额外请求头必须是名称和值均为字符串的 JSON 对象": "Extra headers must be a JSON object with string names and values",
+  "额外请求头最多 16 项": "Use at most 16 extra headers",
+  "请求头名称无效，须为 HTTP token 且不超过 128 个字符": "Header names must be valid HTTP tokens of at most 128 characters",
+  "不能覆盖 Authorization、Host、Content-Type 或传输控制请求头": "Authorization, Host, Content-Type and transport headers cannot be overridden",
+  "请求头名称不能重复（不区分大小写）": "Header names must be unique (case-insensitive)",
+  "单个请求头的值不能超过 4096 个字符": "Each header value is limited to 4096 characters",
+  "请求头值不能包含换行、控制字符或非 ASCII 字符": "Header values cannot contain line breaks, control characters or non-ASCII characters",
+  "额外请求头总大小不能超过 16 KiB": "Extra headers must total no more than 16 KiB",
+  "请求头 JSON 文本不能超过 64 KiB": "Header JSON text is limited to 64 KiB",
+  "请输入有效的请求头 JSON 对象": "Enter a valid JSON object for extra headers",
+  "额外请求头（JSON）": "Extra headers (JSON)",
+  "已保存 {count} 项": "{count} saved",
+  "已保存的名称：{names}": "Saved names: {names}",
+  "填写 JSON 对象以替换整组请求头；不编辑则保留已保存值。手动更换服务地址会清空输入。": "Enter a JSON object to replace all saved headers, or leave untouched to keep them. Editing the service URL clears this input.",
+  "保存后将清除额外请求头": "Saving will remove the extra headers",
+  "已保存的值不会回显。最多 16 项，仅用于模型请求。": "Saved values are never shown. Up to 16 headers, used only for model requests.",
+  "清除请求头": "Clear headers",
+  "取消修改": "Discard changes"
 }

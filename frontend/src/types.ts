@@ -4,6 +4,7 @@ export type Settings = {
   model: string;
   api_key?: string;
   has_api_key?: boolean;
+  extra_header_names?: string[];
   target_language: string;
   context_guidance: boolean;
   concurrency: number;

@@ -49,6 +49,43 @@ async def test_zotero_health_and_capabilities_are_explicit(monkeypatch, tmp_path
     assert capabilities.json()["capabilities"]["pdf_reflow"] is False
 
 
+async def test_zotero_request_replays_after_gateway_credentials_are_added(
+    monkeypatch, tmp_path
+):
+    from app.config import save_settings
+
+    manager, starts = _manager(tmp_path, monkeypatch)
+    save_settings(
+        {
+            "base_url": "https://gateway.example/v1",
+            "model": "test-model",
+            "clear_api_key": True,
+        }
+    )
+    body = {
+        "source": {"type": "arxiv", "id": "2401.12345v2"},
+        "target_language": "简体中文",
+        "context_guidance": False,
+        "client": {"name": "zotero", "item_key": "ABCD1234"},
+    }
+    async with await _client() as client:
+        first = await client.post(
+            "/api/integrations/zotero/jobs",
+            headers={"Idempotency-Key": "same-paper"},
+            json=body,
+        )
+        assert first.status_code == 202
+        save_settings({"extra_headers": {"x-org-id": "private-gateway-token"}})
+        replay = await client.post(
+            "/api/integrations/zotero/jobs",
+            headers={"Idempotency-Key": "same-paper"},
+            json=body,
+        )
+        assert replay.status_code == 200 and replay.json()["id"] == first.json()["id"]
+        assert len(manager.jobs) == 1 and len(starts) == 1
+        assert "private-gateway-token" not in json.dumps(replay.json())
+
+
 async def test_zotero_arxiv_requires_version_and_replays_idempotently(
     monkeypatch, tmp_path
 ):

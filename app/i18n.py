@@ -3,6 +3,15 @@
 import re
 
 MESSAGES = {
+    "API 认证失败，请检查 key、额外请求头和模型权限": "API authentication failed. Check the key, extra headers and model permissions",
+    "额外请求头必须是名称和值均为字符串的 JSON 对象": "Extra headers must be a JSON object with string names and values",
+    "额外请求头最多 16 项": "Use at most 16 extra headers",
+    "请求头名称无效，须为 HTTP token 且不超过 128 个字符": "Header names must be valid HTTP tokens of at most 128 characters",
+    "不能覆盖 Authorization、Host、Content-Type 或传输控制请求头": "Authorization, Host, Content-Type and transport headers cannot be overridden",
+    "请求头名称不能重复（不区分大小写）": "Header names must be unique (case-insensitive)",
+    "单个请求头的值不能超过 4096 个字符": "Each header value is limited to 4096 characters",
+    "请求头值不能包含换行、控制字符或非 ASCII 字符": "Header values cannot contain line breaks, control characters or non-ASCII characters",
+    "额外请求头总大小不能超过 16 KiB": "Extra headers must total no more than 16 KiB",
     "模型响应中的推理或答案标记不完整，请仅返回最终译文": "Incomplete reasoning or answer delimiters; return only the final translation",
     "minted 需要外部命令执行，但当前编译已禁用此功能；请提供完整冻结缓存或改用 listings，并查看下方报错位置": "minted requires external command execution, which is disabled. Provide a complete frozen cache or use listings; see the source location below",
     "DeepL 请使用官方 HTTPS API 地址": "Use an official DeepL HTTPS API endpoint",

@@ -5,11 +5,7 @@
     "outDir": "../tmp/reader-tests",
     "strict": true,
     "skipLibCheck": true,
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
   "include": [
     "src/readerGeometry.ts",
@@ -19,6 +15,7 @@
     "src/readerZoom.ts",
     "src/searchRanges.ts",
     "src/providers.ts",
+    "src/requestHeaders.ts",
     "src/jobDeepLink.ts"
   ]
 }

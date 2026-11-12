@@ -175,7 +175,7 @@ async def zotero_resolve_source(data: ZoteroResolveRequest):
 
 @app.get("/api/settings")
 def settings_get():
-    return public_settings(load_settings())
+    return public_settings(load_settings(), connection_status=True)
 
 
 @app.get("/api/providers")
@@ -187,7 +187,7 @@ def providers_get():
 async def settings_put(request: Request):
     values = await request.json()
     try:
-        return public_settings(save_settings(values))
+        return public_settings(save_settings(values), connection_status=True)
     except ValidationError as exc:
         raise HTTPException(400, "; ".join(e["msg"] for e in exc.errors())) from None
     except ValueError as exc:

@@ -495,6 +495,8 @@ export default function App() {
       j.name.toLowerCase().includes(search.toLowerCase()),
   );
   const compilerReady = health && Object.values(health.compilers).some(Boolean);
+  const credentialsConfigured =
+    !!settings.has_api_key || !!settings.extra_header_names?.length;
   if (reader)
     return (
       <Suspense
@@ -773,13 +775,13 @@ export default function App() {
                 </button>
                 <span>{t("文件与任务保存在本机")}</span>
               </div>
-              {(!compilerReady || !settings.has_api_key) && health && (
+              {(!compilerReady || !credentialsConfigured) && health && (
                 <div className="setup-hint">
                   <Settings2 size={16} />
                   <span>
                     {!compilerReady
                       ? t("还需要安装编译器。macOS：brew install tectonic")
-                      : !settings.has_api_key
+                      : !credentialsConfigured
                         ? t("连接翻译服务后，即可开始翻译。")
                         : ""}
                   </span>

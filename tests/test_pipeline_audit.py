@@ -149,6 +149,139 @@ async def test_split_preamble_reaches_completion_and_reuses_translation_cache(
     assert len(translator.calls) == calls
 
 
+@pytest.mark.parametrize("native", [False, True])
+async def test_gateway_headers_reach_translation_but_not_jobs_exports_or_cache_keys(
+    pipeline, monkeypatch, native
+):
+    manager, job, folder, settings, _ = pipeline
+    if native:
+        from app.compiler import compile_pdf, find_compiler
+
+        if not find_compiler("tectonic"):
+            pytest.skip("Optional native Tectonic not installed")
+        monkeypatch.setattr(jobs, "compile_pdf", compile_pdf)
+        settings.target_language = job["language"] = "简体中文"
+    settings.base_url = "https://gateway.example/v1"
+    settings.extra_headers = {"x-org-id": "gateway-private-value"}
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        assert request.headers["x-org-id"] == "gateway-private-value"
+        assert b"gateway-private-value" not in request.content
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": "经过验证的科学结果。"
+                            if native
+                            else "A valid scientific result."
+                        }
+                    }
+                ]
+            },
+        )
+
+    class GatewayTranslator(Translator):
+        def __init__(self, config):
+            super().__init__(config)
+            self.original = self.client
+            self.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+        async def close(self):
+            await super().close()
+            await self.original.aclose()
+
+    monkeypatch.setattr(jobs, "Translator", GatewayTranslator)
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and len(calls) == 3
+    assert (
+        "extra_headers" not in job["config"]
+        and "extra_header_names" not in job["config"]
+    )
+    assert "gateway-private-value" not in json.dumps(job)
+    if native:
+        text = "".join(
+            page.extract_text()
+            for page in PdfReader(folder / job["artifacts"]["translated"]).pages
+        )
+        assert "经过验证" in text.replace(" ", "")
+    with zipfile.ZipFile(folder / job["artifacts"]["source"]) as archive:
+        assert all(
+            b"gateway-private-value" not in archive.read(name)
+            for name in archive.namelist()
+        )
+    cache_files = list(folder.glob("cache-*.json"))
+    assert (
+        len(cache_files) == 1
+        and "gateway-private-value" not in cache_files[0].read_text()
+    )
+    settings.extra_headers = {"x-org-id": "new-private-value"}
+    await manager.pipeline(job, settings)
+    assert job["status"] == "completed" and job["cached"] == 3
+    assert len(calls) == 3 and list(folder.glob("cache-*.json")) == cache_files
+
+
+async def test_gateway_errors_cannot_persist_credentials_in_job_logs(
+    pipeline, monkeypatch
+):
+    manager, job, folder, settings, _ = pipeline
+    settings.extra_headers = {"x-session": "gateway-private-value"}
+
+    async def broken_pipeline(_job, _settings):
+        raise ValueError("diagnostic echo: gateway-private-value")
+
+    monkeypatch.setattr(manager, "pipeline", broken_pipeline)
+    await manager.run(job["id"])
+    assert job["status"] == "failed" and "密钥已隐藏" in job["error"]
+    assert "gateway-private-value" not in (folder / "job.json").read_text()
+
+
+async def test_gateway_credential_rotation_resumes_only_uncached_paragraphs(
+    pipeline, monkeypatch
+):
+    manager, job, folder, settings, _ = pipeline
+    settings.extra_headers = {"x-session": "old-test-session"}
+    calls = []
+
+    def handler(request):
+        token = request.headers["x-session"]
+        calls.append(token)
+        if token == "old-test-session" and len(calls) > 1:
+            return httpx.Response(
+                401, json={"error": {"message": "expired old-test-session"}}
+            )
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "A valid scientific result."}}]},
+        )
+
+    class GatewayTranslator(Translator):
+        def __init__(self, config):
+            super().__init__(config)
+            self.original = self.client
+            self.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+        async def close(self):
+            await super().close()
+            await self.original.aclose()
+
+    monkeypatch.setattr(jobs, "Translator", GatewayTranslator)
+    await manager.run(job["id"])
+    assert job["status"] == "failed"
+    assert "额外请求头" in job["error"] and "old-test-session" not in job["error"]
+    cache = next(folder.glob("cache-*.json"))
+    assert len(json.loads(cache.read_text())) == 1
+    previous = len(calls)
+    settings.extra_headers = {"x-session": "new-test-session"}
+    await manager.run(job["id"])
+    assert job["status"] == "completed" and job["cached"] == 1
+    assert calls[previous:] == ["new-test-session", "new-test-session"]
+    assert len(list(folder.glob("cache-*.json"))) == 1
+
+
 @pytest.mark.parametrize("limit", [3, 12])
 async def test_paragraph_concurrency_is_bounded_and_the_queue_drains(
     pipeline, translator, monkeypatch, limit

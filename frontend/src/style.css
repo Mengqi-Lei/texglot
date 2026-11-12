@@ -1217,6 +1217,29 @@ h1 {
 .advanced .field-row {
   margin-top: 18px;
 }
+.extra-headers-field textarea {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.extra-headers-field small {
+  overflow-wrap: anywhere;
+}
+.extra-headers-field [role="alert"] {
+  color: #c33d2b;
+}
+.extra-headers-field textarea[aria-invalid="true"] {
+  border-color: #c33d2b;
+}
+.extra-headers-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.extra-headers-actions .secondary {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
 .privacy-note {
   display: flex;
   align-items: flex-start;

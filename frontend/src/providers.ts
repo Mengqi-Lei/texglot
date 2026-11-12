@@ -7,6 +7,7 @@ export type Provider = {
   placeholder: string;
   docs: string;
   has_api_key: boolean;
+  extra_header_names?: string[];
   saved: boolean;
 };
 

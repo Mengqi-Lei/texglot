@@ -24,6 +24,7 @@ from .latex import (
 )
 from .paper_context import limit_context
 from .providers import official_chat_api, provider_for_url
+from .request_headers import validate_extra_headers
 
 # Bump for global translation/context changes. Mask changes invalidate affected
 # Segment keys; recovery improvements apply to new/uncached work and preserve
@@ -278,9 +279,14 @@ def validate_translation_language(segment, output: str, language: str):
         raise ValueError("译文仍保留了大部分英文正文，请完整翻译")
 
 
-def redact(text: str, key="") -> str:
-    if key:
-        text = text.replace(key, "[密钥已隐藏]")
+def redact(text: str, key="", extra_secrets=()) -> str:
+    secrets = {s for s in (key, *extra_secrets) if isinstance(s, str) and s}
+    # Gateways may quote a header value inside a JSON error or Python repr.
+    secrets |= {json.dumps(s, ensure_ascii=False)[1:-1] for s in secrets}
+    secrets |= {repr(s)[1:-1] for s in secrets}
+    secrets = sorted(secrets, key=len, reverse=True)
+    if secrets:
+        text = re.sub("|".join(re.escape(s) for s in secrets), "[密钥已隐藏]", text)
     return re.sub(r"sk-[A-Za-z0-9._-]+", "[密钥已隐藏]", text)
 
 
@@ -324,12 +330,12 @@ def _default_temperature_required(error: dict) -> bool:
     )
 
 
-def _api_error_detail(error: dict, key: str) -> str:
+def _api_error_detail(error: dict, key: str, extra_secrets=()) -> str:
     detail = error.get("message", "")
     if not detail:
         return ""
     # Redact before truncation so even a key straddling the limit stays private.
-    detail = redact(detail, key)
+    detail = redact(detail, key, extra_secrets)
     detail = re.sub(
         r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [密钥已隐藏]", detail
     )
@@ -339,12 +345,12 @@ def _api_error_detail(error: dict, key: str) -> str:
 
 class Translator:
     def __init__(self, settings: Settings):
-        self.settings = settings
+        self.settings = settings.model_copy(deep=True)
         self.tokens = 0
         self.requests = 0
         self._omit_temperature = False
         self.client = httpx.AsyncClient(
-            timeout=httpx.Timeout(settings.timeout, connect=20)
+            timeout=httpx.Timeout(settings.timeout, connect=20), follow_redirects=False
         )
 
     async def close(self):
@@ -383,7 +389,9 @@ class Translator:
             body["enable_thinking"] = False
         if json_output and provider in ("deepseek", "qwen"):
             body["response_format"] = {"type": "json_object"}
-        headers = {"Authorization": f"Bearer {s.api_key}"} if s.api_key else {}
+        headers = validate_extra_headers(s.extra_headers)
+        if s.api_key:
+            headers["Authorization"] = f"Bearer {s.api_key}"
         for attempt in range(3):
             try:
                 self.requests += 1
@@ -393,7 +401,7 @@ class Translator:
                 code = response.status_code
                 if code in (401, 403):
                     raise ProviderError(
-                        "API 认证失败，请在模型设置中检查 key 和模型权限"
+                        "API 认证失败，请检查 key、额外请求头和模型权限"
                     )
                 if code == 402:
                     raise ProviderError("模型账户余额不足，请充值或切换 API")
@@ -427,7 +435,9 @@ class Translator:
                         body.pop("temperature")
                         self._omit_temperature = True
                         continue
-                    detail = _api_error_detail(error, s.api_key)
+                    detail = _api_error_detail(
+                        error, s.api_key, s.extra_headers.values()
+                    )
                     message = f"模型拒绝请求（HTTP {code}），请检查模型设置"
                     raise ProviderError(message + (f"：{detail}" if detail else ""))
                 data = response.json()
@@ -802,6 +812,8 @@ class Translator:
         return {
             "ok": True,
             "model": self.settings.model,
-            "message": text,
+            "message": redact(
+                text, self.settings.api_key, self.settings.extra_headers.values()
+            ),
             "tokens": self.tokens,
         }

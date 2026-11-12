@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add optional gateway HTTP headers in advanced translation settings, with validation, endpoint-scoped storage, hidden saved values, clear/replace controls and redacted diagnostics. Apply them to connection tests and all LLM requests while preserving existing caches and Zotero task reuse; DeepL remains separate. / 在高级翻译设置中新增可选网关请求头，提供校验、按地址保存、已保存值不回显、清除/替换操作及错误脱敏；连接测试和所有 LLM 请求共同生效，保留旧缓存与 Zotero 任务复用，DeepL 继续独立处理。
+
 ## 1.2.6 — 2026-11-10
 
 - Support official OpenAI and Claude Chat Completions endpoints: normalize base URLs, preserve saved connections, use OpenAI's current output-token parameter, and retry explicit temperature restrictions with the model default. Show bounded, redacted provider error details. / 适配官方 OpenAI 与 Claude 的 Chat Completions 接口：规范地址并保留已保存连接，使用 OpenAI 当前的输出长度参数，对明确的温度限制按模型默认值有限重试，并显示经过脱敏和长度限制的具体错误原因。

@@ -379,7 +379,11 @@ class JobManager:
             )
             raise
         except Exception as exc:
-            error = redact(str(exc), settings.api_key if settings else "")
+            error = redact(
+                str(exc),
+                settings.api_key if settings else "",
+                settings.extra_headers.values() if settings else (),
+            )
             self.update(job, status="failed", error=error, message=error[:180])
             await self.log(job, error[:1200])
 

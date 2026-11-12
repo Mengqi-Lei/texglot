@@ -79,6 +79,7 @@
   .job-detail,
   .job-logs,
   .advanced[open] > .field-row,
+  .advanced[open] > .extra-headers-field,
   .toast,
   .update-notice,
   .guidance-tooltip {

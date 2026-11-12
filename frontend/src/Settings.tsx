@@ -23,6 +23,12 @@ import {
 import qwenIcon from "./assets/providers/qwen.svg";
 import deepseekIcon from "./assets/providers/deepseek.svg";
 import deeplIcon from "./assets/providers/deepl.svg";
+import {
+  headerDraftForAddress,
+  parseHeaderDraft,
+  settingsPayload,
+  type HeaderDraft,
+} from "./requestHeaders";
 
 const providerIcons: Partial<Record<ProviderId, string>> = {
   qwen: qwenIcon,
@@ -51,12 +57,17 @@ export default function Settings({
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [headerDraft, setHeaderDraft] = useState<HeaderDraft>(null);
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>(
     providerId(value.base_url),
   );
-  const drafts = useRef<Partial<Record<ProviderId, Config>>>({});
+  const drafts = useRef<
+    Partial<Record<ProviderId, { form: Config; headers: HeaderDraft }>>
+  >({});
   const provider = providers.find((p) => p.id === selectedProvider);
   const isDeepL = providerId(form.base_url) === "deepl";
+  const headerValidation = parseHeaderDraft(isDeepL ? null : headerDraft);
+  const savedHeaderNames = form.extra_header_names ?? [];
   const savedKey =
     (value.has_api_key &&
       normalizedEndpoint(form.base_url) ===
@@ -66,18 +77,28 @@ export default function Settings({
         p.has_api_key &&
         normalizedEndpoint(p.base_url) === normalizedEndpoint(form.base_url),
     );
-  const ready = !!form.base_url.trim() && (isDeepL || !!form.model.trim());
+  const ready =
+    !!form.base_url.trim() &&
+    (isDeepL || !!form.model.trim()) &&
+    !headerValidation.error;
+  const editHeaders = (draft: HeaderDraft) => {
+    setHeaderDraft(draft);
+    setMessage("");
+    setError("");
+  };
   const chooseProvider = (next: Provider) => {
     if (next.id === selectedProvider) return;
-    drafts.current[selectedProvider] = form;
+    drafts.current[selectedProvider] = { form, headers: headerDraft };
     setForm(
-      drafts.current[next.id] ?? {
+      drafts.current[next.id]?.form ?? {
         ...form,
         base_url: next.base_url,
         model: next.model,
         api_key: "",
+        extra_header_names: next.extra_header_names ?? [],
       },
     );
+    setHeaderDraft(drafts.current[next.id]?.headers ?? null);
     setSelectedProvider(next.id);
     setMessage("");
     setError("");
@@ -96,10 +117,18 @@ export default function Settings({
     };
   }, []);
   const set = (key: keyof Config, v: string | number | boolean) => {
+    if (key === "base_url")
+      setHeaderDraft((draft) =>
+        headerDraftForAddress(form.base_url, String(v), draft),
+      );
     setForm((f) => ({
       ...f,
       [key]: v,
       ...(key === "base_url" ? { api_key: "" } : {}),
+      ...(key === "base_url" &&
+      normalizedEndpoint(f.base_url) !== normalizedEndpoint(String(v))
+        ? { extra_header_names: [] }
+        : {}),
     }));
     setMessage("");
     setError("");
@@ -124,7 +153,7 @@ export default function Settings({
     try {
       const r = await api<{ message: string }>("/settings/test", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify(settingsPayload(form, headerDraft)),
       });
       setMessage(t("连接成功 · ") + r.message);
     } catch (e) {
@@ -140,7 +169,7 @@ export default function Settings({
     try {
       const s = await api<Config>("/settings", {
         method: "PUT",
-        body: JSON.stringify(form),
+        body: JSON.stringify(settingsPayload(form, headerDraft)),
       });
       onSave(s);
     } catch (e) {
@@ -197,7 +226,12 @@ export default function Settings({
                 >
                   <span className={`provider-icon ${p.id}`} aria-hidden="true">
                     {providerIcons[p.id] ? (
-                      <img src={providerIcons[p.id]} width={22} height={22} alt="" />
+                      <img
+                        src={providerIcons[p.id]}
+                        width={22}
+                        height={22}
+                        alt=""
+                      />
                     ) : (
                       <Cable size={20} />
                     )}
@@ -451,6 +485,84 @@ export default function Settings({
                 </label>
               )}
             </div>
+            {!isDeepL && (
+              <div className="field extra-headers-field">
+                <div className="key-label">
+                  <label htmlFor="extra-headers-json">
+                    {t("额外请求头（JSON）")}
+                  </label>
+                  <span
+                    className={`key-status ${savedHeaderNames.length ? "configured" : ""}`}
+                  >
+                    {savedHeaderNames.length
+                      ? t("已保存 {count} 项", {
+                          count: savedHeaderNames.length,
+                        })
+                      : t("可选")}
+                  </span>
+                </div>
+                {savedHeaderNames.length > 0 && (
+                  <small>
+                    {t("已保存的名称：{names}", {
+                      names: savedHeaderNames.join(", "),
+                    })}
+                  </small>
+                )}
+                <textarea
+                  id="extra-headers-json"
+                  rows={3}
+                  value={headerDraft ?? ""}
+                  disabled={!!busy}
+                  maxLength={65536}
+                  onChange={(e) => editHeaders(e.target.value)}
+                  placeholder={'{"x-org-id": "org_..."}'}
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-invalid={!!headerValidation.error}
+                  aria-describedby="extra-headers-help extra-headers-feedback"
+                />
+                <small id="extra-headers-help">
+                  {t(
+                    "填写 JSON 对象以替换整组请求头；不编辑则保留已保存值。手动更换服务地址会清空输入。",
+                  )}
+                </small>
+                <small
+                  id="extra-headers-feedback"
+                  role={headerValidation.error ? "alert" : "status"}
+                >
+                  {headerValidation.error
+                    ? t(headerValidation.error)
+                    : headerDraft !== null &&
+                        Object.keys(headerValidation.headers ?? {}).length ===
+                          0 &&
+                        savedHeaderNames.length
+                      ? t("保存后将清除额外请求头")
+                      : t("已保存的值不会回显。最多 16 项，仅用于模型请求。")}
+                </small>
+                <div className="extra-headers-actions">
+                  {(savedHeaderNames.length > 0 || !!headerDraft) && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!!busy}
+                      onClick={() => editHeaders("")}
+                    >
+                      {t("清除请求头")}
+                    </button>
+                  )}
+                  {savedHeaderNames.length > 0 && headerDraft !== null && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!!busy}
+                      onClick={() => editHeaders(null)}
+                    >
+                      {t("取消修改")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </details>
           <div className="privacy-note">
             <ShieldCheck size={18} />
