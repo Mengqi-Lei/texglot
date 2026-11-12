@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.2.7 — 2026-11-12
 
 - Add optional gateway HTTP headers in advanced translation settings, with validation, endpoint-scoped storage, hidden saved values, clear/replace controls and redacted diagnostics. Apply them to connection tests and all LLM requests while preserving existing caches and Zotero task reuse; DeepL remains separate. / 在高级翻译设置中新增可选网关请求头，提供校验、按地址保存、已保存值不回显、清除/替换操作及错误脱敏；连接测试和所有 LLM 请求共同生效，保留旧缓存与 Zotero 任务复用，DeepL 继续独立处理。
+
+[Release notes](docs/releases/v1.2.7.md) · [中文版本说明](docs/releases/v1.2.7_CN.md)
 
 ## 1.2.6 — 2026-11-10
 

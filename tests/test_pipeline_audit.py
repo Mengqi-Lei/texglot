@@ -236,7 +236,7 @@ async def test_gateway_errors_cannot_persist_credentials_in_job_logs(
     monkeypatch.setattr(manager, "pipeline", broken_pipeline)
     await manager.run(job["id"])
     assert job["status"] == "failed" and "密钥已隐藏" in job["error"]
-    assert "gateway-private-value" not in (folder / "job.json").read_text()
+    assert "gateway-private-value" not in (folder / "job.json").read_text(encoding="utf-8")
 
 
 async def test_gateway_credential_rotation_resumes_only_uncached_paragraphs(
