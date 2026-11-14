@@ -325,7 +325,7 @@ $b$ & 2 \\
                     + "; inspect cli.log"
                 )
             result = json.loads(stdout)
-            assert result["completed"] == 4
+            assert result["completed"] == 4, json.dumps(result, ensure_ascii=False)
             pages = []
             for paper in result["results"][:2]:
                 pdf = PdfReader(paper["files"]["translated"])

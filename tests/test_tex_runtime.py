@@ -484,6 +484,46 @@ async def test_biber_stops_its_process_and_preserves_source_on_interruption(
         await asyncio.gather(task, return_exceptions=True)
 
 
+async def test_biber_does_not_inherit_an_open_parent_liveness_pipe(
+    tmp_path, monkeypatch
+):
+    root, bcf = control(tmp_path)
+    out = tmp_path / "build"
+    out.mkdir()
+    shutil.copyfile(bcf, out / "main.bcf")
+    native_spawn = asyncio.create_subprocess_exec
+    read_fd, write_fd = os.pipe()
+
+    async def installed(_):
+        return Path(sys.executable)
+
+    async def spawn(*args, **kwargs):
+        if "--noconf" not in args:
+            return await native_spawn(*args, **kwargs)
+        # Model the desktop's still-open parent pipe without changing pytest's
+        # own stdin. Only an explicit DEVNULL can give this child immediate EOF.
+        if kwargs.get("stdin") is None:
+            kwargs["stdin"] = read_fd
+        return await native_spawn(
+            sys.executable,
+            "-c",
+            "import sys; sys.stdin.read(); print('STDIN_EOF', flush=True); sys.exit(2)",
+            **kwargs,
+        )
+
+    monkeypatch.setattr(bibliography, "ensure_biber", installed)
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", spawn)
+    try:
+        with pytest.raises(ValueError, match="STDIN_EOF"):
+            await asyncio.wait_for(
+                bibliography.rebuild_bibliography(root, "main.tex", out, notify), 5
+            )
+        assert "STDIN_EOF" in (out / "biber.log").read_text(encoding="utf-8")
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+
+
 @pytest.mark.parametrize("placement", ["htbp", "H"])
 async def test_oversized_custom_code_float_retains_caption_and_last_line(
     tmp_path, placement

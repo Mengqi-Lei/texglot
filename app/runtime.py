@@ -45,7 +45,10 @@ class _ExternalPipe:
         self.pipe = pipe
 
     async def read(self, size):
-        return await asyncio.to_thread(self.pipe.read, size)
+        # Match StreamReader.read: return available output, rather than waiting
+        # for a full buffer while the child is still running.
+        read = getattr(self.pipe, "read1", self.pipe.read)
+        return await asyncio.to_thread(read, size)
 
 
 class _ExternalProcess:

@@ -9,6 +9,7 @@ import platform
 import re
 import shutil
 import struct
+import sys
 import tarfile
 import tempfile
 import xml.etree.ElementTree as ET
@@ -369,10 +370,18 @@ async def rebuild_bibliography(root: Path, main: str, out: Path, notify):
         )
         if cmd[:2] == ["/usr/bin/sandbox-exec", "-p"]:
             cmd[2] += "\n(deny network*)\n"
+        log_path = out / "biber.log"
+        log_path.write_text(
+            f"TeXGlot Biber 2.20; frozen={bool(getattr(sys, 'frozen', False))}; windows={windows}\n",
+            encoding="utf-8",
+        )
         proc = await external_subprocess(
             *cmd,
             cwd=work,
             env=env,
+            # The desktop service uses stdin as a parent-liveness pipe. An
+            # external tool must receive EOF, not inherit that open pipe.
+            stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             **process_options(),
@@ -382,10 +391,13 @@ async def rebuild_bibliography(root: Path, main: str, out: Path, notify):
             async def collect():
                 chunks = []
                 size = 0
-                while chunk := await proc.stdout.read(65536):
-                    if size < 8 * 1024 * 1024:
-                        chunks.append(chunk)
-                        size += len(chunk)
+                with log_path.open("ab") as stream:
+                    while chunk := await proc.stdout.read(65536):
+                        if size < 8 * 1024 * 1024:
+                            chunks.append(chunk)
+                            size += len(chunk)
+                            stream.write(chunk)
+                            stream.flush()
                 await proc.wait()
                 return b"".join(chunks)
 
@@ -394,7 +406,6 @@ async def rebuild_bibliography(root: Path, main: str, out: Path, notify):
             except TimeoutError as exc:
                 raise ValueError("参考文献重建超时，请重试或检查参考文献数据") from exc
             log = data.decode("utf-8", errors="replace")
-            (out / "biber.log").write_text(log, encoding="utf-8")
             if proc.returncode:
                 raise ValueError("参考文献重建失败，请查看 Biber 日志：" + log[-700:])
             result = (work / "control.bbl").read_text(encoding="utf-8")
