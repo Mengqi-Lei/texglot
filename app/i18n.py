@@ -3,6 +3,7 @@
 import re
 
 MESSAGES = {
+    "Windows 参考文献工具无法使用当前临时目录，请将 TEMP 设置为可写的英文路径后重试": "The Windows bibliography tool cannot use this temporary directory. Set TEMP to a writable ASCII path and retry",
     "内置 TeX 兼容资源校验失败，请重新安装 TeXGlot": "Bundled TeX compatibility resources failed verification. Reinstall TeXGlot",
     "已按编译诊断补齐 PSTricks 官方宏包依赖，正在重试": "Added pinned upstream PSTricks dependencies based on compiler diagnostics; retrying",
     "已按编译诊断补齐 minted 3 冻结缓存运行时，正在重试": "Added a matching minted 3 frozen-cache runtime; retrying",

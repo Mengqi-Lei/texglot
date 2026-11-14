@@ -316,7 +316,14 @@ $b$ & 2 \\
                     await terminate_process_tree(cli)
                     raise
             if cli.returncode:
-                raise RuntimeError(f"CLI failed ({cli.returncode}); inspect cli.log")
+                # These jobs use generated fixtures and a local model stub.
+                # Include their bounded failure details in CI even if artifacts
+                # are unavailable after a failed source-only workflow.
+                raise RuntimeError(
+                    f"CLI failed ({cli.returncode}): "
+                    + stdout.decode("utf-8", errors="replace")[-4000:]
+                    + "; inspect cli.log"
+                )
             result = json.loads(stdout)
             assert result["completed"] == 4
             pages = []

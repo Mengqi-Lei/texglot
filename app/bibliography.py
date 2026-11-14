@@ -7,6 +7,7 @@ import hashlib
 import json
 import platform
 import re
+import shutil
 import struct
 import tarfile
 import tempfile
@@ -279,6 +280,27 @@ def validate_bibliography(document, text: str):
         )
 
 
+def windows_runtime_path(path: Path) -> Path:
+    """Use an existing ASCII alias for PAR's narrow Windows filesystem APIs."""
+    if str(path).isascii():
+        return path
+    import ctypes
+    from ctypes import wintypes
+
+    function = ctypes.WinDLL("kernel32", use_last_error=True).GetShortPathNameW
+    function.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+    function.restype = wintypes.DWORD
+    size = function(str(path), None, 0)
+    if size:
+        buffer = ctypes.create_unicode_buffer(size)
+        length = function(str(path), buffer, size)
+        if 0 < length < size and buffer.value.isascii():
+            return Path(buffer.value)
+    raise ValueError(
+        "Windows 参考文献工具无法使用当前临时目录，请将 TEMP 设置为可写的英文路径后重试"
+    )
+
+
 async def rebuild_bibliography(root: Path, main: str, out: Path, notify):
     from .compiler import sandbox_command
 
@@ -286,8 +308,18 @@ async def rebuild_bibliography(root: Path, main: str, out: Path, notify):
     document, inputs = bcf_inputs(root, main, out / (path.stem + ".bcf"))
     await notify("正在按源码重建参考文献并核对引用条目")
     binary = await ensure_biber(notify)
-    with tempfile.TemporaryDirectory(prefix="texglot-biber-", dir=out) as temp:
+    windows = platform.system() == "Windows"
+    # The Windows PAR loader cannot unpack in a Unicode cache directory. Keep
+    # the paper where it is; run a private copy in the user's OS temp directory.
+    with tempfile.TemporaryDirectory(
+        prefix="texglot-biber-", dir=None if windows else out
+    ) as temp:
         work = Path(temp)
+        if windows:
+            work = windows_runtime_path(work)
+            local_binary = work / "biber.exe"
+            shutil.copyfile(binary, local_binary)
+            binary = local_binary
         sources = {}
         for node, src in inputs:
             if src not in sources:

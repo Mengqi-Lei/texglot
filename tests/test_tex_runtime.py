@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import ctypes
 import hashlib
 import io
 import json
@@ -127,6 +128,26 @@ def native():
 
 async def notify(_):
     pass
+
+
+@pytest.mark.parametrize("alias", ["C:/TEMP/SAFE~1", None, "C:/用户/临时"])
+def test_windows_runtime_alias_requires_ascii_and_existing_os_alias(monkeypatch, alias):
+    class ShortPath:
+        def __call__(self, value, buffer, size):
+            if buffer is None:
+                return len(alias) + 1 if alias else 0
+            buffer.value = alias
+            return len(alias)
+
+    class Kernel:
+        GetShortPathNameW = ShortPath()
+
+    monkeypatch.setattr(ctypes, "WinDLL", lambda *a, **k: Kernel(), raising=False)
+    if alias and alias.isascii():
+        assert bibliography.windows_runtime_path(Path("C:/用户/临时")) == Path(alias)
+    else:
+        with pytest.raises(ValueError, match="TEMP"):
+            bibliography.windows_runtime_path(Path("C:/用户/临时"))
 
 
 @pytest.mark.parametrize("profile", ["minted3", "minted3-modern"])
@@ -414,11 +435,13 @@ async def test_biber_stops_its_process_and_preserves_source_on_interruption(
     native_spawn = asyncio.create_subprocess_exec
     native_wait = asyncio.wait_for
     processes = []
+    working_directories = []
 
     async def installed(_):
         return Path(sys.executable)
 
     async def spawn(*args, **kwargs):
+        working_directories.append(Path(kwargs["cwd"]))
         process = await native_spawn(
             sys.executable,
             "-c",
@@ -449,6 +472,7 @@ async def test_biber_stops_its_process_and_preserves_source_on_interruption(
             with pytest.raises(ValueError, match="超时"):
                 await task
         assert processes[0].returncode is not None
+        assert not working_directories[0].exists()
         assert not list(out.glob("texglot-biber-*"))
         assert {p.name: p.read_bytes() for p in root.iterdir()} == original
     finally:
