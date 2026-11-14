@@ -441,6 +441,9 @@ async def test_biber_stops_its_process_and_preserves_source_on_interruption(
         return Path(sys.executable)
 
     async def spawn(*args, **kwargs):
+        # Substitute only Biber, not Windows taskkill used by real cleanup.
+        if "--noconf" not in args:
+            return await native_spawn(*args, **kwargs)
         working_directories.append(Path(kwargs["cwd"]))
         process = await native_spawn(
             sys.executable,
@@ -453,7 +456,7 @@ async def test_biber_stops_its_process_and_preserves_source_on_interruption(
         return process
 
     async def bounded_wait(awaitable, timeout):
-        return await native_wait(awaitable, timeout=0.2)
+        return await native_wait(awaitable, timeout=0.2 if timeout == 240 else timeout)
 
     monkeypatch.setattr(bibliography, "ensure_biber", installed)
     monkeypatch.setattr(asyncio, "create_subprocess_exec", spawn)
