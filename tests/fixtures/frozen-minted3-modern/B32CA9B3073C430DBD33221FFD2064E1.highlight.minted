@@ -1,0 +1,3 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+print("second")
+\end{MintedVerbatim}

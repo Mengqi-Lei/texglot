@@ -65,7 +65,7 @@ from .translation import Translator, cache_settings, normalize_cached_translatio
 JOBS = DATA / "jobs"
 JOBS.mkdir(exist_ok=True)
 ACTIVE = {"queued", "downloading", "preparing", "translating", "compiling"}
-SOURCE_PREPARATION_VERSION = "native-source-v5"
+SOURCE_PREPARATION_VERSION = "native-source-v7"
 TITLE_METADATA_VERSION = 3
 
 
@@ -458,7 +458,7 @@ class JobManager:
             if prepared_source.exists():
                 shutil.rmtree(prepared_source)
             shutil.copytree(source, prepared_source)
-            for notice in prepare_engine_sources(prepared_source, engine):
+            for notice in prepare_engine_sources(prepared_source, engine, main=main):
                 await log(notice)
             relocated = rebase_project_paths(prepared_source, main)
             if relocated:
@@ -468,7 +468,11 @@ class JobManager:
                 )
             for p in prepared_source.rglob("*.tex"):
                 p.write_text(
-                    use_bundled_bibliography(p.read_text(encoding="utf-8"), p),
+                    use_bundled_bibliography(
+                        p.read_text(encoding="utf-8"),
+                        p,
+                        base_dir=prepared_source / Path(main).parent,
+                    ),
                     encoding="utf-8",
                 )
             eps_dependencies = reachable
@@ -520,7 +524,14 @@ class JobManager:
             job["warnings"].append(warning)
             await log(warning)
         dependencies = sorted(set(dependencies) | {main})
-        reachable = [p for p in dependencies if Path(p).suffix.lower() == ".tex"]
+        from .tex_runtime import managed_runtime_paths
+
+        runtime_files = managed_runtime_paths(prepared_source)
+        reachable = [
+            p
+            for p in dependencies
+            if Path(p).suffix.lower() == ".tex" and p not in runtime_files
+        ]
         job["source_dependencies"] = dependencies
         job["source_files"] = reachable
         job["artifacts"]["original"] = "original.pdf"
@@ -537,7 +548,9 @@ class JobManager:
                 dirs_exist_ok=True,
             )
         macro_context = "\n".join(
-            (prepared_source / rel).read_text(encoding="utf-8") for rel in dependencies
+            (prepared_source / rel).read_text(encoding="utf-8")
+            for rel in dependencies
+            if rel not in runtime_files
         )
         literal_environments = collect_literal_environments(macro_context)
         macro_context = visible_tex(

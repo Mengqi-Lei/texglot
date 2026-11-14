@@ -4,7 +4,12 @@ import pytest
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import DecodedStreamObject, NameObject
 
-from app.compiler import CompilationError, compile_pdf, find_compiler
+from app.compiler import (
+    CompilationError,
+    compile_pdf,
+    find_compiler,
+    prepare_engine_sources,
+)
 from app.i18n import english
 from app.minted import remove_unused_minted
 from app.pdf_graphics import graphic_failure, page_signature, recover_pdf_graphic
@@ -164,6 +169,7 @@ async def test_native_unused_minted_and_three_bad_figures_recover_together(tmp_p
     (root / "main.tex").write_text(
         r"\documentclass{article}\usepackage{graphicx,minted}\begin{document}Original text.\includegraphics{one.pdf}\includegraphics{two.pdf}\includegraphics{three.pdf}\end{document}"
     )
+    prepare_engine_sources(root, "tectonic", main="main.tex")
     messages = []
 
     async def notify(msg):

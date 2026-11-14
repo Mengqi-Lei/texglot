@@ -1,0 +1,15 @@
+%% $Id: pst-arrow.sty 136 2021-07-28 09:39:03Z herbert $
+%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License Distributed from CTAN archives
+%% in directory macros/latex/base/lppl.txt.
+%
+\RequirePackage{pstricks}
+\ProvidesPackage{pst-arrow}[2016/09/01 v. 0.01 package wrapper for 
+  pst-arrow.tex (hv)]
+\input{pst-arrow.tex}
+\ProvidesFile{pst-arrow.tex}
+\InputIfFileExists{pst-arrow.cfg}{%
+    \PackageInfo{pst-arrow}{Local config file pst-arrow.cfg used}
+}{}
+\endinput

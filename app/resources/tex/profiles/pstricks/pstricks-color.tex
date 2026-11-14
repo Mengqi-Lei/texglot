@@ -1,0 +1,137 @@
+%% $Id: pstricks-color.tex 455 2022-03-01 10:42:02Z herbert $
+%%
+%% This is file `pstricks-color.tex',
+%%
+%% IMPORTANT NOTICE:
+%%
+%% Herbert Voss <hvoss@tug.org>
+%%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License Distributed from CTAN archives
+%% in directory macros/latex/base/lppl.txt.
+%%
+%% DESCRIPTION:
+%%   `pstricks-color' base code for color settings 
+%%
+%% fileversion and filedate see main file pstricks.tex
+%%
+\pstVerb{
+  /pssetRGBcolor  /setrgbcolor  load def
+  /pssetCMYKcolor /setcmykcolor load def
+  /pssetGraycolor /setgray      load def
+}
+\def\@newcolor#1#2{%
+  \expandafter\edef\csname #1\endcsname{\noexpand\pst@color{#2}}%
+  %\expandafter\edef\csname color@#1\endcsname{#2}%
+  \expandafter\edef\csname\string\color@#1\endcsname{#2}%    hv 1.14 2005-12-17
+  \ignorespaces}
+%
+\def\pst@color#1{\def\pst@currentcolor{#1}\pstVerb{#1}\aftergroup\pst@endcolor}%
+\def\pst@endcolor{\pstVerb{\pst@currentcolor}}
+\def\pst@currentcolor{0 setgray}
+\def\altcolormode{%
+\def\pst@color##1{%
+  \pstVerb{gsave ##1}\aftergroup\pst@endcolor}%
+\def\pst@endcolor{\pstVerb{\pst@grestore}}}
+
+\def\psgetRGBColorValues#1{\expandafter\psgetRGBColorvalues@i#1;}
+\def\psgetRGBColorvalues@i#1#2#3#4#5;{\expandafter\psgetRGBColorvalues@ii#5,,,;}
+\def\psgetRGBColorvalues@ii#1,#2,#3,#4;{%
+  \ifx\relax#2\relax 
+    #1  % gray color model
+  \else
+    #1 #2 #3
+  \fi}
+
+\def\psgetCMYKColorValues#1{\expandafter\psgetCMYKColorvalues@i#1;}
+\def\psgetCMYKColorvalues@i#1#2#3#4#5;{\expandafter\psgetCMYKColorvalues@ii#5,,,,;}
+\def\psgetCMYKColorvalues@ii#1,#2,#3,#4,#5;{%
+  \ifx\relax#2\relax 
+    #1  % gray color model
+  \else
+    #1 #2 #3 #4
+  \fi}
+
+\iffalse
+\def\ps@RGB@model{rgb}
+\def\psgetColorValues#1{\makeatletter\expandafter\psgetColorvalues@i#1;\makeatother} 
+\gdef\psgetColorvalues@i#1#2#3#4#5;{%
+  \scantokens{\def\pst@tempA{#4}}
+  \if\pst@tempA\ps@RGB@model
+    \expandafter\psgetRGBColorvalues@ii#5;
+  \else
+    \expandafter\psgetCMYKColorvalues@ii#5;
+  \fi
+}
+\fi
+
+\def\pssetMonochrome{%
+  \pstVerb{
+    /setrgbcolor { add add 0 gt {0}{1} ifelse setgray } def 
+    /setcmykcolor{ 4 dict begin
+      /k ED /y ED /m ED /c ED 
+      1 1 k sub c mul k add sub 0.29 mul 
+      1 1 k sub m mul k add sub 0.587 mul add 
+      1 1 k sub y mul k add sub 0.114 mul add
+      end 0 gt {0}{1} ifelse setgray } def }}
+\def\pssetGrayscale{%
+  \pstVerb{
+    /setrgbcolor { 0.07 mul exch 0.71 mul add exch 0.21 mul add setgray } def 
+    /setcmykcolor{ 4 dict begin
+      /k ED /y ED /m ED /c ED 
+      1 1 k sub c mul k add sub 0.29 mul 
+      1 1 k sub m mul k add sub 0.587 mul add 
+      1 1 k sub y mul k add sub 0.114 mul add
+      end setgray } def }}
+\def\psresetColor{\pstVerb{
+    /setrgbcolor  tx@Dict begin /pssetRGBcolor  load end def 
+    /setcmykcolor tx@Dict begin /pssetCMYKcolor load end def }}
+
+%\def\pst@usecolor#1{\csname color@#1\endcsname\space}%    hv 1.14  2005--12-17
+\def\pst@usecolor#1{\csname\string\color@#1\endcsname\space}
+%
+\def\newgray#1#2{%
+    \pst@checknum{#2}\pst@tempg
+    \@newcolor{#1}{\pst@tempg setgray}}%
+\def\newrgbcolor#1#2{%
+  \pst@expandafter\pst@getnumiii{#2} {} {} {} {}\@nil
+  \@newcolor{#1}{\pst@tempg \pst@temph \pst@tempi setrgbcolor}}
+\def\newhsbcolor#1#2{%
+  \pst@expandafter\pst@getnumiii{#2} {} {} {} {}\@nil
+  \@newcolor{#1}{\pst@tempg \pst@temph \pst@tempi sethsbcolor}}
+\def\newcmykcolor#1#2{%
+  \pst@expandafter\pst@getnumiv{#2} {} {} {} {} {}\@nil
+  \@newcolor{#1}{\pst@tempg \pst@temph \pst@tempi \pst@tempj setcmykcolor}}
+\newgray{black}{0}
+\newgray{darkgray}{.25}
+\newgray{gray}{.5}
+\newgray{lightgray}{.75}
+\newgray{white}{1}
+\newrgbcolor{red}{1 0 0}
+\newrgbcolor{green}{0 1 0}
+\newrgbcolor{blue}{0 0 1}
+\newrgbcolor{yellow}{1 1 0}
+\newrgbcolor{cyan}{0 1 1}
+\newrgbcolor{magenta}{1 0 1}
+
+\@ifundefined{xglobal}%  do we have xcolor loaded?
+ {\@newcolor{randomgray}{tx@Dict begin Rand setgray end}%
+  \@newcolor{randomrgb}{tx@Dict begin Rand Rand Rand setrgbcolor end}%
+  \@newcolor{randomcmyk}{tx@Dict begin Rand Rand Rand Rand setcmykcolor end}%
+  \@newcolor{randomhsb}{tx@Dict begin Rand Rand Rand sethsbcolor end}%
+ }{%
+  \definecolor[ps]{randomgray}{gray}{tx@Dict begin Rand end}%
+  \definecolor[ps]{randomrgb}{rgb}{tx@Dict begin Rand Rand Rand end}%
+  \definecolor[ps]{randomcmyk}{cmyk}{tx@Dict begin Rand Rand Rand Rand end}%
+  \definecolor[ps]{randomhsb}{hsb}{tx@Dict begin Rand Rand Rand end}%
+ }
+%
+\def\pst@getcolor#1#2{%
+%  \@ifundefined{color@#1}%	hv 1.14  2005-12-17
+  \@ifundefined{\string\color@#1}%
+    {\@pstrickserr{Color `#1' not defined}\@eha}%
+    {\edef#2{#1}}%
+}
+%
+%% END: pstricks-color.tex
+\endinput

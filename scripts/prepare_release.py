@@ -91,6 +91,7 @@ def public_files(root: Path, version: str) -> list[Path]:
     for folder, pattern in (
         ("app", "*.py"),
         ("tests", "*.py"),
+        ("tests/fixtures", "*"),
         ("scripts", "*.py"),
         ("scripts", "*.sh"),
         ("frontend/src", "*"),

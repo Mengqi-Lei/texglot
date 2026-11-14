@@ -1,0 +1,1001 @@
+{
+  "schema": 1,
+  "profiles": {
+    "minted3": {
+      "files": {
+        "minted.sty": {
+          "sha256": "b95650c72bc78fbd589fb598e8456a2ba196f37e60f366db2b10086187dc4922",
+          "origin": "https://github.com/gpoore/minted/blob/19ea6fcae5a6360cbef65dd4443df7cae05a5e49/latex/minted/minted.sty",
+          "runtime": true
+        },
+        "source/minted.dtx": {
+          "sha256": "3659c4b557d030edc29c31d335bf46b7b99496e4d921ccd44ff84737a9010173",
+          "origin": "https://github.com/gpoore/minted/blob/19ea6fcae5a6360cbef65dd4443df7cae05a5e49/latex/minted/minted.dtx",
+          "runtime": false
+        },
+        "source/minted.ins": {
+          "sha256": "9c0aa4c743b90f017eaeb2585d2b1db050fe4ce973ce8cab50e0de6b49b008f4",
+          "origin": "https://github.com/gpoore/minted/blob/19ea6fcae5a6360cbef65dd4443df7cae05a5e49/latex/minted/minted.ins",
+          "runtime": false
+        },
+        "fvextra.sty": {
+          "sha256": "575551f00dd81a37558eb6638cad764bf8ffcbb1741807e60a4e0560ba10b63e",
+          "origin": "https://github.com/gpoore/fvextra/blob/e7e0e1674e72294783382e7817c425d8c7d32738/fvextra/fvextra.sty",
+          "runtime": true
+        },
+        "source/fvextra.dtx": {
+          "sha256": "18166a077da4134f8e2be2e57a3d22a6b36739ba355fdb21c860093d9093b9fc",
+          "origin": "https://github.com/gpoore/fvextra/blob/e7e0e1674e72294783382e7817c425d8c7d32738/fvextra/fvextra.dtx",
+          "runtime": false
+        },
+        "source/fvextra.ins": {
+          "sha256": "2901e32b328cd75fae689621246f74c106e0b9683b950361b6fc5a1dddacb344",
+          "origin": "https://github.com/gpoore/fvextra/blob/e7e0e1674e72294783382e7817c425d8c7d32738/fvextra/fvextra.ins",
+          "runtime": false
+        },
+        "latex2pydata.sty": {
+          "sha256": "888d0977795acbb6c88240db740682bd50a942c7808ba1602edc9c2285994348",
+          "origin": "https://github.com/gpoore/latex2pydata/blob/dd21673449bdee438cb06af423d0878ac3c216ae/latex/latex2pydata/latex2pydata.sty",
+          "runtime": true
+        },
+        "source/latex2pydata.dtx": {
+          "sha256": "f8cb241ba978cf17334629860893ae541ceb58ca08430e45bb96d09a3461e7b7",
+          "origin": "https://github.com/gpoore/latex2pydata/blob/dd21673449bdee438cb06af423d0878ac3c216ae/latex/latex2pydata/latex2pydata.dtx",
+          "runtime": false
+        },
+        "source/latex2pydata.ins": {
+          "sha256": "bfdcf5a7aba609de6ed23d16a0cb8006d42d299ccca4991f521ab6943370a02b",
+          "origin": "https://github.com/gpoore/latex2pydata/blob/dd21673449bdee438cb06af423d0878ac3c216ae/latex/latex2pydata/latex2pydata.ins",
+          "runtime": false
+        }
+      },
+      "description": "minted 3.7.0, fvextra 1.12.0, latex2pydata 0.6.0 (frozen-cache compatibility)"
+    },
+    "minted3-modern": {
+      "files": {
+        "minted.sty": {
+          "sha256": "812de081cda8f4b6c40cb1ce57390d07a86215170c728b51257d274be06ec2c4",
+          "origin": "https://github.com/gpoore/minted/blob/955ffd2f7fc0615212fdddc386bad1e36e6e78ad/latex/minted/minted.sty",
+          "runtime": true
+        },
+        "source/minted.dtx": {
+          "sha256": "af9fb9aec047e64b85ac19f7ef4cbfcace7878a1d5437140ff623383ed21424d",
+          "origin": "https://github.com/gpoore/minted/blob/955ffd2f7fc0615212fdddc386bad1e36e6e78ad/latex/minted/minted.dtx",
+          "runtime": false
+        },
+        "source/minted.ins": {
+          "sha256": "94b18051407bff056c65fb9544b73c7c3e8663504b2da1883bd1770c919d1bb3",
+          "origin": "https://github.com/gpoore/minted/blob/955ffd2f7fc0615212fdddc386bad1e36e6e78ad/latex/minted/minted.ins",
+          "runtime": false
+        },
+        "fvextra.sty": {
+          "sha256": "e91f5114fb99355111835093f4f736fa1d4887fafd09910a65db0dd1ac347fab",
+          "origin": "https://github.com/gpoore/fvextra/blob/b22ac9e0806479bfe69bf6f2fd2c052b50a3b5cf/fvextra/fvextra.sty",
+          "runtime": true
+        },
+        "source/fvextra.dtx": {
+          "sha256": "060d2b5184ad0a28f0d4779d3e5a63f82e387d276a075f46b1606bbc2dfd5774",
+          "origin": "https://github.com/gpoore/fvextra/blob/b22ac9e0806479bfe69bf6f2fd2c052b50a3b5cf/fvextra/fvextra.dtx",
+          "runtime": false
+        },
+        "source/fvextra.ins": {
+          "sha256": "1d28b3a1791f008b7bb0cc1148c40b13805968a58b6a06510d636e3235296550",
+          "origin": "https://github.com/gpoore/fvextra/blob/b22ac9e0806479bfe69bf6f2fd2c052b50a3b5cf/fvextra/fvextra.ins",
+          "runtime": false
+        },
+        "latex2pydata.sty": {
+          "sha256": "b837b21e687da0309c8c155d25eca00ccab5c844a6dcd838de1408a14bd39975",
+          "origin": "https://github.com/gpoore/latex2pydata/blob/ceee4aa242b1f2f42063b5abcd75a7bc36530bf3/latex/latex2pydata/latex2pydata.sty",
+          "runtime": true
+        },
+        "source/latex2pydata.dtx": {
+          "sha256": "195e49d49799d6ae411d156642d3c0d711a4c436501ba939616d76a68b033e7a",
+          "origin": "https://github.com/gpoore/latex2pydata/blob/ceee4aa242b1f2f42063b5abcd75a7bc36530bf3/latex/latex2pydata/latex2pydata.dtx",
+          "runtime": false
+        },
+        "source/latex2pydata.ins": {
+          "sha256": "de145c30e168cca5fdd783f48a1b223e0f3f5d7f00d6e1b121b3592db6c6162c",
+          "origin": "https://github.com/gpoore/latex2pydata/blob/ceee4aa242b1f2f42063b5abcd75a7bc36530bf3/latex/latex2pydata/latex2pydata.ins",
+          "runtime": false
+        }
+      },
+      "description": "minted 3.8.0, fvextra 1.14.0, latex2pydata 0.7.0 (newer frozen-cache keys)"
+    },
+    "pstricks": {
+      "files": {
+        "pst-algparser.pro": {
+          "sha256": "377e2640dbeecd980e6cb54065e02bc982e4487c6a9ed214f28bbefdf0f4ecdc",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#dvips/pstricks/pst-algparser.pro",
+          "runtime": true
+        },
+        "pst-dots.pro": {
+          "sha256": "8dedc0aa525c73dba7fdd9ce237ec584cefd6be67a36cae32c7593f566a6a47c",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#dvips/pstricks/pst-dots.pro",
+          "runtime": true
+        },
+        "pst-dots97.pro": {
+          "sha256": "9decbea495bc71466f841e9dca0aaa5adbde108933fe3a3312f9763c382f2cf1",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#dvips/pstricks/pst-dots97.pro",
+          "runtime": true
+        },
+        "pstricks.pro": {
+          "sha256": "00a7ca2a3d71075baec1b558de4bb13a08095144323d8382cba84ed085ae3424",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#dvips/pstricks/pstricks.pro",
+          "runtime": true
+        },
+        "pstricks97.pro": {
+          "sha256": "f24392eb4bd40041328a4ca55eaaeff00c55b1fb3dafd12f8678c72d42fa186a",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#dvips/pstricks/pstricks97.pro",
+          "runtime": true
+        },
+        "README.cfg": {
+          "sha256": "7e6b0f3aaffe6f4e669769240b74d1d1305dce88fd3658644c3ff7463739b60b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/README.cfg",
+          "runtime": true
+        },
+        "distiller.cfg": {
+          "sha256": "f4518b6b365052732ec208b10375e1644b1c0e2968137603a9f57a03746d6d9d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/distiller.cfg",
+          "runtime": true
+        },
+        "dvips.cfg": {
+          "sha256": "5f50edb8bc1875476408629448338cb7cf875294ac5f8d6c902544880bdfdea5",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/dvips.cfg",
+          "runtime": true
+        },
+        "dvipsone.cfg": {
+          "sha256": "ac280f0dfa54ed8e8c654153dcf9d3966787d9582618de144d24cf6a32d2f6fc",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/dvipsone.cfg",
+          "runtime": true
+        },
+        "gastex.cfg": {
+          "sha256": "d248d8063841047405c487c44d9ef2313751793293ea729d839cb11073b6a805",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/gastex.cfg",
+          "runtime": true
+        },
+        "textures.cfg": {
+          "sha256": "4d5edfa3611d0f5918787d4010f5eb601c58be7402aec675fb92d9f46bd9f5de",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/textures.cfg",
+          "runtime": true
+        },
+        "vtex.cfg": {
+          "sha256": "5c64363cb74d27c5a7c21b20927b490155d2cf0c84b1d1bb6d5696725dac6091",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/vtex.cfg",
+          "runtime": true
+        },
+        "xdvipdfmx.cfg": {
+          "sha256": "99598e5c088b3c63ebb7317e3af9825b825b3ef321eca0f336aa4c73e8c948c5",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/config/xdvipdfmx.cfg",
+          "runtime": true
+        },
+        "pst-fp.tex": {
+          "sha256": "d58eb53c552f0943768374eead00066c9eedeb1fb8cf26d087e6cc9564e963fa",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pst-fp.tex",
+          "runtime": true
+        },
+        "pst-key.tex": {
+          "sha256": "4f63f721683fd9840f72a1fd37cb06a11c1f67c82720fcec033cb12d2d7659a2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pst-key.tex",
+          "runtime": true
+        },
+        "pstricks-arrows.tex": {
+          "sha256": "e013cd4abd9555ca3a52d5255387a1c4f5538ecc6fe0e90e9c481125ac12c546",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks-arrows.tex",
+          "runtime": true
+        },
+        "pstricks-color.tex": {
+          "sha256": "51e83060dadf91cb0cb858282a88c8e26af5aca991845b4c9e09834dd2732957",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks-color.tex",
+          "runtime": true
+        },
+        "pstricks-dots.tex": {
+          "sha256": "ffa0cb6a9a190f20e190c1d33fd31e67d725405e3bf7314cee84b043f7603851",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks-dots.tex",
+          "runtime": true
+        },
+        "pstricks-tex.def": {
+          "sha256": "72eae810a2026db6f0c677402305cc35ab98508f3f29d0f690332f5c307c6c87",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks-tex.def",
+          "runtime": true
+        },
+        "pstricks-xetex.def": {
+          "sha256": "949aef40f40070da4bf8527209e0a9bb49a3879d96035fcbbf502ee9c5cbaa3b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks-xetex.def",
+          "runtime": true
+        },
+        "pstricks.con": {
+          "sha256": "b0aeda14841886f6aa277b19baecd1e3371770d5c3c8e7ca8eccd96f3b4b3215",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks.con",
+          "runtime": true
+        },
+        "pstricks.tex": {
+          "sha256": "f4db0e7687791e94dac3f8279835aa04de0ab370476ed84e83fbd2e0e74a3c87",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks.tex",
+          "runtime": true
+        },
+        "pstricks97.tex": {
+          "sha256": "55079db01ddce3951c87a96ebe579ecdc867a5fcc50e468d03df3101a905d854",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/generic/pstricks/pstricks97.tex",
+          "runtime": true
+        },
+        "pst-all.sty": {
+          "sha256": "67b7a6c87ff736dcdbe7e1e007fd88594675f6d135c5209165cea2a0904ebf01",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/latex/pstricks/pst-all.sty",
+          "runtime": true
+        },
+        "pst-doc.cls": {
+          "sha256": "a58a1553066b2ee624ce90f648efb1617f8096197990962e2d685769bf841ee6",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/latex/pstricks/pst-doc.cls",
+          "runtime": true
+        },
+        "pst-key.sty": {
+          "sha256": "475f36fce13bf80255fba980b8d2a72bc2d9c3a6d418a9a574e5b4a2d9501099",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/latex/pstricks/pst-key.sty",
+          "runtime": true
+        },
+        "pstcol.sty": {
+          "sha256": "a48037e5d601df384a1be9928bb67979383b19dbb311db71a2ac14c67f929143",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/latex/pstricks/pstcol.sty",
+          "runtime": true
+        },
+        "pstricks-pdf.sty": {
+          "sha256": "19e558845e257b7fd3dd3b728a810fb8cb5b0debb6c15cec30fa38cab096ba11",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/latex/pstricks/pstricks-pdf.sty",
+          "runtime": true
+        },
+        "pstricks.sty": {
+          "sha256": "71c753b345259987d2dc34412dade1cf3957cae2d1c11732b95300a4ada6b5f3",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz#tex/latex/pstricks/pstricks.sty",
+          "runtime": true
+        },
+        "pstricks-add.pro": {
+          "sha256": "5e63ea6bc6404be6f3de2215109669ff856f0d3626d0e3a651021d88aa5d67b0",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks-add.tar.xz#dvips/pstricks-add/pstricks-add.pro",
+          "runtime": true
+        },
+        "pstricks-add.tex": {
+          "sha256": "f09bc6f8c1169ae8ccab61a5a0cdfd7fa4afbe7c51b562630d2288f851771bd4",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks-add.tar.xz#tex/generic/pstricks-add/pstricks-add.tex",
+          "runtime": true
+        },
+        "pstricks-add.sty": {
+          "sha256": "96ca8541aa6e831a8db3afe3b278d4b9e5dd3bc39aaeb4ab69c6319e4bcf954e",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks-add.tar.xz#tex/latex/pstricks-add/pstricks-add.sty",
+          "runtime": true
+        },
+        "pst-node.pro": {
+          "sha256": "ce3e277d768320cd7496e0256232a2d36a5f5897e7775b71262985a96d64a5d2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-node.tar.xz#dvips/pst-node/pst-node.pro",
+          "runtime": true
+        },
+        "pst-node97.pro": {
+          "sha256": "f131898b91c911154e2a2705f24f5fe76758c0dd4c5256a8f1e6f7476a0b842d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-node.tar.xz#dvips/pst-node/pst-node97.pro",
+          "runtime": true
+        },
+        "pst-node.tex": {
+          "sha256": "ba0e591362dd75cd1f57ab2afa022dc2b632485d9031495050f0246cf2d6a6df",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-node.tar.xz#tex/generic/pst-node/pst-node.tex",
+          "runtime": true
+        },
+        "pst-node97.tex": {
+          "sha256": "64c49b8fe70cac0a65edf92228935222b5910a490782e4061766aba732bd69d2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-node.tar.xz#tex/generic/pst-node/pst-node97.tex",
+          "runtime": true
+        },
+        "pst-node.sty": {
+          "sha256": "bfa5e9849bf423dbf7e46c0d4f38fa24c66be42528b4752dd674a4f81faf6279",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-node.tar.xz#tex/latex/pst-node/pst-node.sty",
+          "runtime": true
+        },
+        "pst-plot.tex": {
+          "sha256": "9c48c13055b30466571efd52d4787857b3e1ca23a7be4ace798f21166f3cb0f9",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-plot.tar.xz#tex/generic/pst-plot/pst-plot.tex",
+          "runtime": true
+        },
+        "pst-plot97.tex": {
+          "sha256": "228a6961f165208d92c2beaca08ba2798dc079043f3e0e53ac90db4b0cf8c9bf",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-plot.tar.xz#tex/generic/pst-plot/pst-plot97.tex",
+          "runtime": true
+        },
+        "pst-plot.sty": {
+          "sha256": "4e521e5b293e40f9bb63dbcc96ce52417a79fb5ca5c50f36d22e3dfb79c78fdc",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-plot.tar.xz#tex/latex/pst-plot/pst-plot.sty",
+          "runtime": true
+        },
+        "pst-math.pro": {
+          "sha256": "d7ca8a67f90ddb6ea93301c7ed226e0fad12abb495b1f163f8ac562f61e200ef",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-math.tar.xz#dvips/pst-math/pst-math.pro",
+          "runtime": true
+        },
+        "pst-math.tex": {
+          "sha256": "c0534be1e9dc7e6a45035018b3b68526e1bc30b442ca8a470db1e19faf9efb38",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-math.tar.xz#tex/generic/pst-math/pst-math.tex",
+          "runtime": true
+        },
+        "pst-math.sty": {
+          "sha256": "63aa67af52a89fadf1aa7e73f8e79ebad93dc74d92a8d7a01ddb074e6d505724",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-math.tar.xz#tex/latex/pst-math/pst-math.sty",
+          "runtime": true
+        },
+        "pst-3d.pro": {
+          "sha256": "1f0468fb42c9a7d094906dcd66781eee5964d0a5ba67a7786338a8e821f83c59",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-3d.tar.xz#dvips/pst-3d/pst-3d.pro",
+          "runtime": true
+        },
+        "pst-3d.tex": {
+          "sha256": "980d6b0ade9f3269152a282b54f74414f7077a0de2690baee859a020ec8c6c9e",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-3d.tar.xz#tex/generic/pst-3d/pst-3d.tex",
+          "runtime": true
+        },
+        "pst-3d.sty": {
+          "sha256": "e615cc2b0ae0177aa1fc7964eeb7f62968e7ac6996483a62e6b971b3f2be1db3",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-3d.tar.xz#tex/latex/pst-3d/pst-3d.sty",
+          "runtime": true
+        },
+        "pst-tools.pro": {
+          "sha256": "c9d42111ec05d194b121f93b433578fd84dcd678185bb1b7ef96f332af7f4f98",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-tools.tar.xz#dvips/pst-tools/pst-tools.pro",
+          "runtime": true
+        },
+        "pst-tools.tex": {
+          "sha256": "55b2812d96af66611a2e05fcdfd921068bd42b9d05390c3bef47de1753ef2265",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-tools.tar.xz#tex/generic/pst-tools/pst-tools.tex",
+          "runtime": true
+        },
+        "pst-tools.sty": {
+          "sha256": "1ff5788048beb8e3d35a44e62492da867617a6efe65c6ab778e2a022fcca0850",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-tools.tar.xz#tex/latex/pst-tools/pst-tools.sty",
+          "runtime": true
+        },
+        "pst-arrow.tex": {
+          "sha256": "2f857a199cb9f90f3fc86bbf0d9c63dc6e98b655df81856c25612234424af2ab",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-arrow.tar.xz#tex/generic/pst-arrow/pst-arrow.tex",
+          "runtime": true
+        },
+        "pst-arrow.sty": {
+          "sha256": "50fa85087339c5a8e5d72a0fc297ec2c61c73ffef1cd9e7c68392f4c3c55d211",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-arrow.tar.xz#tex/latex/pst-arrow/pst-arrow.sty",
+          "runtime": true
+        },
+        "pst-func.pro": {
+          "sha256": "06250ed5abff82210ca5946925a4fdb6f6cc6ef93909ab3c5c42e3c765900963",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-func.tar.xz#dvips/pst-func/pst-func.pro",
+          "runtime": true
+        },
+        "pst-func.tex": {
+          "sha256": "ea7359e5084f0ed9e1589bc1878ef684be2e541083e231733888be352bb0fd5f",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-func.tar.xz#tex/generic/pst-func/pst-func.tex",
+          "runtime": true
+        },
+        "pst-func.sty": {
+          "sha256": "916d53fe881ce9c068c815891fead290492df9db93f53c92dac4ff2646fe6564",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-func.tar.xz#tex/latex/pst-func/pst-func.sty",
+          "runtime": true
+        },
+        "pst-calculate.sty": {
+          "sha256": "c187349582ae2b75eeeeb3f4b4b7ded8c48ae1b59e7fcb7084290133310a5786",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-calculate.tar.xz#tex/latex/pst-calculate/pst-calculate.sty",
+          "runtime": true
+        },
+        "multido.tex": {
+          "sha256": "43459b0dd79165f93151bbce71e8a1a8ccb757fb00785dfcf391163ae1494c3c",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/multido.tar.xz#tex/generic/multido/multido.tex",
+          "runtime": true
+        },
+        "multido.sty": {
+          "sha256": "03d7df301833a3e6add39ced57cc70a01934ca871f80da3278bf2a5a6f1e4ad8",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/multido.tar.xz#tex/latex/multido/multido.sty",
+          "runtime": true
+        }
+      },
+      "archives": {
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks.tar.xz": "efebf8e06ce1fc57a71c69a78e5837fc40afbc2f0880310651450886c9be5c95",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pstricks-add.tar.xz": "353995839979dcb34462f16f8d3eea365dd652054aa53b833067b7cab50a65cf",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-node.tar.xz": "c277c28757f198b7a72bbb773e1efde72904415bb285215bdfc53d283f163d0a",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-plot.tar.xz": "ce616037f2618d4776c3082bd526970f58fab6c53efcdd0ca995c2d437b323d7",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-math.tar.xz": "c5561597345e15fd8486803bf331dacce41aa1e5e1cdc6481488674e32beb905",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-3d.tar.xz": "f324ac230edb03509ed29693ce3d6da3e90519f9f8a952aa2e739a6fc25f103d",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-tools.tar.xz": "39d8d11538b2d0a4dd4fa31e02b720c043c4f4b7ba1cbedf3f460bb37065456c",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-arrow.tar.xz": "903e7cb8e7b0d6bce7c75cecb7d8d8e954d4cc2e923a915736baf490baee3f30",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-func.tar.xz": "243af4236a7b026cb63a8148463c90cc68319583805af0d844ad2ba0fe6db266",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/pst-calculate.tar.xz": "d15171589963f9753a25111b3b6e2eeebf85c948f336ee4f4f3b804cbee6675c",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2022/tlnet-final/archive/multido.tar.xz": "ba67c4cd91dd7253b368fbb603275895ac72e003111e713d254d81c2dc24c537"
+      },
+      "description": "TeX Live 2022 final PSTricks runtime and dependencies"
+    },
+    "biblatex": {
+      "files": {
+        "biblatex-examples.bib": {
+          "sha256": "e7b05fc8d5bc12f9c41e62abc0b9bf6d22198d7e3b780cae24140cb45355f3cc",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#bibtex/bib/biblatex/biblatex/biblatex-examples.bib",
+          "runtime": true
+        },
+        "biblatex.bst": {
+          "sha256": "aa17d50dcb6d4c1e6aad4f8cbe107b4f493a14ea697251f219bee886fa036726",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#bibtex/bst/biblatex/biblatex.bst",
+          "runtime": true
+        },
+        "alphabetic-verb.bbx": {
+          "sha256": "bce0c0573111e83bbfd8aa6368ec6e2a00fc8970bcf26e2911573602a206a0a8",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/alphabetic-verb.bbx",
+          "runtime": true
+        },
+        "alphabetic.bbx": {
+          "sha256": "792e216d530f186440443c8ae8637cdcc69d3d47c4011903ce825ac0ff779e80",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/alphabetic.bbx",
+          "runtime": true
+        },
+        "authortitle-comp.bbx": {
+          "sha256": "ee64c241edceb31b15d2ff32a95e6c9e91654523732ccccb9e0aa310e6bd8845",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authortitle-comp.bbx",
+          "runtime": true
+        },
+        "authortitle-ibid.bbx": {
+          "sha256": "5455d5bdeb5d182aca2fe0245a7e11c4c37633e8d1b99e3067503f26f062cfa4",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authortitle-ibid.bbx",
+          "runtime": true
+        },
+        "authortitle-icomp.bbx": {
+          "sha256": "14391f2e25a27c30d3c671f5b3efbea26274abf8a5d424c2b3643ddaa9926536",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authortitle-icomp.bbx",
+          "runtime": true
+        },
+        "authortitle-tcomp.bbx": {
+          "sha256": "2e9d775a28f0572dc90de7080d4b15d35ef22c30a0d3bc2acc98e81f46ac4853",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authortitle-tcomp.bbx",
+          "runtime": true
+        },
+        "authortitle-terse.bbx": {
+          "sha256": "c3f2641ed109753668038b092bf7bc10dc2c9768f37a294f49dec86919dbe589",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authortitle-terse.bbx",
+          "runtime": true
+        },
+        "authortitle-ticomp.bbx": {
+          "sha256": "26cf5d86a801f6e4455ecd357a7c8a9b322da501d960fa5e230b8c75a395c855",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authortitle-ticomp.bbx",
+          "runtime": true
+        },
+        "authortitle.bbx": {
+          "sha256": "e65263aa74bf61df9287cfaac52ff142d5fc72acade1f5fa990bf3d2a14792cd",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authortitle.bbx",
+          "runtime": true
+        },
+        "authoryear-comp.bbx": {
+          "sha256": "566e548829b936918fc30909f129877aedb67d7ddffdf52f59ecef03883038a7",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authoryear-comp.bbx",
+          "runtime": true
+        },
+        "authoryear-ibid.bbx": {
+          "sha256": "1e72988b33f6045a408eecce0be828c0eb4d39daf61cb97a297b08b7de81e24f",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authoryear-ibid.bbx",
+          "runtime": true
+        },
+        "authoryear-icomp.bbx": {
+          "sha256": "31e2073b702c90347495999bf5213fb101020cb9386207087c27d3e7a3cc5518",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authoryear-icomp.bbx",
+          "runtime": true
+        },
+        "authoryear.bbx": {
+          "sha256": "482267cd624a74f4c1788d61f0b31f4bb24432ba4c23beb0c66702a4a3a8215a",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/authoryear.bbx",
+          "runtime": true
+        },
+        "debug.bbx": {
+          "sha256": "d245b82c4eb7bc17fc343a03605767fb8291fe03bc3e48705effa849eb2a03e7",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/debug.bbx",
+          "runtime": true
+        },
+        "draft.bbx": {
+          "sha256": "6ec1767f717d9369abaa66ce1a602c10ef4c9399bd4c9fb20219c6f4c28d5804",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/draft.bbx",
+          "runtime": true
+        },
+        "numeric-comp.bbx": {
+          "sha256": "8eeb309af937722e46f426679c82ff230236cbf99145ef54672a04d1aee43088",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/numeric-comp.bbx",
+          "runtime": true
+        },
+        "numeric-verb.bbx": {
+          "sha256": "4d700fd5c122488e0749561e447ba2fd680fd713b271494dc47eee1f13e3cd07",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/numeric-verb.bbx",
+          "runtime": true
+        },
+        "numeric.bbx": {
+          "sha256": "eed345c5ccf88395c6db9790fe0808ac4adfac38e023ea96b6282b21f1b1bc15",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/numeric.bbx",
+          "runtime": true
+        },
+        "reading.bbx": {
+          "sha256": "39552f0b15ae0019295dbe9ab8befbbd8c9d2a2e346eea9c333dc696a1ef0d84",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/reading.bbx",
+          "runtime": true
+        },
+        "standard.bbx": {
+          "sha256": "ad4af059ea275ff4f8a82328b6390ef7ab9fddd97376e1d1abb08cc2fb9477ed",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/standard.bbx",
+          "runtime": true
+        },
+        "verbose-ibid.bbx": {
+          "sha256": "1f98efa3b283c053c666d35db63b02d33082a282ce0a7eeb895a2fd49d74b3cf",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/verbose-ibid.bbx",
+          "runtime": true
+        },
+        "verbose-inote.bbx": {
+          "sha256": "dd268dcc624d01804f2e98374c6bb204773cfcf62638f395278b1b1385a562c8",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/verbose-inote.bbx",
+          "runtime": true
+        },
+        "verbose-note.bbx": {
+          "sha256": "30fc4c80f96e7312bb2798bf36e976c50e08587d2efa1e77233d14199c190ffc",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/verbose-note.bbx",
+          "runtime": true
+        },
+        "verbose-trad1.bbx": {
+          "sha256": "7c393be9f459d15613acb24cf9b21ee19dca6608b2cf28c94277ef9eb877f530",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/verbose-trad1.bbx",
+          "runtime": true
+        },
+        "verbose-trad2.bbx": {
+          "sha256": "25e27f23c4f4f1fcd49250066e045893c50f40665d7453cb73d98e0ea00490cd",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/verbose-trad2.bbx",
+          "runtime": true
+        },
+        "verbose-trad3.bbx": {
+          "sha256": "7244966aa1871bcf9cac082ad3eba0764efef6cd14773ec341beccb4189a7a23",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/verbose-trad3.bbx",
+          "runtime": true
+        },
+        "verbose.bbx": {
+          "sha256": "64ff06baddb922119376ce3bbfd2618114dc595c88b6370d5f4d2b4ed2e6e075",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/bbx/verbose.bbx",
+          "runtime": true
+        },
+        "biblatex.cfg": {
+          "sha256": "2f6e01efbb466a252120f07c8e12d38a34e747b01ba0b9ba2b7d66b4386bb5b4",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/biblatex.cfg",
+          "runtime": true
+        },
+        "biblatex.def": {
+          "sha256": "4c403b5aecd313d9368787b648400cf763c715418fa97696c889c5c5abe88942",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/biblatex.def",
+          "runtime": true
+        },
+        "biblatex.sty": {
+          "sha256": "cd7d2bb7fa93cd406863f6e43bc3ef08ff34b18a55f6015db759d8d34ebe9984",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/biblatex.sty",
+          "runtime": true
+        },
+        "blx-bibtex.def": {
+          "sha256": "e545401d0168ca4fb7e72bbe87b6ccd2c4b4df0f2ff6bec6e2cb24b78954b571",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-bibtex.def",
+          "runtime": true
+        },
+        "blx-case-expl3.sty": {
+          "sha256": "35a9fcb0f0620ddf7202917911e1f7dd21a20e20b32180d1c273ee3fbc859772",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-case-expl3.sty",
+          "runtime": true
+        },
+        "blx-case-latex2e.sty": {
+          "sha256": "7402b005dce7c445170307af8e97488f11ba70ad1bd035396702d8c044473044",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-case-latex2e.sty",
+          "runtime": true
+        },
+        "blx-compat.def": {
+          "sha256": "c1c50e4da35cbe865379e2084f65d5cb705759520f1c213329330fc67b604389",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-compat.def",
+          "runtime": true
+        },
+        "blx-dm.def": {
+          "sha256": "caa6b7c0c6db33402fd93d00c01e9f99717f5e80fdf8be2a841c4a987771b115",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-dm.def",
+          "runtime": true
+        },
+        "blx-mcite.def": {
+          "sha256": "9b0cc231e6dc4af876b29d09be45debc23ac0afb7eba057a25325092c4a79c30",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-mcite.def",
+          "runtime": true
+        },
+        "blx-natbib.def": {
+          "sha256": "d0eef72c409d69049bef603ba0706146971c13277ab7f275f4eb11b7fcd7b4ee",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-natbib.def",
+          "runtime": true
+        },
+        "blx-unicode.def": {
+          "sha256": "afd0e1d51891b31634e87e6b9acf608816430f5d156c380b16ecc0e41d90a0a3",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/blx-unicode.def",
+          "runtime": true
+        },
+        "alphabetic-verb.cbx": {
+          "sha256": "51a31698d420eed8b66d17058caf93b5410c88a5887fd0fe83d1c5a58716f15f",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/alphabetic-verb.cbx",
+          "runtime": true
+        },
+        "alphabetic.cbx": {
+          "sha256": "d6de8a8d822c8f8c1139a61a8dcbaa3da8d6330a0c26acfcb97cd0390ca4cfec",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/alphabetic.cbx",
+          "runtime": true
+        },
+        "authortitle-comp.cbx": {
+          "sha256": "208873f2921a6a6c87936ceaa31cfb194cb6de308c454444765a9f2df7d506c2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authortitle-comp.cbx",
+          "runtime": true
+        },
+        "authortitle-ibid.cbx": {
+          "sha256": "cbbfdab1dc80a1e3093d6558c326866d23aa1a38f44ddb5b41f8ae2c6058f94b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authortitle-ibid.cbx",
+          "runtime": true
+        },
+        "authortitle-icomp.cbx": {
+          "sha256": "616bd07286b379706f4bd69317262cecc4d0f1cc48d37191bb7589dbde387c7a",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authortitle-icomp.cbx",
+          "runtime": true
+        },
+        "authortitle-tcomp.cbx": {
+          "sha256": "417b321ec84618e18092efe7bb7481ea3960f9261feb03831ffdb78a2d20ad0b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authortitle-tcomp.cbx",
+          "runtime": true
+        },
+        "authortitle-terse.cbx": {
+          "sha256": "ac6cc4463cdb6c163f81086f670db9525d55bfa02e36f41de761e0a174f1aa97",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authortitle-terse.cbx",
+          "runtime": true
+        },
+        "authortitle-ticomp.cbx": {
+          "sha256": "58507911c55fedb7e12cc18f928e0ac75575ee76cc4fae0c563c2db974b7cb2d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authortitle-ticomp.cbx",
+          "runtime": true
+        },
+        "authortitle.cbx": {
+          "sha256": "bbbb4d2410e71db1afe6355aa097332128d32b748ca7f30555fe97361e184548",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authortitle.cbx",
+          "runtime": true
+        },
+        "authoryear-comp.cbx": {
+          "sha256": "950459f8c0566e1f4170556f303861a65ff6b81a59dd9bbeb5770cc2e084deff",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authoryear-comp.cbx",
+          "runtime": true
+        },
+        "authoryear-ibid.cbx": {
+          "sha256": "605983147f2da4b48312b34b06a69d076217298e1465c0b52a4ec1a23c1ae294",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authoryear-ibid.cbx",
+          "runtime": true
+        },
+        "authoryear-icomp.cbx": {
+          "sha256": "e397f360f3ec660864caf129f852d15c43989f7ca286470cfea60412914efde4",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authoryear-icomp.cbx",
+          "runtime": true
+        },
+        "authoryear.cbx": {
+          "sha256": "f8ad741bdb8243195b4706eb879672409a2b2e05da14e5880b75df1933cd163d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/authoryear.cbx",
+          "runtime": true
+        },
+        "debug.cbx": {
+          "sha256": "37528fabe72859c97adbb37469144d8617c3545c80ec6123e5a43a91a8be079d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/debug.cbx",
+          "runtime": true
+        },
+        "draft.cbx": {
+          "sha256": "bd0fbe061a4e5a0cc085dc942b451df3a0b5ed0d80fdf419f809a242f771b2fb",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/draft.cbx",
+          "runtime": true
+        },
+        "numeric-comp.cbx": {
+          "sha256": "af84ddd27bfea2008528b7869a2958e3baa9e16b7bf00b347c207cc20910b626",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/numeric-comp.cbx",
+          "runtime": true
+        },
+        "numeric-verb.cbx": {
+          "sha256": "fec1743386d36f0894685fe73ddb88f7e7c943bec52ed3898896214d853ddfe9",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/numeric-verb.cbx",
+          "runtime": true
+        },
+        "numeric.cbx": {
+          "sha256": "34a59ee2e9dd0ecb6c47bbb5e84023c2728594a24a17da666edc1dfc0df95217",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/numeric.cbx",
+          "runtime": true
+        },
+        "reading.cbx": {
+          "sha256": "52334372cb9c9287ea23d60fab27344683558be10bfc66a4e33a3a1cda017077",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/reading.cbx",
+          "runtime": true
+        },
+        "verbose-ibid.cbx": {
+          "sha256": "3c50f39ab3a39b4d03d4d5e7f2ee84409c52cc1f357aed01a07fba2131bf02ff",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/verbose-ibid.cbx",
+          "runtime": true
+        },
+        "verbose-inote.cbx": {
+          "sha256": "e376c0ac6564d6d8961b628596ae8e71db45ed8a90037985ef0eaf6d26df6de9",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/verbose-inote.cbx",
+          "runtime": true
+        },
+        "verbose-note.cbx": {
+          "sha256": "99d0924853f2aa25b1fa83244576b7781bd5c43b4401920da29566493bff315b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/verbose-note.cbx",
+          "runtime": true
+        },
+        "verbose-trad1.cbx": {
+          "sha256": "23c03282786fc99ece5c1c60c79e8bbe0fa97b1f2270b90eea896b4bc103f03b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/verbose-trad1.cbx",
+          "runtime": true
+        },
+        "verbose-trad2.cbx": {
+          "sha256": "d1fab40d14015440a65d2375ed4b8745014026e8ecd6efad11d339822b33284b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/verbose-trad2.cbx",
+          "runtime": true
+        },
+        "verbose-trad3.cbx": {
+          "sha256": "c37ab716aa49669f80cb89a0845c4a096ad6fb6e297bf04893e0943b58c46ce6",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/verbose-trad3.cbx",
+          "runtime": true
+        },
+        "verbose.cbx": {
+          "sha256": "4470aef25df9d10db3ba3a608a5ecd060839fb15c0f3d82e9700bd0211539bf4",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/cbx/verbose.cbx",
+          "runtime": true
+        },
+        "UKenglish.lbx": {
+          "sha256": "e21c071f8c868131ecf4d33522ee6f818fc6f180a19daba2103d97d8c9c8a469",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/UKenglish.lbx",
+          "runtime": true
+        },
+        "USenglish.lbx": {
+          "sha256": "2b5a4828e767aa7e473554defdbe4f83202b5a73f156b26b5ee8e12333c6827f",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/USenglish.lbx",
+          "runtime": true
+        },
+        "american.lbx": {
+          "sha256": "2719bd1378bf9394704ba50d34c22fcccf4deb7e91df892ceba70de6c8ecf2bd",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/american.lbx",
+          "runtime": true
+        },
+        "australian.lbx": {
+          "sha256": "9b5b443ae5a6a643b3a4715cc5cb6a8ddb2d6890c5be4b8aa4aae7220b7d24ab",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/australian.lbx",
+          "runtime": true
+        },
+        "austrian.lbx": {
+          "sha256": "a8be4fc34746de86dbbc70dde00b8790cbe97341d805dcdaf3e14f6a8d5e2837",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/austrian.lbx",
+          "runtime": true
+        },
+        "basque.lbx": {
+          "sha256": "afd7a18f64db49d92745f3aec9145b772b47d3af14785987fa5949157e8414ff",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/basque.lbx",
+          "runtime": true
+        },
+        "brazil.lbx": {
+          "sha256": "9ca9cc5e35f9200545aa04f1430d41c569812d154d00db9082a0bcbe5693ac58",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/brazil.lbx",
+          "runtime": true
+        },
+        "brazilian.lbx": {
+          "sha256": "1898c7b12c8f90b95a2f44c18d2b6eb95c3f78691526ad56300b3d6db4d01735",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/brazilian.lbx",
+          "runtime": true
+        },
+        "british.lbx": {
+          "sha256": "e67e582c263bcbeea87d6aac4da6f6e870bd46ec17ff147461bac98d78b0e516",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/british.lbx",
+          "runtime": true
+        },
+        "bulgarian.lbx": {
+          "sha256": "96ef3a52d3d097d89b01dd681dd632b8fa4497868026c3eaa67e65bd176bb6aa",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/bulgarian.lbx",
+          "runtime": true
+        },
+        "canadian.lbx": {
+          "sha256": "1f3eb6c127430f5ced2cc7e2fd464bdba6c19d8f159e8c95edfc81cd5a86b5d7",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/canadian.lbx",
+          "runtime": true
+        },
+        "catalan.lbx": {
+          "sha256": "fbdd6e8c81e76ebe075c743add80742d9f7b55543dcfe3154ace0e0f362fda20",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/catalan.lbx",
+          "runtime": true
+        },
+        "croatian.lbx": {
+          "sha256": "28b41498a362311d0258d91e57fc79eb267d10922ac45bd1da2ebb4c8133aa2b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/croatian.lbx",
+          "runtime": true
+        },
+        "czech.lbx": {
+          "sha256": "0ea0d30b9f9abcc469ee99b7fae17e7aba82a64545b5203d70693b9871906047",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/czech.lbx",
+          "runtime": true
+        },
+        "danish.lbx": {
+          "sha256": "b94c7cc40f18ee8d4ff75b2356a2b1711e9ffe7bcc6d0666423697723a0d1c92",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/danish.lbx",
+          "runtime": true
+        },
+        "dutch.lbx": {
+          "sha256": "0bd1d056c305f6b1c60f4c38de4bc70746b63498884ad817457930029a9e2ff2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/dutch.lbx",
+          "runtime": true
+        },
+        "english.lbx": {
+          "sha256": "e9997cc6ad9c21b7ba6835cd5b6b9c9cb7b318ef7a628eb38c28afba42ad822d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/english.lbx",
+          "runtime": true
+        },
+        "estonian.lbx": {
+          "sha256": "e4325b74fc75056f34a142940806bb57b39c16e48ffba805549874d28eebb1b9",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/estonian.lbx",
+          "runtime": true
+        },
+        "finnish.lbx": {
+          "sha256": "fecc7f620111df22af7faaccc362e244eee9a8f3622e5ab5a6c553101e1dadad",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/finnish.lbx",
+          "runtime": true
+        },
+        "french.lbx": {
+          "sha256": "07b54b4c9f40bd474a825d76db4396fb18a5bc6706207b0003cb02d8994ff2d2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/french.lbx",
+          "runtime": true
+        },
+        "galician.lbx": {
+          "sha256": "f400b3577edefe9961407814f208c21943a9716098eb43a264518a279a256828",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/galician.lbx",
+          "runtime": true
+        },
+        "german.lbx": {
+          "sha256": "c3706ec62c58109766c4127e4529c404b757bc1f3e941c09e96cca491a8df6a5",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/german.lbx",
+          "runtime": true
+        },
+        "greek.lbx": {
+          "sha256": "7cba84ad49622faff56e32e3a1cb4208c50bcfe846f3e9d3bc21c7366dc3787a",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/greek.lbx",
+          "runtime": true
+        },
+        "hungarian.lbx": {
+          "sha256": "9b166a2002ff89a17a49adafdfe974bb354c9e6bc928f522e8ff08d8afe6fc0e",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/hungarian.lbx",
+          "runtime": true
+        },
+        "icelandic.lbx": {
+          "sha256": "ee3b712047733e7102e6ab1ab51229b30f2d137d9dc7744dd4fed75e271ccdc0",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/icelandic.lbx",
+          "runtime": true
+        },
+        "italian.lbx": {
+          "sha256": "8fd9082a183fddee62920ce2ec7fa8cba44b86e359d45d97abaa55e32c91eb54",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/italian.lbx",
+          "runtime": true
+        },
+        "latvian.lbx": {
+          "sha256": "5e94651a4c7095881426536c0fc6111660a17c06ea6728fa49ed690d5a5dc40d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/latvian.lbx",
+          "runtime": true
+        },
+        "lithuanian.lbx": {
+          "sha256": "9d63a96d741e425c97b62505b83afd851fbbb85978908a59ac76e40a950c6082",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/lithuanian.lbx",
+          "runtime": true
+        },
+        "magyar.lbx": {
+          "sha256": "e917260f22aab376bd811b6b06af5f6b047f5474bd7cea727060fb6b1d34dfd2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/magyar.lbx",
+          "runtime": true
+        },
+        "marathi.lbx": {
+          "sha256": "3bd1cc627a1c38a2bbd08111c9b7ec47ce47654cb51eacf61f490e4ad80211b0",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/marathi.lbx",
+          "runtime": true
+        },
+        "naustrian.lbx": {
+          "sha256": "eab5e001778a73e9b502c336346a32079b236c4b545e66b5f181b0abbca8f34d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/naustrian.lbx",
+          "runtime": true
+        },
+        "newzealand.lbx": {
+          "sha256": "286af6c87c69bf729d628f44123e948f68c88b1f0c9005459f9f6bc943f89b9e",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/newzealand.lbx",
+          "runtime": true
+        },
+        "ngerman.lbx": {
+          "sha256": "d4d3bdae979654d0e2dbd2cfe5c7122ace14e587970792e87a23dfe509725f97",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/ngerman.lbx",
+          "runtime": true
+        },
+        "norsk.lbx": {
+          "sha256": "bf6fc7df3448941bf1fb813af29a39be6fa1e56ee38de12907e97e379eba782f",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/norsk.lbx",
+          "runtime": true
+        },
+        "nswissgerman.lbx": {
+          "sha256": "af32e087bfee15eac54a5b5641d1657815fd7cb9793715820f3cf0194a286694",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/nswissgerman.lbx",
+          "runtime": true
+        },
+        "nynorsk.lbx": {
+          "sha256": "aea68b753469fc834033b8b1f28e8184b1c1cde336ae3ab61394fe7436a545b2",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/nynorsk.lbx",
+          "runtime": true
+        },
+        "polish.lbx": {
+          "sha256": "bf2d38290495fa2ade4caa785fabcaf1934edc00a3ad7b4a4500d6d1a6a98cd7",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/polish.lbx",
+          "runtime": true
+        },
+        "portuges.lbx": {
+          "sha256": "12a4afb9c90016a63f8adc9accb9eaf4bf32882ee1ea3323645953ece510e032",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/portuges.lbx",
+          "runtime": true
+        },
+        "portuguese.lbx": {
+          "sha256": "4ea114e9c7c07e6c78414161c62712d9bef4d478e016edf961b1f0f51bcf271b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/portuguese.lbx",
+          "runtime": true
+        },
+        "romanian.lbx": {
+          "sha256": "d3814767b06cc3a6392beb2da12bf3bf9a6251dd5df785ae3d38a22c8ac0b26d",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/romanian.lbx",
+          "runtime": true
+        },
+        "russian.lbx": {
+          "sha256": "040adab59ffb2209186663d49aa306210867bafe3ff7d02ecfa5332611e6309b",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/russian.lbx",
+          "runtime": true
+        },
+        "serbian.lbx": {
+          "sha256": "cc0bded0c725cd0b31d960309127e103ebd3a0daa34547073c2ba29c17ddec33",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/serbian.lbx",
+          "runtime": true
+        },
+        "serbianc.lbx": {
+          "sha256": "29626295245ad5351bd1be14a1c4065df405ed42309106b16fbfe7aebabb1501",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/serbianc.lbx",
+          "runtime": true
+        },
+        "slovak.lbx": {
+          "sha256": "2380244ce308c5588572ba1e49b3d00592760149df3936b84435f413e7926c6f",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/slovak.lbx",
+          "runtime": true
+        },
+        "slovene.lbx": {
+          "sha256": "eea2631f95433d370abe57632dd847097ad2b82741e212549d1df835061a14bc",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/slovene.lbx",
+          "runtime": true
+        },
+        "slovenian.lbx": {
+          "sha256": "1a247797ce1dd2f26dce49f8cd5960fbb7fa6f1748fb7bcebed4341fa07d2014",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/slovenian.lbx",
+          "runtime": true
+        },
+        "spanish.lbx": {
+          "sha256": "ce4549e715b33be6da07a311a3a44b397ec6c8e5316107f384268fdba5d2bc71",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/spanish.lbx",
+          "runtime": true
+        },
+        "swedish.lbx": {
+          "sha256": "fdb8afda84b343dbeaabd5e4b8e3e311bd61cf1eb5b7f0f7cd1c256203ceb4f5",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/swedish.lbx",
+          "runtime": true
+        },
+        "swissgerman.lbx": {
+          "sha256": "de05879decceaff906ad72b1b762cea66b32234eb07abcfbd44284b4d39d1191",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/swissgerman.lbx",
+          "runtime": true
+        },
+        "turkish.lbx": {
+          "sha256": "62c5049b1cfb8e76f290a9e128086eb534c8360aa473da32b917a344c8e3c5b4",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/turkish.lbx",
+          "runtime": true
+        },
+        "ukrainian.lbx": {
+          "sha256": "b9f37e2639a903d881ace9abb7a69dfccdfd02acaf8c2fb33382d58d569da523",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz#tex/latex/biblatex/lbx/ukrainian.lbx",
+          "runtime": true
+        }
+      },
+      "archives": {
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz": "cb6c92694230297877cf7bcfd16f31ea1e8041f70493ca3c3a12d85ca995807e"
+      },
+      "description": "biblatex 3.20 (bbl format 3.3, bcf 3.11) from TeX Live 2024 final"
+    }
+  }
+}

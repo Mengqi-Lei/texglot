@@ -1,0 +1,580 @@
+%% $Id: pstricks-arrows.tex 168 2021-08-28 08:43:24Z herbert $
+%%
+%% This is file `pstricks-arrows.tex',
+%%
+%% IMPORTANT NOTICE:
+%%
+%% Herbert Voss <hvoss@tug.org>
+%%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License Distributed from CTAN archives
+%% in directory macros/latex/base/lppl.txt.
+%%
+%% DESCRIPTION:
+%%   `pstricks-arrows' base code for arrows 
+%%
+%% fileversion and filedate see main file pstricks.tex
+%%
+\def\pst@getarrows#1{\@ifnextchar({#1}{\pst@@getarrows{#1}}}
+% ------------------------- hv 1.10 beg ------------------------
+%\def\pst@@getarrows#1#2{\addto@par{arrows=#2}#1}
+\def\pst@@getarrows#1#2{%
+  \def\pst@tempa{#2}% prevent empty arrow arguments, to allow \psline{}(...)(...)
+  \ifx\pst@tempa\@empty
+    \addto@par{arrows=-}%
+  \else
+    \addto@par{arrows=#2}%
+  \fi
+  #1%
+}
+% ------------------------- hv 1.10 end ------------------------
+\def\pst@arrowtype{%
+  \ifx\psk@arrowB\@empty 0 \else -2 \fi
+  \ifx\psk@arrowA\@empty 0 \else -1 \fi
+  add }
+%
+\def\pst@addarrowdef{%
+  \addto@pscode{%
+    /ArrowA {
+      \ifx\psk@arrowA\@empty
+        \pst@oplineto
+      \else
+        \pst@arrowdef{A}
+        moveto
+      \fi
+    } def
+    /ArrowB { \ifx\psk@arrowB\@empty \else \pst@arrowdef{B} \fi } def
+}}
+%
+\def\pst@arrowdef#1{%
+  \ifnum\pst@repeatarrowsflag>\z@
+    /Arrow#1c [ 6 2 roll ] cvx def Arrow#1c
+  \fi
+  \tx@BeginArrow 
+  \psk@arrowscale
+  \@nameuse{psas@\@nameuse{psk@arrow#1}}
+  \tx@EndArrow
+}
+%
+\def\pst@repeatarrows{%
+  \addto@pscode{%
+    gsave
+    \ifx\psk@arrowA\@empty\else ArrowAc ArrowA pop pop \fi
+    \ifx\psk@arrowB\@empty\else ArrowBc ArrowB pop pop pop pop \fi
+    grestore
+}}
+
+\define@key[psset]{pstricks}{tipcolor}[black]{\def\pst@tipcolor{#1}}
+\psset[pstricks]{tipcolor=}
+
+\def\ps@check@tipcolor{%
+  \expandafter\if\expandafter$\pst@tipcolor$
+    \pst@usecolor\pslinecolor
+  \else
+    \pst@usecolor\pst@tipcolor
+  \fi
+}
+%
+\def\tx@EndDot{ \ps@check@tipcolor\space EndDot }
+%
+% v : Vee arrow (inside)                 v,V,f and F by Christophe FOUREY
+% V : Vee arrow (outside)
+% f : Filled vee arrow (inside)
+% F : Filled vee arrow (outside)
+
+\def\psk@arrowA{}
+\def\psk@arrowB{}
+\def\pst@arrowtable{,-,<->,<<->>,>-<,>>-<<,(-),[-],)-(,]-[,|>-<|,%
+    <D-D>,D>-<D,<D<D-D>D>,<T-T>,|<*->|*,|<->|,v-v,V-V,f-f,F-F,t-t,T-T}
+\begingroup
+  \catcode`\<=13
+  \catcode`\>=13
+  \catcode`\|=13
+  \gdef\pst@activearrows{\def<{\string<}\def>{\string>}\def|{\string|}}
+\endgroup
+\def\tx@BeginArrow{BeginArrow }
+\def\tx@EndArrow{EndArrow }
+%
+\def\tx@Arrow{ \tx@setStrokeTransparency Arrow }% hv 2008-01-13
+\def\tx@ArrowD{ \tx@setStrokeTransparency ArrowD }% hv 2008-01-13
+\def\tx@ArrowT{ \tx@setStrokeTransparency ArrowT }% hv 2021-05-31
+%
+\@namedef{psas@<|}{ 
+    \psk@tbarsize\space \tx@Tbar
+    0 CLW 2 div T
+    newpath
+    true 
+    \psk@arrowinset 
+    \psk@arrowlength 
+    \psk@arrowsize 
+    \tx@Arrow 
+}
+% ]-[ arrow
+\def\tx@BracketOut{BracketOut }
+\@namedef{psas@[}{%
+  /BracketOut {%
+  CLW mul add dup CLW sub 2 div
+%/x ED mul CLW add
+  /x ED mul neg
+  /y ED
+  /z CLW 2 div def
+  x neg y moveto
+  x neg CLW 2 div L x CLW 2 div L x y L stroke 0 CLW moveto } def
+  \psk@bracketlength\space \psk@tbarsize\space \tx@BracketOut
+}
+% )-( arrow
+\def\tx@RoundBracketOut{ \tx@setStrokeTransparency RoundBracketOut }% hv 2008-01-13
+\@namedef{psas@(}{%
+  /RoundBracketOut {%
+    CLW mul add dup 2 div
+%/x ED mul
+    /x ED mul neg
+    /y ED
+    /mtrx CM def
+    0 CLW
+    2 div T x y mul 0 ne { x y scale } if
+    1 1 moveto
+    .85 .5 .35 0 0 0 curveto
+    -.35 0 -.85 .5 -1 1 curveto
+    mtrx setmatrix stroke 0 CLW moveto } def
+  \psk@rbracketlength\space \psk@tbarsize\space \tx@RoundBracketOut
+}
+% end of new definitions of the missing arrows ---- hv 1.12
+\@namedef{psas@>}{ false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow }
+\@namedef{psas@>>}{%
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+  0 h T gsave newpath
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+  CP grestore CP newpath moveto 2 copy 
+  CLW \pst@arrowscale\space div SLW % set the original line width  
+  L stroke moveto
+}
+\@namedef{psas@<}{true \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow}
+\@namedef{psas@<<}{
+  true \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+  CP newpath moveto 0 a neg 
+  gsave
+  CLW \pst@arrowscale\space div SLW % set the original line width  
+  L stroke 
+  grestore
+  0 h neg T
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+}
+\@namedef{psas@D>}{ false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowD }%	hv 20071211
+\@namedef{psas@D>D>}{ %	hv 20071211
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowD
+  0 h Inset sub T gsave newpath
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowD
+  CP grestore moveto 
+}
+\@namedef{psas@<D}{ %	hv 20071211
+  true \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowD
+}
+\@namedef{psas@<D<D}{ %	hv 20071211
+  true \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowD
+  CP newpath moveto 0 a neg L stroke 0 h neg T
+  true \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowD
+}
+\@namedef{psas@T>}{ false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowT }%	hv 20210531
+\@namedef{psas@<T}{ %	hv 20071211
+  true \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@ArrowT
+}
+
+\define@key[psset]{pstricks}{tbarsize}[2pt 5]{%
+  \pst@expandafter\pst@getdimnum{#1} 0 {} {}\@nil
+  \edef\psk@tbarsize{\pst@number\pst@dimg \pst@tempg}}
+\psset[pstricks]{tbarsize=2pt 5}
+%
+\def\tx@Tbar{Tbar }
+\@namedef{psas@|}{\psk@tbarsize \tx@Tbar}
+\@namedef{psas@|*}{0 CLW -2 div T \psk@tbarsize \tx@Tbar}
+\@namedef{psas@>|}{%
+  \psk@tbarsize \tx@Tbar
+  0 CLW 2 div T
+  newpath
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+}
+\@namedef{psas@>|*}{%
+  0 CLW -2 div T
+  \psk@tbarsize \tx@Tbar
+  0 CLW 2 div T
+  newpath
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+}
+%
+\define@key[psset]{pstricks}{bracketlength}[0.15]{\pst@checknum{#1}\psk@bracketlength}
+\psset[pstricks]{bracketlength=.15}
+\def\tx@Bracket{Bracket }
+\@namedef{psas@]}{\psk@bracketlength \psk@tbarsize \tx@Bracket}
+\define@key[psset]{pstricks}{rbracketlength}[0.15]{\pst@checknum{#1}\psk@rbracketlength}
+\psset[pstricks]{rbracketlength=.15}
+\def\tx@RoundBracket{RoundBracket }
+\@namedef{psas@)}{\psk@rbracketlength \psk@tbarsize \tx@RoundBracket}
+%
+\def\psas@c{1 \psas@@c}
+\def\psas@cc{0 CLW 2 div T 1 \psas@@c}
+\def\psas@C{2 \psas@@c}
+\def\psas@@c{%
+  setlinecap
+  0 0 moveto
+  0 0.1 L % changed value from 0.5 to 0.1
+  stroke
+  0 0 moveto }
+%
+\def\psas@{}
+%
+\define@key[psset]{pstricks}{arrowLW}{\pst@getlength{#1}\psk@arrowLW}
+\psset[pstricks]{arrowLW=0}
+% arrowLW as LineWidth for the circled line ends
+%
+\def\psas@o{\psk@arrowLW\space dup 0 eq { pop }{ SLW } ifelse
+  {\pst@usecolor\psfillcolor true} false \psk@dotsize \tx@EndDot }
+\def\psas@oo{\psk@arrowLW\space dup 0 eq { pop }{ SLW } ifelse
+  {\pst@usecolor\psfillcolor true} true \psk@dotsize \tx@EndDot }
+\@namedef{psas@*}{\psk@arrowLW\space dup 0 eq { pop }{ SLW } ifelse
+  {false} false \psk@dotsize \tx@EndDot }
+\@namedef{psas@**}{\psk@arrowLW\space dup 0 eq { pop }{ SLW } ifelse
+  {false} true \psk@dotsize \tx@EndDot }
+%
+\define@key[psset]{pstricks}{arrows}[-]{%
+  \begingroup
+    \pst@activearrows
+    \xdef\pst@tempg{#1}%
+  \endgroup
+  \expandafter\psset@@arrows\pst@tempg\@empty-\@empty\@nil
+  \if@pst\else\@pstrickserr{Bad arrows specification: #1}\@ehpa\fi}
+\def\psset@@arrows#1-#2\@empty#3\@nil{%
+  \@psttrue
+  \def\ps@next##1,#1-##2,##3\@nil{\def\pst@tempg{##2}}%
+  \expandafter\ps@next\pst@arrowtable,#1-#1,\@nil
+  \@ifundefined{psas@\pst@tempg}{\@pstfalse\def\psk@arrowA{}}{\let\psk@arrowA\pst@tempg}%
+  \@ifundefined{psas@#2}{\@pstfalse\def\psk@arrowB{}}{\def\psk@arrowB{#2}}}
+\psset[pstricks]{arrows=-}
+%
+\define@key[psset]{pstricks}{arrowscale}[1]{%                                   hv --1.12
+  \pst@getscale{#1}\psk@arrowscale
+  \pst@@arrowscale@i#1 \@nil}%           hv --1.12
+\def\pst@@arrowscale@i#1 #2\@nil{\edef\pst@arrowscale{#1}}% hv --1.12
+\psset[pstricks]{arrowscale=1}
+%
+\define@key[psset]{pstricks}{arrowsize}[1.5pt 2]{%
+  \pst@expandafter\pst@getdimnum{#1} 0 {} {}\@nil
+  \edef\psk@arrowsize{\pst@number\pst@dimg \pst@tempg}%
+}
+\psset[pstricks]{arrowsize=1.5pt 2}
+\define@key[psset]{pstricks}{arrowlength}[1.4]{\pst@checknum{#1}\psk@arrowlength}
+\psset[pstricks]{arrowlength=1.4}
+\define@key[psset]{pstricks}{arrowinset}[0.4]{\pst@checknum{#1}\psk@arrowinset}%
+\psset[pstricks]{arrowinset=0.4}
+% Vee arrow
+\define@key[psset]{pstricks}{veearrowlength}[3mm]{\pst@getlength{#1}\psk@veearrowlength}
+\psset[pstricks]{veearrowlength=3mm} % default projected length
+\define@key[psset]{pstricks}{veearrowangle}[30]{\pst@getangle{#1}\psk@veearrowangle}
+\psset[pstricks]{veearrowangle=30} % default angle
+\define@key[psset]{pstricks}{veearrowlinewidth}[0.35mm]{\pst@getlength{#1}\psk@veearrowlinewidth}
+\psset[pstricks]{veearrowlinewidth=0.35mm} % default vee arrow line width
+
+% Filled vee arrow
+\define@key[psset]{pstricks}{filledveearrowlength}[3mm]{\pst@getlength{#1}\psk@filledveearrowlength}
+\psset[pstricks]{filledveearrowlength=3mm} % default projected length
+\define@key[psset]{pstricks}{filledveearrowangle}[15]{\pst@getangle{#1}\psk@filledveearrowangle}
+\psset[pstricks]{filledveearrowangle=15} % default angle
+\define@key[psset]{pstricks}{filledveearrowlinewidth}[0.8pt]{\pst@getlength{#1}\psk@filledveearrowlinewidth}
+\psset[pstricks]{filledveearrowlinewidth=\pslinewidth} % default vee arrow line width
+\define@key[psset]{pstricks}{arrowlinestyle}[solid]{%
+  \@ifundefined{psls@#1}%
+    {\@pstrickserr{Line style `#1' not defined}\@eha}%
+    {\def\psarrowlinestyle{#1}}}
+\psset[pstricks]{arrowlinestyle=solid} % default
+
+\@namedef{psas@|}{\ps@check@tipcolor \psk@tbarsize \tx@Tbar}
+
+% VeeArrow : filled?   outside?   (total) angle   (projected) length   (arrow) line width
+
+\@namedef{psas@v}{%
+    \ps@check@tipcolor
+  false false \psk@veearrowangle \psk@veearrowlength \psk@veearrowlinewidth \tx@VeeArrow}
+\@namedef{psas@V}{%
+    \ps@check@tipcolor
+  false true \psk@veearrowangle \psk@veearrowlength \psk@veearrowlinewidth \tx@VeeArrow}
+\@namedef{psas@f}{%
+  \ps@check@tipcolor
+  true false \psk@filledveearrowangle \psk@filledveearrowlength \psk@filledveearrowlinewidth \tx@VeeArrow}
+\@namedef{psas@F}{%
+    \ps@check@tipcolor
+  true true \psk@filledveearrowangle \psk@filledveearrowlength \psk@filledveearrowlinewidth \tx@VeeArrow}
+
+\pst@def{VeeArrow}<%
+    5 dict begin
+    \pst@arrowscale\space div SLW  % vee arrow line width
+    /y ED                      % projected length
+    2 div /a ED                % angle (divide by 2)
+    /t ED                      % false = inside, true = outside
+    a sin a cos div y mul /x ED        % perpendicular length : x=tan(a).y
+    /x2 x dup add def
+    t { 1 -1 scale } if        % if outside : symmetry
+%    newpath x2 neg y moveto 0 y neg rlineto x2 dup add  0 rlineto 0 y rlineto closepath clip % to get rid of linecap problem
+    newpath
+    x neg y moveto             % lower left
+    0 0 lineto                 % arrow tip
+    x y lineto                 % upper left
+    0 setlinecap               % round caps
+    2 setlinejoin              % round join
+    { closepath 0 setlinewidth gsave fill grestore } if    % if filled : close and fill
+    \@nameuse{psls@\psarrowlinestyle}
+    \ps@check@tipcolor
+    stroke                % draw line
+    0 t { y 2 mul } { 0 } ifelse moveto
+    end
+>    % if outside : twice longer line
+
+
+% And An another arrowhead
+% architectural tick / oblique arrow
+
+% Tick arrow
+\define@key[psset]{pstricks}{tickarrowlength}[1.5mm]{\pst@getlength{#1}\psk@tickarrowlength}
+\psset[pstricks]{tickarrowlength=1.5mm} % default projected length
+\define@key[psset]{pstricks}{tickarrowlinewidth}[0.35mm]{\pst@getlength{#1}\psk@tickarrowlinewidth}
+\psset[pstricks]{tickarrowlinewidth=0.35mm} % default tick arrow line width
+
+\pst@def{TickArrow}<%
+    1 setlinecap            % round caps
+    1 setlinejoin            % round join
+    setlinewidth            % tick line width
+    /y ED                % projected length
+    /t ED                % false = normal, true = reversed
+    t { 1 -1 scale } if            % if reversed : symmetry
+    y neg y moveto            % point #1
+    y y neg L                % point #2
+    \@nameuse{psls@\psarrowlinestyle}
+    \ps@check@tipcolor
+    stroke                % draw line
+    0 0 moveto>                % origin
+
+
+\@namedef{psas@t}{ \ps@check@tipcolor\space false \psk@tickarrowlength \psk@tickarrowlinewidth \tx@TickArrow }
+\@namedef{psas@T}{ \ps@check@tipcolor\space true \psk@tickarrowlength \psk@tickarrowlinewidth \tx@TickArrow }
+
+\pst@def{ArrowD}< % the sides are drawn as curves (hv 20071211)
+  CLW mul add dup 
+  2 div /w ED 
+  mul dup /h ED 
+  mul /Inset ED 
+  { 0 h T 1 -1 scale } if % changes the direction
+% we use y=w/h^2 * x^2 as equation for the control points
+% for the coordinates the arrow is seen from top to bottom
+% the bottom (tip) is (0;0)
+  w neg h moveto % lower left of >
+  w 9 div 4 mul neg h 3 div 2 mul
+  w 9 div neg       h 3 div  
+  0 0 curveto    % tip of >
+  w 9 div        h 3 div  
+  w 9 div 4 mul  h 3 div 2 mul
+  w h curveto % upper left of >
+  w neg Inset neg rlineto % move to x=0 and inset
+  gsave 
+    \ps@check@tipcolor
+  fill grestore >
+%
+\pst@def{ArrowT}< % like tikz
+  CLW mul add dup 
+  2 div /w ED 
+  mul dup /h ED 
+  mul /Inset ED 
+  { 0 h T 1 -1 scale } if % changes the direction
+  w 2 mul /w exch def
+  w neg h moveto % lower left of >
+  w 9 div 4 mul neg h 3 div 2 mul
+  w 9 div neg       h 3 div  
+  0 0 curveto    % tip of >
+  w 9 div        h 3 div  
+  w 9 div 4 mul  h 3 div 2 mul
+  w h curveto % upper left of >
+%  w neg Inset neg rlineto % move to x=0 and inset
+%  CLW SLW
+%  1 0 0 setrgbcolor
+  2 setlinejoin
+    \ps@check@tipcolor
+  stroke
+  0 0 moveto >
+%
+%
+% HookLeft/RightArrow
+\newdimen\pshooklength
+\newdimen\pshookwidth
+\define@key[psset]{pstricks}{hooklength}[3mm]{\pssetlength\pshooklength{#1}}
+\define@key[psset]{pstricks}{hookwidth}[1mm]{\pssetlength\pshookwidth{#1}}
+%\psset{hooklength=3mm,hookwidth=1mm}
+%
+\edef\pst@arrowtable{\pst@arrowtable,H-H,h-h} % add new arrow
+\def\tx@RHook{RHook }         % PostScript name
+\def\tx@Rhook{Rhook }         % PostScript name
+
+\@namedef{psas@H}{%
+  /RHook {
+    /x ED                     % hook width
+    /y ED                     % hook length 
+    /z CLW 2 div def          % save it
+    x y moveto                % goto first point
+    x 0 0 0 0 y 
+    curveto                   % draw Bezier
+    stroke 
+    0 y moveto                % define current point
+  } def
+    \ps@check@tipcolor
+  \pst@number\pshooklength
+  \pst@number\pshookwidth
+  \tx@RHook 
+}
+\@namedef{psas@h}{%
+  /Rhook {
+    CLW mul 			% size * CLW
+    add dup 			% +length  size*CLW+length size*CLW+length 
+    2 div /w ED	 		% (size*CLW+length)/2  -> w 
+    mul dup /h ED mul 		% (size*CLW+length)
+    /a ED  
+    w neg h abs moveto 0 0 L 
+    gsave 
+    \ps@check@tipcolor
+    stroke grestore 
+  } def
+  0 \psk@arrowlength \psk@arrowsize \tx@Rhook 
+}
+% New parameter "arrowfill", with default as "true"
+\define@boolkey[psset]{pstricks}[ps]{ArrowFill}[true]{}
+%
+% Modification of the PostScript macro Arrow to choose to fill or not the arrow
+% (it require to restore the current linewidth, despite of the scaling)
+\pst@def{Arrow}<{%
+    CLW mul add dup 2 div
+    /w ED mul dup
+    /h ED mul
+    /a ED { 0 h T 1 -1 scale } if
+    gsave
+    \ifpsArrowFill\else\pst@number\pslinewidth \pst@arrowscale\space div SLW \fi
+    \ps@check@tipcolor    
+    w neg h moveto
+    0 0 L w h L w neg a neg rlineto
+    \ifpsArrowFill gsave 
+       \tx@setStrokeTransparency
+       fill  
+       grestore \else gsave closepath 
+    \ps@check@tipcolor
+       stroke grestore \fi
+    grestore
+    0 h a sub moveto
+}>
+%
+\define@key[psset]{pstricks}{nArrowsA}[2]{\def\psk@nArrowsA{#1}}
+\define@key[psset]{pstricks}{nArrowsB}[2]{\def\psk@nArrowsB{#1}}
+\define@key[psset]{pstricks}{nArrows}[2]{\def\psk@nArrowsA{#1}\def\psk@nArrowsB{#1}}
+\psset{nArrows=2}
+%
+\@namedef{psas@>>}{%
+    \psk@nArrowsA\space 1 sub {
+      false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+      0 h a sub T
+    } repeat
+    gsave
+    newpath
+    false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+    CP
+    grestore
+    moveto
+}
+%
+\@namedef{psas@<<}{%
+    true \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+    0 h neg a add T
+  \psk@nArrowsB\space 2 sub {
+    false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+    0 h neg a add T
+  } repeat
+  false \psk@arrowinset \psk@arrowlength \psk@arrowsize \tx@Arrow
+  0 h a 5 mul 2 div sub moveto
+}
+%
+% DG addition begin - Dec. 18/19, 1997 and Oct. 11, 2002
+% Adapted from \psset@arrows
+\define@key[psset]{pstricks}{ArrowInside}{%
+  \def\pst@tempArrow{#1}%
+  \ifx\pst@tempArrow\@empty \def\psk@ArrowInside{} %
+  \else%
+    \begingroup%
+      \pst@activearrows%
+      \xdef\pst@tempg{<#1}%
+    \endgroup%
+    \expandafter\psset@@ArrowInside\pst@tempg\@empty-\@empty\@nil%
+    \if@pst\else\@pstrickserr{Bad intermediate arrow specification: #1}\@ehpa\fi%
+  \fi%
+}
+% Adapted from \psset@@arrows
+\def\psset@@ArrowInside#1-#2\@empty#3\@nil{%
+  \@psttrue
+  \def\next##1,#1-##2,##3\@nil{\def\pst@tempg{##2}}%
+  \expandafter\next\pst@arrowtable,#1-#1,\@nil
+  \@ifundefined{psas@#2}%
+    {\@pstfalse\def\psk@ArrowInside{}}%
+    {\def\psk@ArrowInside{#2}}%
+}
+% Default value empty
+\psset{ArrowInside={}}
+% Modified version of \pst@addarrowdef
+\def\pst@addarrowdef{%
+  \addto@pscode{%
+    /ArrowA {
+      \ifx\psk@arrowA\@empty
+        \pst@oplineto
+      \else
+	\pst@arrowdef{A}
+	moveto
+      \fi
+    } def
+    /ArrowB { \ifx\psk@arrowB\@empty \else \pst@arrowdef{B} \fi } def
+% DG addition
+    /ArrowInside { 
+      \ifx\psk@ArrowInside\@empty \else \pst@arrowdefA{Inside} \fi 
+    } def
+  }%
+}
+% Adapted from \pst@arrowdef
+\def\pst@arrowdefA#1{%
+  \ifnum\pst@repeatarrowsflag>\z@ /Arrow#1c [ 6 2 roll ] cvx def Arrow#1c\fi 
+  \tx@BeginArrow
+  \psk@arrowscale
+  \@nameuse{psas@\@nameuse{psk@Arrow#1}}
+  \tx@EndArrow%
+}
+% ArrowInsidePos parameter (default value 0.5)
+\define@key[psset]{pstricks}{ArrowInsidePos}[0.5]{\pst@checknum{#1}\psk@ArrowInsidePos}%
+%\psset{ArrowInsidePos=0.5}
+
+\def\pst@repeatarrowsflag{\z@}
+\def\pst@setrepeatarrowsflag{%
+  \edef\pst@repeatarrowsflag{%
+    \ifdim\psk@border\p@>\z@ 1\else\ifpsdoubleline 1\else
+      \ifpsshadow 1\else \z@\fi\fi\fi}}%
+%
+% Redefinition of the PostScript /Line macro to print the intermediate
+% arrow on each segment of the line
+%
+\define@key[psset]{pstricks}{ArrowInsideNo}[1]{\pst@checknum{#1}\psk@ArrowInsideNo}% hv 20031001
+\define@key[psset]{pstricks}{ArrowInsideOffset}[0]{\pst@checknum{#1}\psk@ArrowInsideOffset}% hv 20031001
+%\psset{ArrowInsideNo=1,ArrowInsideOffset=0}
+%
+\def\arrowType@H{H}
+
+\def\resetArrowOptions{%
+  \def\pst@linetype{0}%
+  \psset[pstricks]{%
+    hooklength=3mm, hookwidth=1mm,
+    ArrowFill=true,
+    ArrowInside={}, ArrowInsidePos=0.5,
+    ArrowInsideNo=1, ArrowInsideOffset=0,
+}}
+%
+\resetArrowOptions
+%
+%% END: pstricks-arrows.tex
+\endinput

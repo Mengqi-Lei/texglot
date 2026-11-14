@@ -236,7 +236,9 @@ async def test_gateway_errors_cannot_persist_credentials_in_job_logs(
     monkeypatch.setattr(manager, "pipeline", broken_pipeline)
     await manager.run(job["id"])
     assert job["status"] == "failed" and "密钥已隐藏" in job["error"]
-    assert "gateway-private-value" not in (folder / "job.json").read_text(encoding="utf-8")
+    assert "gateway-private-value" not in (folder / "job.json").read_text(
+        encoding="utf-8"
+    )
 
 
 async def test_gateway_credential_rotation_resumes_only_uncached_paragraphs(
@@ -1163,8 +1165,8 @@ async def test_font_recovery_resumes_a_failed_job_and_reuses_prepared_artifacts(
     (source / "paper.cls").write_text(authored_class)
     prepare = jobs.prepare_engine_sources
 
-    def legacy_prepare(root, engine):
-        prepare(root, engine)
+    def legacy_prepare(root, engine, **kwargs):
+        prepare(root, engine, **kwargs)
         path = root / "paper.cls"
         path.write_text(authored_class)
         return []

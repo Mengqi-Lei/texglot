@@ -19,6 +19,8 @@ def remove_unused_minted(root: Path) -> list[str]:
     documents intact; printed examples and comments are not executable uses.
     Dynamic references, wrappers and aliases mentioning minted veto removal.
     """
+    from .compiler import MINTED_HASH_COMPATIBILITY
+
     if any(
         p.suffix.lower() in {".pygstyle", ".pygtex", ".pyg"} for p in root.rglob("*")
     ):
@@ -41,8 +43,15 @@ def remove_unused_minted(root: Path) -> list[str]:
     for path, text in texts.items():
         # The ordinary scanner hides minted blocks too. Keep their begin/end
         # visible here so a real code listing can never look like an unused load.
+        # This exact application-owned hook only supplies hash primitives; it
+        # does not use minted's document API. Keep source offsets and all other
+        # authored hooks intact for conservative use detection.
+        inspection = text.replace(
+            MINTED_HASH_COMPATIBILITY,
+            "".join("\n" if c == "\n" else " " for c in MINTED_HASH_COMPATIBILITY),
+        )
         visible = _visible_tex(
-            text, (environments | VERBATIM_ENVIRONMENTS) - {"minted"}
+            inspection, (environments | VERBATIM_ENVIRONMENTS) - {"minted"}
         )
         changes = []
         for match in loader.finditer(visible):

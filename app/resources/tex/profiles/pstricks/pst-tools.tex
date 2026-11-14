@@ -1,0 +1,251 @@
+%% $Id: pst-tools.tex 265 2021-09-24 18:47:41Z herbert $
+%%
+%% This is file `pst-tools.tex',
+%%
+%% IMPORTANT NOTICE:
+%%
+%% Package `pst-tools.tex'
+%%
+%% Herbert Voss <hvoss@tug.org>
+%%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License Distributed from CTAN archives
+%% in directory macros/latex/base/lppl.txt.
+%%
+%% DESCRIPTION:
+%%   `pst-tools' is a PSTricks package for helper functions
+%%
+%%
+\csname PSTtoolsLoaded\endcsname
+\let\PSTtoolsLoaded\endinput
+
+\ifx\PSTricksLoaded\endinput\else\input pstricks.tex\fi
+\ifx\PSTXKeyLoaded\endinput\else \input pst-xkey.tex \fi
+%
+\edef\PstAtCode{\the\catcode`\@} \catcode`\@=11\relax
+% interface to the `xkeyval' package
+\pst@addfams{pst-tools}
+%
+\def\fileversion{0.12}
+\def\filedate{2021/09/23}
+\message{`PST-tools' v\fileversion, \filedate\space (hv)}
+%
+\define@key[psset]{pst-tools}{decimalSeparator}[.]{\def\psk@decimalSeparator{#1}}%
+\define@boolkey[psset]{pst-tools}[Pst@]{comma}[true]{%
+  \ifPst@comma\def\psk@decimalSeparator{,}\else\def\psk@decimalSeparator{.}\fi}
+\define@boolkey[psset]{pst-tools}[Pst@]{trimSpaces}[true]{}
+\define@key[psset]{pst-tools}{xShift}[0]{\def\psk@xShift{#1}}
+\define@key[psset]{pst-tools}{yShift}[0]{\def\psk@yShift{#1}}
+\define@key[psset]{pst-tools}{postString}[{}]{\def\psk@postString{#1}}
+\define@key[psset]{pst-tools}{VarName}[]{\def\psk@VarName{#1 }}
+\define@key[psset]{pst-tools}{printfont}[NimbusRomNo9L-Regu]{%
+  \ifPSTlualatex
+    \expandafter\ifx\expandafter\relax#1\relax
+       \def\psk@printfont{ \fontid\font\space .findfontid }%
+    \else
+      \def\psk@printfont{ /#1 findfont }% 
+     \fi
+  \else
+    \ifx\relax#1\relax
+       \def\psk@printfont{ /NimbusRomNo9L-Regu  findfont }%
+    \else
+       \def\psk@printfont{ /#1 findfont }% 
+    \fi
+  \fi
+}%
+\define@key[psset]{pst-tools}{valuewidth}[10]{\pst@getint{#1}\psk@valuewidth }
+\define@key[psset]{pst-tools}{fontscale}[10]{\pst@checknum{#1}\psk@fontscale }
+\define@key[psset]{pst-tools}{decimals}[-1]{\pst@getint{#1}\psk@decimals }
+\psset[pst-tools]{printfont=Helvetica,fontscale=10,valuewidth=10,decimals=-1,
+                  xShift=0,yShift=0,trimSpaces=false,postString={},VarName={},
+                  comma=false,decimalSeparator=.}
+%
+\def\txG{ true setglobal globaldict begin }
+\def\etxG{ end false setglobal }
+%
+\newpsstyle{mmpaper}{subgriddiv=5,gridlabels=0,gridwidth=1pt,gridcolor=orange,subgridwidth=0.1pt,subgridcolor=orange!90}
+%
+\def\psPrintValue{\pst@object{psPrintValue}}
+\def\psPrintValue@i#1{\expandafter\psPrintValue@ii#1,,\@nil}
+\def\psPrintValue@ii#1,#2,#3\@nil{%  #1,#2 only for algebraic code
+  \begin@SpecialObj
+  \addto@pscode{  
+     gsave \psk@printfont  \psk@fontscale scalefont setfont 
+     \ifPst@algebraic 
+       /x #1 def 
+       /Func (#2) tx@AlgToPs begin AlgToPs end cvx def 
+       Func 
+     \else 
+       #1 
+     \fi
+     \ifx\relax\psk@VarName\relax\else dup \txG 10 string cvs /\psk@VarName\space exch def \etxG \fi
+     \psk@decimals -1 gt { 10 \psk@decimals exp dup 3 1 roll mul cvi exch div } if
+     \psk@valuewidth string cvs %/Output exch def % save output
+     %/concatstringarray  %  [(a) (b) ... (z)] --> (ab...z)  20100422
+     \ifx\relax\psk@postString\relax\else [ exch (\psk@postString) ] concatstringarray \fi
+     \ifPst@trimSpaces rightTrim \fi
+     \ifPst@comma dot2comma \fi        % do we have to change dot to comma
+     \psk@xShift\space \psk@yShift\space moveto  %Output 
+     show grestore
+  }%
+  \end@SpecialObj
+}
+
+\define@boolkey[psset]{pst-tools}[Pst@]{round}[true]{}%
+\define@boolkey[psset]{pst-tools}[Pst@]{science}[true]{%
+  \ifPst@science\def\psk@Scin{true }\else\def\psk@Scin{false }\fi}
+\psset[pst-tools]{science=false,round=false}
+%
+\def\psPrintValueNew{\pst@object{psPrintValueNew}}
+\def\psPrintValueNew@i#1{\expandafter\psPrintValueNew@ii#1,,!!}
+\def\psPrintValueNew@ii#1,#2,#3!!{%  #1,#2 only for algebraic code
+  \begin@SpecialObj
+  \addto@pscode{  %		thanks to Buddy Ledger
+     /mfont { \psk@printfont 
+              \psk@fontscale scalefont setfont } bind def
+     /mfontexp { \psk@printfont
+                 \psk@fontscale 1.2 div scalefont setfont } bind def
+     /s1 { /StandardSymL findfont \psk@fontscale scalefont setfont } bind def
+     \ifPst@algebraic 
+        /x #1 def
+        /Func (#2) tx@AlgToPs begin AlgToPs end cvx def 
+        Func  
+     \else #1 \fi
+     /value exch def
+     \psk@Scin {
+       value 0 ne { value log floor cvi /expon exch def }{ /expon 0 def } ifelse
+       value 10 expon exp div 
+       \psk@decimals -1 gt { 10  \psk@decimals exp dup 3 1 roll mul 
+         \ifPst@round round \else cvi \fi  exch div } if
+       \psk@decimals 0 eq { cvi } if /numb exch def
+       expon \psk@valuewidth string cvs /expon exch def
+       numb \psk@valuewidth string cvs 
+       \ifPst@comma dot2comma \fi  % do we have to change dot to comma
+       /Output exch def
+       /txspc \psk@fontscale 4 div def
+       \psk@xShift\space 0 moveto mfont Output show
+       txspc 0 rmoveto s1 (\string\264) show
+       txspc 0 rmoveto mfont (10) show
+       txspc 2 div txspc 1.5 mul rmoveto mfontexp expon show }
+     { value
+       \psk@decimals -1 gt { 10 \psk@decimals exp dup 3 1 roll mul 
+         \ifPst@round round \else cvi \fi exch div } if
+       \psk@decimals 0 eq { cvi } if %inserted to handle decimals=0
+       \psk@valuewidth string cvs 
+       \ifPst@comma dot2comma \fi         % do we have to change dot to comma
+       \psk@xShift\space 0 moveto mfont %Output 
+       show
+     } ifelse
+  }%
+  \end@SpecialObj
+}
+%
+\def\psRegisterList#1#2{%
+  \@namedef{#1}##1{\@nameuse{#1##1}}%
+  \pst@cnto=1
+  \@for\pst@tempA:=#2\do{%
+    \edef\pst@tempB{\@namedef{#1\the\pst@cnto}{\pst@tempA}}%	
+    \pst@tempB
+    \advance\pst@cnto by 1
+  }%
+}
+% RANDOM.TEX       v.1   (Donald Arseneau)
+% Generating "random" numbers in TeX. 
+%
+% Random integers are generated in the range 1 to 2147483646 by the
+% macro \nextrandom.  The result is returned in the counter \randomi.
+% Do not change \randomi except, perhaps, to initialize it at some
+% random value.  If you do not initialize it, it will be initialized
+% using the time and date.  (This is a sparse initialization, giving
+% fewer than a million different starting values, but you should use
+% other sources of numbers if they are available--just remember that
+% most of the numbers available to TeX are not at all random.)
+%
+% The \nextrandom command is not very useful by itself, unless you
+% have exactly 2147483646 things to choose from.  Much more useful
+% is the \setrannum command which sets a given counter to a random
+% value within a specified range.  There are three parameters:
+% \setrannum {<counter>} {<minimum>} {<maximum>}.  For example, to
+% simulate a die-roll: \setrannum{\die}{1}{6} \ifcase\die... .
+%
+% If you need random numbers that are not integers, you will have to
+% use dimen registers and \setrandimen.  For example, to set a random
+% page width: \setrandimen \hsize{3in}{6.5in}.  The "\pointless" macro
+% will remove the "pt" that TeX gives so you can use the dimensions
+% as pure `real' numbers.  In that case, specify the range in pt units.
+% For example,
+%   \setrandimen\answer{2.71828pt}{3.14159pt}
+%   The answer is \pointless\answer.
+%
+% The random number generator is the one by Lewis, Goodman, and Miller
+% (1969) and used as "ran0" in "Numerical Recipies" using Schrage's
+% method for avoiding overflows.  The multiplier is 16807 (7^5), the
+% added constant is 0, and the modulus is 2147483647 (2^{31}-1).  The
+% range of integers generated is 1 - 2147483646.  A smaller range would
+% reduce the complexity of the macros a bit, but not much--most of the
+% code deals with initialization and type-conversion.  On the other hand,
+% the large range may be wasted due to the sparse seed initialization.
+
+\newcount\randomi % the random number seed (while executing)
+\global\randomi\catcode`\@  % scratch variable during definitions
+\catcode`\@=11
+
+\def\nextrandom{\begingroup
+ \ifnum\randomi<\@ne % then initialize with time
+    \global\randomi\time
+    \global\multiply\randomi388 \global\advance\randomi\year
+    \global\multiply\randomi31 \global\advance\randomi\day
+    \global\multiply\randomi97 \global\advance\randomi\month
+    \message{Randomizer initialized to \the\randomi.}%
+    \nextrandom \nextrandom \nextrandom
+ \fi
+ \count@ii\randomi
+ \divide\count@ii 127773 % modulus = multiplier * 127773 + 2836
+ \count@\count@ii
+ \multiply\count@ii 127773
+ \global\advance\randomi-\count@ii % random mod 127773
+ \global\multiply\randomi 16807
+ \multiply\count@ 2836
+ \global\advance\randomi-\count@
+ \ifnum\randomi<\z@ \global\advance\randomi 2147483647\relax\fi
+ \endgroup
+}
+
+\countdef\count@ii=2 % use only in boxes!
+\ifx\@tempcnta\undefined \csname newcount\endcsname \@tempcnta \fi
+\ifx\@tempcntb\undefined \csname newcount\endcsname \@tempcntb \fi
+
+\def\setrannum#1#2#3{% count register, minimum, maximum
+ \@tempcnta#3\advance\@tempcnta-#2\advance\@tempcnta\@ne
+ \@tempcntb 2147483645 %  =  m - 2  =  2^{31} - 3
+ \divide\@tempcntb\@tempcnta
+ \getr@nval
+ \advance\ranval#2\relax
+ #1\ranval
+}
+
+\def\setrandim#1#2#3{% dimen register, minimum length, maximum length
+ \dimen@#2\dimen@ii#3\relax
+ \setrannum\ranval\dimen@\dimen@ii
+ #1\ranval sp\relax
+}
+
+\def\getr@nval{% The values in \@tempcnta and \@tempcntb are parameters
+ \nextrandom
+ \ranval\randomi \advance\ranval\m@ne \divide\ranval\@tempcntb
+ \ifnum\ranval<\@tempcnta\else \expandafter\getr@nval \fi
+}
+
+\def\pointless{\expandafter\PoinTless\the}
+{\catcode`p=12 \catcode`t=12 
+\gdef\PoinTless#1pt{#1}}
+
+\catcode`\@=\randomi
+\global\randomi=0
+\newcount\ranval
+
+\catcode`\@=\PstAtCode\relax
+%
+%% END: pst-tools.tex
+\endinput
+%

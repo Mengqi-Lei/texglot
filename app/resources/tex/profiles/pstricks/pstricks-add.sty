@@ -1,0 +1,22 @@
+%% $Id: pstricks-add.sty 220 2021-09-10 15:30:30Z herbert $
+%
+\RequirePackage{pstricks}
+\RequirePackage{pst-plot}
+\RequirePackage{pst-node}
+\RequirePackage{pst-3d}
+\RequirePackage{pst-math}
+\RequirePackage{multido}
+
+\ProvidesPackage{pstricks-add}[2021/09/10 v. 0.17 package wrapper for 
+  pstricks-add.tex (hv)]
+\input{pstricks-add.tex}
+\ProvidesFile{pstricks-add.tex}
+  [\filedate\space v\fileversion\space `PSTricks-add' (hv)]
+\IfFileExists{pstricks-add.pro}{%
+  \ProvidesFile{pstricks-add.pro}
+    [2009/12/17 v. 0.23,  PostScript prologue file (hv)]
+    \@addtofilelist{pstricks-add.pro}}{}%
+
+\RequirePackage{pst-calculate}
+
+\endinput

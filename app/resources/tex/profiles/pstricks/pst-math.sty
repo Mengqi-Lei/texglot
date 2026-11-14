@@ -1,0 +1,101 @@
+% $Id: pst-math.sty 867 2018-12-16 12:07:22Z herbert $
+%%
+%% This is file `pst-math.sty'.
+%%
+%% IMPORTANT NOTICE:
+%%
+%% pst-math Copyright (C) 2019-     Herbert Voss <hvoss@tug.org>
+%%
+%% This package may be distributed under the terms of the LaTeX Project
+%% Public License, as described in lppl.txt in the base LaTeX distribution.
+%% Either version 1.0 or, at your option, any later version.
+%%
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{pst-math}[2022/10/17 v 0.66 package wrapper for PSTricks pst-math.tex]
+\RequirePackage{pst-calculate}
+\RequirePackage{ifluatex}
+\RequirePackage{xstring}
+\input pst-math.tex
+\ProvidesFile{pst-math.tex}
+  [\filedate\space v\fileversion\space `PST-math' (hv)]
+\IfFileExists{pst-math.pro}{\ProvidesFile{pst-math.pro}%
+    [2018/12/13 v. 0.65,  PostScript prologue file (hv)]
+\@addtofilelist{pst-math.pro}}{}%
+
+\newcounter{Rand@No}\newcounter{Random@Left}\newcounter{Random@Right}\newcounter{Random@No@max}%
+\setcounter{Rand@No}{0}\setcounter{Random@Left}{1}\setcounter{Random@Right}{1000}%
+
+\def\defineRandIntervall(#1,#2)#3{%
+  \setcounter{Random@Left}{#1}%
+  \setcounter{Random@Right}{#2}%
+  \setcounter{Random@No@max}{#3}%
+  \setcounter{Rand@No}{0}%
+  \gdef\RandomNumbers{}%
+  \def\R@Control{}%
+  \multido{\iA=1+1}{\theRandom@No@max}{\xdef\R@Control{0\R@Control}}%
+}
+
+\def\RandomNumbers{}
+
+\def\makeSimpleRandomNumberList{%
+  \def\RandomNumbers{}%
+  \psforeach{\iA}{1,2,..,\theRandom@No@max}{%
+    \edef\@Number{\pscalculate{randint(\theRandom@Left,\theRandom@Right)}}% Zufallszahl
+    \ifnum\iA=1
+      \xdef\RandomNumbers{\@Number}%
+    \else
+      \xdef\RandomNumbers{\RandomNumbers,\@Number}%
+    \fi
+  }%
+}
+%
+\def\makeRandomNumberList{%
+  \edef\@Number{\pscalculate{randint(\theRandom@Left,\theRandom@Right)}}% Zufallszahl
+    \add@Number{\@Number}}
+
+\def\R@Left{}\def\R@Right{}\def\R@Value{}%
+
+\def\add@Number#1{%
+  \StrChar{\R@Control}{#1}[\R@Value]
+  \ifnum\R@Value=0 
+    \stepcounter{Rand@No}%
+    \ifx\RandomNumbers\@empty %  the first number ??
+      \xdef\RandomNumbers{#1}%
+    \else
+      \xdef\RandomNumbers{\RandomNumbers,#1}%
+    \fi
+%    \ifnum\theRand@No=1\relax
+%      \gdef\RandomNumbers{#1}%
+%      \RandomNumbers\\
+%    \else
+%      \xdef\RandomNumbers{\RandomNumbers,#1}%
+%      \RandomNumbers\\
+%    \fi
+    \StrLeft{\R@Control}{\the\numexpr#1-1}[\R@Left]%
+    \StrRight{\R@Control}{\the\numexpr\theRandom@No@max-#1}[\R@Right]%
+    \xdef\R@Control{\R@Left1\R@Right}%
+  \fi
+  \ifnum\theRand@No=\theRandom@No@max
+    \def\next{}%
+  \else
+    \def\next{\makeRandomNumberList}%
+  \fi
+  \next
+}
+\def\getNumberFromList#1{%
+  \setcounter{Rand@No}{1}%
+  \edef\x{\noexpand\get@Index#1;\RandomNumbers}\x,,\relax}
+\def\get@Index#1;#2,#3,#4\relax{%
+  \ifnum\theRand@No = #1 
+    \def\next{#2}%
+  \else
+    \stepcounter{Rand@No}%
+    \def\next{\get@Index#1;#3,#4\relax}%
+  \fi
+  \next
+}
+
+\endinput
+
+

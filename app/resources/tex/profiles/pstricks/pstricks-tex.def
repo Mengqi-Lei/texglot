@@ -1,0 +1,92 @@
+%% $Id: pstricks-tex.def 592 2022-08-27 07:00:30Z herbert $
+%% pstricks-tex.def
+%
+%% fileversion and filedate see main file pstricks.tex
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2003/12/01 or later.
+%
+  \newwrite\@unused
+  \def\typeout#1{\immediate\write\@unused{#1}}%
+  \typeout{we are running tex and have to make it etex and latex compatible ...}%
+  \ifx\eTeXversion\@undefined
+    \gdef\ch@ck#1#2#3{\ifnum\count1#1<#2 \else\errmessage{No room for a new #3}\fi}
+    \countdef\allocationnumber=21
+    \chardef\sixt@@n=16
+    \def\alloc@#1#2#3#4#5{\global\advance\count1#1\@ne
+      \ch@ck#1#4#2% make sure there's still room
+      \allocationnumber\count1#1%
+      \global#3#5\allocationnumber
+      \wlog{\string#5=\string#2\the\allocationnumber}}
+    \alloc@7\write\chardef\sixt@@n\@unused
+  \else
+    \def\e@alloc#1#2#3#4#5#6{%
+      \global\advance#3\@ne
+      \e@ch@ck{#3}{#4}{#5}#1%
+      \allocationnumber#3\relax
+      \global#2#6\allocationnumber
+      \wlog{\string#6=\string#1\the\allocationnumber}}%
+    \gdef\e@ch@ck#1#2#3#4{%
+      \ifnum#1<#2\else
+        \ifnum#1=#2\relax
+          \global#1\@cclvi
+          \ifx\count#4\global\advance#1 10 \fi
+        \fi
+        \ifnum#1<#3\relax
+        \else
+             \errmessage{No room for a new \string#4}%
+        \fi
+      \fi}%
+  \fi
+%
+  \newif\ifpst@psfonts  \pst@psfontsfalse  % defined in pstricks.sty
+  \newif\ifpst@useCalc  \pst@useCalcfalse  % defined in pstricks.sty
+  \newif\ifpstGSfonts   \pstGSfontsfalse   % defined in pstricks.sty
+%
+  \long\def\@ifundefined#1#2#3{\expandafter\ifx\csname #1\endcsname\relax#2\else#3\fi}
+  \def\@namedef#1{\expandafter\def\csname #1\endcsname}
+  \def\@nameuse#1{\csname #1\endcsname}
+  \def\@eha{%
+    Your command was ignored.^^J
+    Type \space I <command> <return> \space to replace
+    it with another command,^^J
+    or \space <return> \space to continue without it.}
+  \def\@spaces{\space\space\space\space}
+  \def\@empty{}
+  \def\@gobble#1{}
+  \def\@nnil{\@nil}
+%
+  \def\@ifnextchar#1#2#3{%
+    \let\@tempe#1\def\@tempa{#2}\def\@tempb{#3}\futurelet\@tempc\@ifnch}
+%
+  \def\@ifnch{%
+    \ifx\@tempc\@sptoken \let\@tempd\@xifnch
+    \else\ifx\@tempc\@tempe \let\@tempd\@tempa \else \let\@tempd\@tempb \fi
+    \fi
+    \@tempd
+  }%
+  \begingroup
+  \def\:{\global\let\@sptoken= } \:
+  \def\:{\@xifnch} \expandafter\gdef\: {\futurelet\@tempc\@ifnch}
+  \endgroup
+  \def\endtabular{\crcr\egroup\egroup $\egroup}
+  \def\@width{width}% needed by pst-node
+  \def\@tfor#1:={\@tf@r#1 }
+  \long\def\@tf@r#1#2\do#3{\def\@fortmp{#2}\ifx\@fortmp\space\else
+     \@tforloop#2\@nil\@nil\@@#1{#3}\fi}%
+  \long\def\@tforloop#1#2\@@#3#4{\def#3{#1}\ifx #3\@nnil
+       \expandafter\@fornoop \else
+      #4\relax\expandafter\@tforloop\fi#2\@@#3{#4}}
+  \long\def\@break@tfor#1\@@#2#3{\csname fi\endcsname\csname fi\endcsname}
+%
+\def\colorlet#1[#2]#3{%
+  \expandafter\let\csname\string\color@#1\expandafter\endcsname\csname\string\color@#3\endcsname
+  \message{defining color #1: \expandafter\meaning\csname\string\color@#1\endcsname}%
+}
+%%
+%% END: pstricks-tex.def

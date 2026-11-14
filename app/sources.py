@@ -329,8 +329,10 @@ def collect_literal_environments(text: str) -> frozenset[str]:
 
 
 def literal_environment_end(text: str, pos: int, environment: str) -> int:
-    ending = re.search(r"\\end\s*\{" + re.escape(environment) + r"\}", text[pos:])
-    return pos + ending.end() if ending else len(text)
+    ending = re.compile(r"\\end\s*\{" + re.escape(environment) + r"\}").search(
+        text, pos
+    )
+    return ending.end() if ending else len(text)
 
 
 def visible_tex(
@@ -354,6 +356,12 @@ def _visible_tex(text: str, environments: frozenset[str]) -> str:
     # Literal contents must be skipped before interpreting percent signs. For
     # example, the active package after \verb|%| is not part of a comment.
     chars = list(text)
+    # Match against the original string with absolute offsets. Copying the
+    # remaining book at every control sequence makes this scan quadratic.
+    begin_pattern = re.compile(r"\\begin\s*\{([^{}]+)\}")
+    inline_pattern = re.compile(r"\\(verb\*?|lstinline\*?)(?![A-Za-z@])")
+    option_pattern = re.compile(r"\s*(?:\[[^\]\n]*\]\s*)?")
+    command_pattern = re.compile(r"\\[A-Za-z@]+|\\.", re.S)
 
     def mask(start, stop):
         chars[start:stop] = ["\n" if c == "\n" else " " for c in text[start:stop]]
@@ -369,22 +377,21 @@ def _visible_tex(text: str, environments: frozenset[str]) -> str:
         if text[i] != "\\":
             i += 1
             continue
-        environment = re.match(r"\\begin\s*\{([^{}]+)\}", text[i:])
+        environment = begin_pattern.match(text, i)
         if environment and environment[1] in environments:
-            ending = re.search(
-                r"\\end\s*\{" + re.escape(environment[1]) + r"\}",
-                text[i + environment.end() :],
-            )
-            stop = i + environment.end() + ending.end() if ending else len(text)
+            ending = re.compile(
+                r"\\end\s*\{" + re.escape(environment[1]) + r"\}"
+            ).search(text, environment.end())
+            stop = ending.end() if ending else len(text)
             mask(i, stop)
             i = stop
             continue
-        inline = re.match(r"\\(verb\*?|lstinline\*?)(?![A-Za-z@])", text[i:])
+        inline = inline_pattern.match(text, i)
         if inline:
-            start = i + inline.end()
+            start = inline.end()
             if inline[1].startswith("lstinline"):
-                options = re.match(r"\s*(?:\[[^\]\n]*\]\s*)?", text[start:])
-                start += options.end()
+                options = option_pattern.match(text, start)
+                start = options.end()
             if start < len(text) and not text[start].isspace():
                 delimiter = text[start]
                 end = text.find("}" if delimiter == "{" else delimiter, start + 1)
@@ -393,8 +400,8 @@ def _visible_tex(text: str, environments: frozenset[str]) -> str:
                     mask(i, end + 1)
                     i = end + 1
                     continue
-        command = re.match(r"\\[A-Za-z@]+|\\.", text[i:], re.S)
-        i += command.end() if command else 1
+        command = command_pattern.match(text, i)
+        i = command.end() if command else i + 1
     return "".join(chars)
 
 

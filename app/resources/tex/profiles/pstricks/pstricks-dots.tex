@@ -1,0 +1,243 @@
+%% $Id: pstricks-dots.tex 593 2022-08-30 12:03:36Z herbert $
+%%
+%% This is file `pstricks-dots.tex',
+%%
+%% IMPORTANT NOTICE:
+%%
+%% Herbert Voss <hvoss@tug.org>
+%%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License Distributed from CTAN archives
+%% in directory macros/latex/base/lppl.txt.
+%%
+%% DESCRIPTION:
+%%   `pstricks-dots' base code for dots 
+%%
+%% fileversion and filedate see main file pstricks.tex
+%%
+\define@key[psset]{pstricks}{dotsize}[2pt 2]{%
+  \pst@expandafter\pst@getdimnum{#1} 0 {} {}\@nil%
+  \edef\psk@@dotsize{\pst@number\pst@dimg}%
+  \let\psk@@@dotsize\pst@tempg%
+  \edef\psk@dotsize{ /DS \psk@@dotsize \psk@@@dotsize CLW mul add 2 div def }}
+\psset[pstricks]{dotsize=2pt 2}
+%
+\define@key[psset]{pstricks}{dotscale}[1]{%
+  \pst@getscale{#1}\psk@dotscale
+  \ifx\psk@dotscale\@empty
+    \def\psk@xdotscale{1 }%
+    \def\psk@ydotscale{1 }%
+  \else
+    \let\psk@xdotscale\pst@tempg
+    \let\psk@ydotscale\pst@temph
+  \fi}
+%
+\def\pst@Getangle#1#2{%
+  \pst@getangle{#1}\pst@tempg
+  \def\pst@temph{0. }%
+  \ifx\pst@tempg\pst@temph\def#2{}\else\edef#2{\pst@tempg\space rotate }\fi}
+%
+\define@key[psset]{pstricks}{dotangle}[0]{%
+  \pst@getangle{#1}\psk@@dotangle
+  \ifdim\psk@@dotangle\p@=\z@
+    \let\psk@dotangle\@empty
+  \else
+    \edef\psk@dotangle{\psk@@dotangle rotate }%
+  \fi}
+\psset[pstricks]{dotangle=0}
+%
+\def\pst@getdotsize{%
+\pst@dimg=\psk@@@dotsize\pslinewidth
+\advance\pst@dimg\psk@@dotsize\p@
+\pst@dimh=\psk@ydotscale\pst@dimg
+\pst@dimg=\psk@xdotscale\pst@dimg
+\divide\pst@dimh 2
+\divide\pst@dimg 2\relax}
+%
+\psset[pstricks]{dotscale=1}
+%
+\def\psdot{\pst@object{psdot}}
+\def\psdot@i{\@ifnextchar({\psdot@ii}{\psdot@ii(\z@,\z@)}}
+\def\psdot@ii(#1){%
+  \begin@SpecialObj%
+% hv modification 1.13 2005-11-28 
+  \solid@star%
+% hv modification end 
+  \pst@@getcoor{#1}%
+  \addto@pscode{
+    \psk@dotsize
+    \@nameuse{psds@\psk@dotstyle}
+    \tx@setStrokeTransparency
+    \pst@coor Dot}%
+  \end@SpecialObj}
+%
+\def\psdots{\pst@object{psdots}}
+\def\psdots@i{%
+  \begin@SpecialObj%
+  \solid@star%% hv 2022-08-30
+  \pst@getcoors[\psdots@ii}
+\def\psdots@ii{%
+  \addto@pscode{ false \tx@NArray \psdots@iii }%
+  \end@SpecialObj}
+\def\psdots@iii{%
+  \psk@dotsize
+  \@nameuse{psds@\psk@dotstyle}
+  \tx@setStrokeTransparency
+  newpath
+  n { transform floor .5 add exch floor .5 add exch itransform Dot  } repeat }
+%
+% DG: dead code (to suppress until \psset[pstricks]{dotstyle) ? - Aug. 4, 1997
+\def\tx@SQ{SQ }
+\def\tx@ST{ST }
+\def\tx@SP{SP }
+%
+\def\pst@gdot#1{ /Dot { gsave T \psk@dotangle \psk@dotscale #1 grestore } def }
+%
+\@namedef{psds@*}{\pst@gdot{ 0 0 DS \tx@SD }}
+\@namedef{psds@o}{%
+  /r2 DS CLW sub def
+  \pst@gdot{ 0 0 DS \tx@SD \pst@usecolor\psfillcolor SLW 0 0 r2 \tx@SD }}
+\@namedef{psds@square*}{ /r1 DS .886 mul def \pst@gdot{r1 \tx@SQ }}
+\@namedef{psds@square}{%
+  /r1 DS .886 mul def /r2 r1 CLW sub def
+  \pst@gdot{r1 \tx@SQ \pst@usecolor\psfillcolor r2 \tx@SQ}}
+\@namedef{psds@triangle*}{%
+  /y1 DS .778 mul neg def /x1 y1 1.732 mul neg def
+  \pst@gdot{x1 y1 \tx@ST}}
+\@namedef{psds@triangle}{%
+  /y1 DS .778 mul neg def /x1 y1 1.732 mul neg def
+  /y2 y1 CLW add def /x2 y2 1.732 mul neg def
+  \pst@gdot{x1 y1 \tx@ST  x2 y2 \tx@ST}}
+\@namedef{psds@pentagon*}{%
+  /r1 DS 1.149 mul def
+  \pst@gdot{r1 \tx@SP}}
+\@namedef{psds@pentagon}{%
+  DS .93 mul dup 1.236 mul /r1 ED CLW sub 1.236 mul /r2 ED
+  \pst@gdot{r1 \tx@SP  r2 \tx@SP}}
+\@namedef{psds@+}{%
+  /DS DS 1.253 mul def
+  \pst@gdot{DS 0 moveto DS neg 0 L stroke 0 DS moveto 0 DS neg L stroke}}
+\@namedef{psds@|}{%
+  \psk@tbarsize CLW mul add 2 div /DS ED
+  \pst@gdot{0 DS moveto 0 DS neg L stroke}}
+% DG: end dead code?
+%
+\define@key[psset]{pstricks}{dotstyle}[*]{%
+  \@ifundefined{psds@#1}%
+    {\@pstrickserr{Dot style `#1' not defined}\@eha}%
+    {\edef\psk@dotstyle{#1}}}
+%
+\psset[pstricks]{dotstyle=*}
+%
+\def\tx@FontDot{FontDot }
+
+\def\newpsfontdot#1[#2]#3#4{%
+  \@namedef{psds@#1}{%
+    /#3 \psk@@dotangle [#2] \tx@FontDot
+    /Dot { moveto gsave \psk@dotscale #4 show grestore } bind def 
+}}
+\def\newpsfontdotH#1[#2]#3#4#5{%	for filled objects
+  \@namedef{psds@#1}{%
+    /#3 \psk@@dotangle [#2] \tx@FontDot
+    /Dot {
+      moveto
+      gsave \psk@dotscale \pst@usecolor\psfillcolor #5 show grestore % fill first
+      gsave \psk@dotscale #4 show grestore	% show the unfilled one
+    } bind def 
+}}
+%
+\ifPSTlualatex\else\pstheader{pst-dots.pro}\fi  % load the type 1 font 
+%%40
+%  /.notdef /BoldAdd /.notdef /BoldCircle /BoldDiamond /SolidOtimes /BoldOctogon /SolidHexagon
+%  /BoldHexagon /BoldBar /SolidAsterisk /BoldAsterisk /.notdef /BOplus /BOtimes /.notdef
+%%50
+%  /BoldPentagon /.notdef /.notdef /BoldSquare /BoldTriangle /.notdef /.notdef /.notdef
+%  /BoldMul /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef
+%%60
+%  /.notdef /Add /Bullet /Circle /Diamond /SolidOplus /Octogon /SolidOctogon
+%  /Hexagon /Bar /.notdef /Asterisk /SolidDiamond /Oplus /Otimes /.notdef
+%%70
+%  /Pentagon /SolidPentagon /SolidSquare /Square /Triangle /SolidTriangle /.notdef /.notdef
+%  /Mul /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef
+  \newpsfontdot{+}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<61>}
+  \newpsfontdot{Add}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<61>}
+  \newpsfontdot{B+}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<41>}
+  \newpsfontdot{BoldAdd}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<41>}
+%
+  \newpsfontdot{x}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<78>}
+  \newpsfontdot{times}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<78>}
+  \newpsfontdot{Mul}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<78>}
+%
+  \newpsfontdot{bullet}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<62>}
+  \newpsfontdot{Bullet}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<62>}
+  \newpsfontdot{*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<62>}
+%
+  \newpsfontdotH{o}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<63>}{<62>}
+  \newpsfontdotH{Circle}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(c)}{(b)}
+  \newpsfontdotH{Bo}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(C)}{(b)}
+  \newpsfontdotH{BoldCircle}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(C)}{(b)}
+%
+  \newpsfontdot{oplus}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<6D>}
+  \newpsfontdotH{Oplus}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(m)}{(b)}
+  \newpsfontdotH{Oplus*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{(e)}{(b)}
+  \newpsfontdotH{SolidOplus}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(e)}{(b)}
+  \newpsfontdotH{BoldOplus}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(M)}{(b)}
+%
+  \newpsfontdot{otimes}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<6E>}
+  \newpsfontdotH{Otimes}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(n)}{(b)}
+  \newpsfontdot{BoldMul}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<58>}
+  \newpsfontdotH{BoldOtimes}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(N)}{(b)}
+  \newpsfontdotH{SolidOtimes}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(E)}{(b)}
+%
+  \newpsfontdot{asterisk}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<6B>}
+  \newpsfontdot{Asterisk}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<6B>}
+  \newpsfontdot{Asterisk*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<4A>}
+  \newpsfontdotH{SolidAsterisk}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(J)}{(b)}
+  \newpsfontdot{BoldAsterisk}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<4B>}
+  \newpsfontdot{Basterisk}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<4B>}
+%
+  \newpsfontdot{Bar}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<69>}
+  \newpsfontdot{|}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<69>}
+  \newpsfontdot{BoldBar}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<49>}
+  \newpsfontdot{B|}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<49>}
+%
+  \newpsfontdotH{triangle}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(t)}{(u)}
+  \newpsfontdotH{Btriangle}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(T)}{(u)}
+  \newpsfontdotH{Triangle}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(t)}{(u)}
+  \newpsfontdotH{BoldTriangle}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(T)}{(u)}
+  \newpsfontdot{triangle*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<75>}
+  \newpsfontdot{SolidTriangle}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<75>}
+%
+  \newpsfontdotH{square}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(s)}{(r)}
+  \newpsfontdot{square*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<72>}
+  \newpsfontdot{SolidSquare}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<72>}
+  \newpsfontdotH{Bsquare}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(S)}{(r)}
+  \newpsfontdotH{Square}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(s)}{(r)}
+  \newpsfontdotH{BoldSquare}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(S)}{(r)}
+%
+  \newpsfontdotH{diamond}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(d)}{(l)}
+  \newpsfontdotH{Diamond}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(d)}{(l)}
+  \newpsfontdotH{BoldDiamond}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(D)}{(l)}
+  \newpsfontdotH{Bdiamond}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(D)}{(l)}
+  \newpsfontdot{diamond*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<6C>}
+  \newpsfontdot{SolidDiamond}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<6C>}
+%
+  \newpsfontdotH{pentagon}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(p)}{(q)}  
+  \newpsfontdotH{Bpentagon}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(P)}{(q)}
+  \newpsfontdotH{BoldPentagon}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(P)}{(q)}
+  \newpsfontdotH{Pentagon}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(p)}{(q)}
+  \newpsfontdot{pentagon*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<71>}
+  \newpsfontdot{SolidPentagon}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<71>}
+% 
+  \newpsfontdotH{Hexagon}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(h)}{(G)}
+  \newpsfontdot{SolidHexagon}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<47>}
+  \newpsfontdotH{BoldHexagon}[1.0 0.0 0.0 1.0 0.0 0.0]{PSTricksDotFont}{(H)}{(G)}
+  \newpsfontdot{BoldHexagon}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<48>}
+%
+  \newpsfontdotH{Octogon}[1 0 0 1 0 0]{PSTricksDotFont}{(f)}{(g)}
+  \newpsfontdot{Octogon*}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<67>}
+  \newpsfontdotH{BoldOctogon}[1 0 0 1 0 0]{PSTricksDotFont}{(F)}{(g)}
+  \newpsfontdot{SolidOctogon}[1.0 0.0 0.0 1.0 0 0]{PSTricksDotFont}{<67>}
+%%
+%% END: pstricks-dots.tex
+\endinput

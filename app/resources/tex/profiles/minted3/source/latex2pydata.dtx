@@ -1,0 +1,1384 @@
+% \iffalse meta-comment
+% !TEX TS-program = pdflatexmk
+%
+% Copyright (C) 2023-2025 by Geoffrey M. Poore <gpoore@gmail.com>
+% ---------------------------------------------------------------------------
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3c
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3c or later is part of all distributions of LaTeX
+% version 2008/05/04 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+%
+% The Current Maintainer of this work is Geoffrey M. Poore.
+%
+% This work consists of the files latex2pydata.dtx and latex2pydata.ins
+% and the derived filebase latex2pydata.sty.
+%
+% \fi
+%
+% \iffalse
+%<*driver>
+\ProvidesFile{latex2pydata.dtx}
+%</driver>
+%<package>\NeedsTeXFormat{LaTeX2e}[1999/12/01]
+%<package>\ProvidesPackage{latex2pydata}
+%<*package>
+    [2025/03/26 v0.6.0 latex2pydata - write data to file in Python literal format]
+%</package>
+%
+%<*driver>
+\documentclass{ltxdoc}
+
+\makeatletter
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{fourier}
+\usepackage{microtype}
+
+\usepackage[svgnames]{xcolor}
+\usepackage{upquote}
+% The typesetting for macrocode doesn't use \@noligs, which upquote modifies.
+% So apply the upquote fix to \verbatim@nolig@list as well, which is in macrocode.
+\begingroup
+\catcode`'=\active
+\catcode``=\active
+\g@addto@macro\verbatim@nolig@list{%
+  \let'\textquotesingle
+  \let`\textasciigrave
+  \ifx\encodingdefault\upquote@OTone
+  \ifx\ttdefault\upquote@cmtt
+    \def'{\char13 }%
+    \def`{\char18 }%
+  \fi\fi}
+\endgroup
+\usepackage{fvextra}
+\usepackage{latex2pydata}
+
+\usepackage{graphicx}
+
+\usepackage{amsmath, amssymb}
+
+\usepackage{environ}
+
+\usepackage{tcolorbox}
+\tcbuselibrary{listings}
+\tcbset{verbatim ignore percent}
+
+\usepackage{hyperref}
+\hypersetup{
+  pdftitle=The latex2pydata package: write key-value data to file in Python literal format,
+  pdfauthor=Geoffrey M. Poore,
+  pdfsubject={latex2pydata LaTeX package manual},
+  colorlinks=true,
+  allcolors=ForestGreen,
+}
+\usepackage{cleveref}
+
+\let\code\Verb
+\def\meta#1{\mbox{\ensuremath{\langle}\textit{\ttfamily#1}\ensuremath{\rangle}}}
+
+% A more robust \cmd
+\let\cmd\Verb
+
+% Create a short verbatim pipe that handles quotation marks properly
+\begingroup
+\catcode`\|=\active
+\gdef\pipe@active@verbatim{%
+  \begingroup
+  \let\do\@makeother\dospecials
+  \catcode`\|=\active
+  \catcode`\`=\active
+  \catcode`\'=\active
+  \catcode`\<=\active
+  \catcode`\>=\active
+  \catcode`\-=\active
+  \catcode`\,=\active
+  \catcode`\ =\active
+  \pipe@active@verbatim@i}
+\gdef\pipe@active@verbatim@i#1|{%
+  \endgroup
+  \begingroup
+  \def\FV@SV@pipe@active@verbatim{%
+    \FV@Gobble
+    \expandafter\FV@ProcessLine\expandafter{#1}}%
+  %\let\FV@BeginVBox\relax
+  %\let\FV@EndVBox\relax
+  %\def\FV@BProcessLine##1{\FancyVerbFormatLine{##1}}%
+  \BUseVerbatim{pipe@active@verbatim}%
+  \endgroup}
+\AtBeginDocument{\let|\pipe@active@verbatim}
+\endgroup
+
+\newcommand\pkg[1]{\textsf{\mbox{#1}}}
+
+\def\MacroFont{%
+  \fontencoding\encodingdefault%
+  \fontfamily\ttdefault%
+  \fontseries\mddefault%
+  \fontshape\updefault%
+  \small}
+
+\def\PrintMacroName#1{{\strut\MacroFont\color{DarkGreen}\footnotesize\string #1\ }}
+
+\def\PrintDescribeMacro#1{\strut\MacroFont\textcolor{DarkGreen}{\string #1\ }}
+\let\PrintDescribeEnv\PrintDescribeMacro
+%\let\PrintMacroName\PrintDescribeMacro
+\let\PrintEnvName\PrintDescribeEnv
+
+\def\theCodelineNo{\textcolor{DarkGreen}{\sffamily\scriptsize{\arabic{CodelineNo}}}}
+
+
+\def\DescMacro{%
+  \begingroup\makeatletter\DescMacro@i}
+\def\DescMacro@i#1{%
+  \endgroup
+  \DescMacro@ii#1\FV@Sentinel
+}
+\def\DescMacro@ii#1#2\FV@Sentinel{%
+  \@nameuse{SpecialMacroIndex}{#1}%
+  \vspace{1em}%
+  \begingroup
+  \ttfamily
+  \large
+  \setlength{\parindent}{0pt}%
+  \hspace{-3em}{\bfseries\color{DarkGreen}\detokenize{#1}}{\normalsize#2}%
+  \endgroup
+  \par\vspace{0.5em}\noindent\ignorespaces
+}
+\def\DescEnv#1{%
+  \@nameuse{SpecialEnvIndex}{#1}%
+  \vspace{1em}%
+  \begingroup
+  \ttfamily
+  \large
+  \setlength{\parindent}{0pt}%
+  \hspace{-3em}{\bfseries\color{DarkGreen}\detokenize{#1}}\space%
+  \endgroup
+  (\textit{env.})
+  \par\vspace{0.5em}\noindent\ignorespaces
+}
+
+\let\orig@footnote\footnote
+\renewcommand{\footnote}{%
+  \begingroup
+  \let\do\@makeother
+  \dospecials
+  \catcode`\{=1
+  \catcode`\}=2
+  \new@footnote}
+\newcommand{\new@footnote}[1]{%
+  \endgroup
+  \orig@footnote{\scantokens{#1}}}
+
+\def\printopt#1(#2) (#3){%
+  \vspace{0.1in}%
+  \leavevmode%
+  \marginpar{\raggedleft\texttt{\small\textcolor{DarkGreen}{#1}}\ }%
+  \kern-\parindent\textsf{(#2)}\hfill(default: \texttt{#3})\\}
+
+\newenvironment{optionlist}%
+ {%
+  ~\par\vspace{-14pt}%
+  \def\pipechar{|}
+  \let\|\pipechar
+  \newcommand*\optionlistnext{}%
+  \renewcommand*\item[1][]{%
+    \optionlistnext%
+    \renewcommand*\optionlistnext{\par}%
+    \printopt##1%
+    \ignorespaces}}
+ {%
+  \par}
+
+\newenvironment{example}
+  {\VerbatimEnvironment
+   \begin{VerbatimOut}[gobble=4]{example.out}}
+  {\end{VerbatimOut}%
+   \vspace{1ex}%
+   \setlength{\parindent}{0pt}%
+   \setlength{\fboxsep}{1em}%
+   \fcolorbox{DarkGreen}{white}{\begin{minipage}{0.5\linewidth}%
+     \VerbatimInput{example.out}%
+   \end{minipage}%
+   \hspace{0.025\linewidth}%
+   {\color{DarkGreen}\vrule}%
+   \hspace{0.025\linewidth}%
+   \begin{minipage}{0.4\linewidth}%
+     \input{example.out}%
+   \end{minipage}%
+   }\vspace{1ex}}
+
+\newenvironment{longexample}
+  {\VerbatimEnvironment
+   \begin{VerbatimOut}[gobble=4]{example.out}}
+  {\end{VerbatimOut}%
+   \vspace{1ex}%
+   \setlength{\parindent}{0pt}%
+   \setlength{\fboxsep}{1em}%
+   \fcolorbox{DarkGreen}{white}{\begin{minipage}{0.94\linewidth}%
+     \VerbatimInput{example.out}%
+     {\color{DarkGreen}\hrulefill}
+     \setlength{\fboxsep}{3pt}%
+     \input{example.out}%
+   \end{minipage}%
+   }\vspace{1ex}}
+
+\CustomVerbatimEnvironment{VerbatimVerbatim}{Verbatim}{}
+
+\edef\hashchar{\string#}
+
+\begingroup
+\catcode`\#=12\relax
+\gdef\astliteval{\href{https://docs.python.org/3/library/ast.html#ast.literal_eval}{\code{ast.literal_eval()}}}
+\endgroup
+\def\pydatapy{\href{https://github.com/gpoore/latex2pydata/tree/main/python}{\pkg{latex2pydata} Python package}}
+\def\fvextra{\href{https://github.com/gpoore/fvextra/}{\pkg{fvextra}}}
+\def\fancyvrb{\href{https://ctan.org/pkg/fancyvrb}{\pkg{fancyvrb}}}
+
+%\EnableCrossrefs
+%\CodelineIndex
+%\RecordChanges
+
+\makeatother
+\begin{document}
+  \DocInput{latex2pydata.dtx}
+  %\PrintChanges
+  %\PrintIndex
+\end{document}
+%</driver>
+% \fi
+%
+%
+% \DoNotIndex{\newcommand,\newenvironment}
+% \DoNotIndex{\#,\$,\%,\&,\@,\\,\{,\},\^,\_,\~,\ }
+% \DoNotIndex{\@ne}
+% \DoNotIndex{\advance,\begingroup,\catcode,\closein}
+% \DoNotIndex{\closeout,\day,\def,\edef,\else,\empty,\endgroup}
+% \DoNotIndex{\begin,\end,\bgroup,\egroup}
+%
+% \providecommand*{\url}{\texttt}
+% \newcommand{\pydata}{\pkg{latex2pydata}}
+% \GetFileInfo{latex2pydata.dtx}
+%
+% \title{\vspace{-0.5in}The \pydata\ package}
+% \author{Geoffrey M.\ Poore \\ \href{mailto://gpoore@gmail.com}{\texttt{gpoore@gmail.com}} \\ \href{https://github.com/gpoore/latex2pydata/tree/main/latex}{\Verb{github.com/gpoore/latex2pydata/tree/main/latex}}}
+% \date{\fileversion~from \filedate}
+%
+% \maketitle
+%
+% \begin{abstract}
+% \noindent\pydata\ is a \LaTeX\ package for writing data to file using \href{https://docs.python.org/3/reference/lexical_analysis.html#literals}{Python literal syntax}.  The data may then be loaded safely in Python using the \astliteval\ function or the \pydatapy.
+%
+% \vspace{1.25in}
+% \noindent The original development of this package was funded by a \href{https://tug.org/tc/devfund/grants.html}{\TeX\ Development Fund grant} from the \href{https://tug.org/}{\TeX\ Users Group}.  \pydata\ is part of the 2023 grant for improvements to the \href{https://github.com/gpoore/minted/}{\pkg{minted}} package.
+% \end{abstract}
+%
+%
+% \pagebreak
+% \begingroup
+% \makeatletter
+% ^^A https://tex.stackexchange.com/a/45165/10742
+% \patchcmd{\@dottedtocline}
+%   {\rightskip\@tocrmarg}
+%   {\rightskip\@tocrmarg plus 4em \hyphenpenalty\@M}
+%   {}{}
+% \makeatother
+% \tableofcontents
+% \endgroup
+% \pagebreak
+%
+%
+% \section{Introduction}
+%
+% The \pydata\ package is designed for passing data from \LaTeX\ into Python.  It writes data to file using \href{https://docs.python.org/3/reference/lexical_analysis.html#literals}{Python literal syntax}.  The data may then be loaded safely in Python using the \astliteval\ function or the \pydatapy.
+%
+% The data that \pydata\ writes to file can take two forms.  The top-level data structure can be configured as a Python dict.  This is appropriate for representing a single \LaTeX\ command or environment.  The top-level data structure can also be configured as a list of dicts.  This is useful for representing a sequence of \LaTeX\ commands or environments.  In both cases, all keys and values within dicts are written to file as Python string literals.  Thus, the overall data is |dict[str, str]| or |list[dict[str, str]]|.  This does not limit the data types that can be passed from LaTeX to Python, however.  When data is loaded, the included schema functionality makes it possible to convert string values into other Python data types such as dicts, lists, sets, bools, and numbers.
+%
+% The data is suitable for direct loading in Python with \astliteval.  It is also possible to load data with the \pydatapy, which serves as a wrapper for \code{ast.literal_eval()}.  The Python package requires all keys to match the regex \code{[A-Za-z_][0-9A-Za-z_]*}.  Periods in keys are interpreted as key paths and indicate sub-dicts.  For example, the key path |main.sub| represents a key |main| in the main dict that maps to a sub-dict containing a key |sub|.  This makes it convenient to represent nested dicts.
+%
+% \pkg{latex2pydata} optionally supports writing metadata to file, including basic schema definitions for values.  When the \pydatapy\ loads data with a schema definition for a given value, the value is initially loaded as a string, which is the verbatim text sent from \LaTeX.  Then this string is evaluated with \code{ast.literal_eval()}.  An error is raised if this process does not result in an object with the data type specified in the schema.
+%
+%
+%
+% \section{Example}
+%
+%\begin{tcblisting}{}
+%\pydatasetfilename{\jobname.pydata}
+%\pydatawritedictopen
+%\pydatawritekeyvalue{key}{value with "quote" and \backslash\ ...}
+%\pydatawritedictclose
+%\pydataclosefilename{\jobname.pydata}
+%\VerbatimInput{\jobname.pydata}
+%\end{tcblisting}
+%
+%
+%
+% \section{Design considerations}
+%
+% \pydata\ is intended for use with Python.  Python literal syntax was chosen instead of \href{https://www.json.org/json-en.html}{JSON} or another data format because it provides simpler compatibility with \LaTeX.
+% \begin{itemize}
+% \item It must be possible to serialize the contents of a \LaTeX\ environment verbatim.  Python literal syntax supports multi-line string literals, so this is straightforward:  write an opening multi-line string delimiter to file, write the environment contents a line at a time (backslash-escaping any delimiter characters), and finally write a closing multi-line string delimiter.  Meanwhile, JSON requires that all literal newlines in strings be replaced with ``\code{\n}''.  The naive \LaTeX\ implementation of this would be to accumulate the entire environment contents verbatim within a single macro and then perform newline substitutions.  For long environment contents, this can lead to buffer memory errors (\LaTeX's |buf_size|).  It should be possible to avoid this, but only with more creative algorithms that bring additional complexity.
+% \item Python literal syntax only requires that the backslash plus the string delimiter be escaped within strings.  JSON has the additional requirement that command characters be escaped.
+% \end{itemize}
+%
+% \pkg{latex2pydata} is designed for use with Python and there are no plans to add additional data formats for use with other languages.  Choosing Python literal syntax does make \pkg{latex2pydata} less compatible with other programming languages than JSON or some other formats would be.  However, the only data structures used are |dict[str, str]| and |list[dict[str, str]]|.  It should be straightforward to implement a parser for this subset of Python literal syntax in other languages.
+%
+% Data structures are limited to |dict[str, str]| and |list[dict[str, str]]| because the objective is to minimize the potential for errors during serialization and deserialization.  These are simple enough data structures that basic checking for incomplete or malformed data is possible on the \LaTeX\ side during writing or buffering.  More complex data types, such as floating point numbers or deeply nested dicts, would be difficult to validate on the \LaTeX\ side, so invalid values would tend to result in parse errors during deserialization in Python.  The current approach still allows for a broad variety of data types via a schema, with the advantage that it can be easier to give useful error messages during schema validation than during deserialization parsing.
+%
+%
+%
+% \section{Usage}
+%
+% Load the package as usual:  |\usepackage{latex2pydata}|.  There are no package options.
+%
+%
+% \subsection[Errors]{\textcolor{red}{Errors}}
+%
+% Most \LaTeX\ packages handle errors based on the |-interaction| and |-halt-on-error| command-line options, plus |\interactionmode| and associated macros.  With the common |-interaction=nonstopmode|, \LaTeX\ will continue after most errors except some related to missing external files.
+%
+% \pydata\ is designed to force \LaTeX\ to exit immediately after any \pydata\ errors.  \pydata\ is designed for serializing data to file, typically so that an external program (restricted or unrestricted shell escape, or otherwise) can process the data and potentially generate output intended for \LaTeX.  Data that is known to be incomplete or malformed should not be passed to external programs, particularly via shell escape.
+%
+% When \pydata\ forces \LaTeX\ to exit immediately, there will typically be a message similar to  ``\Verb[breaklines]{! Emergency stop [...] cannot \read from terminal in nonstop modes}.''  This is due to the mechanism that \pydata\ uses to force \LaTeX\ to exit.  To debug, go back further up the log to find the \pydata\ error message that caused exiting.
+%
+%
+% \subsection{File handling}
+%
+% All file handling commands operate globally (|\global|, |\gdef|, etc.).
+%
+% \DescMacro{\pydatasetfilehandle\marg{filehandle}}
+% Configure writing to file using an existing file handle created with |\newwrite|.  This allows manual management of the file handle.  For example:
+% \begin{Verbatim}[gobble=2]
+% \newwrite\testdata
+% \immediate\openout\testdata=\jobname.pydata\relax
+% \pydatasetfilehandle{\testdata}
+% ...
+% \pydatareleasefilehandle{\testdata}
+% \immediate\closeout\testdata
+% \end{Verbatim}
+%
+% To switch from one file handle to another, simply use |\pydatasetfilehandle| with the new file handle.  When the file handle is no longer in use, |\pydatareleasefilehandle| is recommended (but not required) to remove references to the file handle and perform basic checking for incomplete or malformed data written to file.
+%
+% |\pydatasetfilehandle| sets the file handle globally.
+%
+% \DescMacro{\pydatareleasefilehandle\marg{filehandle}}
+% When a file handle is no longer needed, remove references to it.  Also perform basic checking for incomplete or malformed data written to file.
+%
+% This should only be used once per opened file, after all data has been written, just before the file is closed.  It is not needed when switching from one file handle to another when both files remain open; in that case, only |\pydatasetfilehandle| is needed.  If |\pydatareleasefilehandle| is used before all data is written, or it is used multiple times while writing to the same file, then it is no longer possible to detect incomplete or malformed data.
+%
+% \DescMacro{\pydatasetfilename\marg{filename}}
+% Configure a file for writing based on filename, opening the file if necessary.  For example:
+% \begin{Verbatim}[gobble=2]
+% \pydatasetfilename{\jobname.pydata}
+% \end{Verbatim}
+% This is not designed for manual management of the file handle.  The file does not have to be closed manually since this will happen automatically at the end of the document.  However, using |\pydataclosefilename|\marg{filename} is recommended since it closes the file immediately and also performs basic checking for incomplete or malformed data written to file.
+%
+% To switch from one file to another, simply use |\pydatasetfilename| with the new filename.  When the file is no longer in use, |\pydataclosefilename| is recommended.
+%
+% |\pydatasetfilename| sets the filename globally.
+%
+% Implementation note:  This automatically creates the necessary file handles with |\newwrite|.  File handles are automatically reused when files are closed, so that the total number of file handles created is never more than the maximum number of files open simultaneously.  This minimizes the potential for ``\Verb[breaklines]{No more room for a new \write}'' errors.
+%
+% \DescMacro{\pydataclosefilename\marg{filename}}
+% Close a file previously opened with |\pydatasetfilename|.  Also perform basic checking for incomplete or malformed data written to file.
+%
+%
+% \subsection{Metadata}
+%
+% \pkg{latex2pydata} optionally supports writing metadata to file, including basic schema definitions for values.  When data is loaded with the \pydatapy, the schema is used to perform type conversion and type checking.  When a schema definition exists for a given value, the value is initially loaded as a string, and then it is evaluated with \astliteval.  An error is raised if this process does not result in an object with the data type specified in the schema.
+%
+% \DescMacro{\pydatasetschemamissing\marg{missing behavior}}
+% This determines how the schema is processed when the schema is missing definitions for one or more key-value pairs.  Options for \meta{missing behavior}:
+% \begin{itemize}
+% \item |error| (default):  If a schema is defined then a complete schema is required.  That is, a schema definition must exist for all key-value pairs or an error is raised.
+% \item |verbatim|:  The schema is enforced for all key-value pairs for which it is defined, and any other key-value pairs are kept with string values.  These string values are the raw verbatim text passed from \LaTeX.
+% \item |evalany|:  The schema is enforced for all key-value pairs for which it is defined, and any other key-value pairs have the value evaluated with \astliteval, with all value data types being permitted.  Because all values without a schema definition are evaluated, any string values without a schema definition must be quoted and escaped as Python strings on the \LaTeX\ side.
+% \end{itemize}
+%
+% \DescMacro{\pydatasetschemakeytype\marg{key}\marg{value type}}
+% Define a key's schema.  For example, |\pydatasetschemakeytype{key}{int}|.  The value is initially loaded as a string, and then this is evaluated with \astliteval.  An error is raised if this process does not result in an object with the specified data type.  \meta{value type} should be a standard Python type annotation, such as |list[int]| or |dict[str, float]|.  To keep a string value received from \LaTeX\ verbatim without any evaluation, use the special |verbatim| type.
+%
+% The following scalar data types are supported:  |bool|, |bytes|, |float|, |int|, |None|, |str|, and |tuple|.  The following collection types are supported:  |dict|, |list|, and |set|.  |Any| is supported for scalars and for collections (subscripting |Any[...]| is not supported for collections).  There is also a |verbatim| data type that is defined specifically for \pkg{latex2pydata}.  This keeps the string data received from \LaTeX\ verbatim, without any interpretation by \astliteval.
+%
+% See the \pydatapy\ documentation for more details.
+%
+% \DescMacro{\pydataclearschema}
+% Delete the existing schema.  If the schema is not deleted, it can be reused across multiple output files.
+%
+% \DescMacro{\pydatawritemeta}
+% Write metadata, including schema, to a file previously configured with |\pydatasetfilename| or |\pydatasetfilehandle|.  Metadata must always be the first thing written to file, before any data.
+%
+% \DescMacro{\pydataclearmeta}
+% Clear all metadata.  This includes deleting the schema and resetting schema missing behavior to the default.
+%
+%
+%
+% \subsection{Writing list and dict delimiters}
+% The overall data structure, before any schema is applied by the \pydatapy, can be either |list[dict[str, str]]| or |dict[str, str]|.  This determines which data collection delimiters are needed.
+%
+% Delimiters are written to the file previously configured via |\pydatasetfilehandle| or |\pydatasetfilename|.
+%
+% \DescMacro{\pydatawritedictopen}
+% Write an opening dict delimiter |{| to file.
+%
+% \DescMacro{\pydatawritedictclose}
+% Write a closing dict delimiter |}| to file.
+%
+% \DescMacro{\pydatawritelistopen}
+% Write an opening list delimiter |[| to file.
+%
+% \DescMacro{\pydatawritelistclose}
+% Write a closing list delimiter |]| to file.
+%
+%
+% \subsection{Writing keys and values}
+% All keys must be single-line strings of text without a newline.  Both single-line and multi-line values are supported.  Keys and values are written to the file previously configured via |\pydatasetfilehandle| or |\pydatasetfilename|.
+%
+% Commands for writing keys and values may read these keys and values in one of two ways.
+% \begin{itemize}
+% \item Commands whose names contain |key| or |value| read these arguments verbatim, as described below.
+% \item Commands whose names contain |edefkey| or |edefvalue| read these arguments normally, then expand the arguments via |\edef|, and finally interpret the result as verbatim text.
+% \end{itemize}
+%
+% The \pydata\ commands that read keys and values verbatim have some limitations.  When these commands are used inside other commands, they use macros from \fvextra\ to attempt to interpret their arguments as verbatim.  However, there are limitations in this case because the arguments are already tokenized:
+% \begin{itemize}
+% \item |#| and |%| cannot be used.
+% \item Curly braces are only allowed in pairs.
+% \item Multiple adjacent spaces will be collapsed into a single space.
+% \item Be careful with backslashes.  A backslash that is followed by one or more ASCII letters will cause a following space to be lost, if the space is not immediately followed by an ASCII letter.
+% \item A single |^| is fine, but |^^| will serve as an escape sequence for an ASCII command character.
+% \end{itemize}
+% When the \pydata\ commands are used inside other commands that pass their arguments to the \pydata\ commands, it may be best to avoid these limitations by defining the other commands to read their arguments verbatim.  Consider using the \href{https://ctan.org/pkg/xparse}{\pkg{xparse}} package.  It is also possible to use |\FVExtraReadVArg| from \fvextra; for an example, see the implementation of |\pydatawritekey|.
+%
+% Because the \pydata\ commands treat keys and values as verbatim, any desired macro expansion must be performed before passing the keys and values to the \pydata\ commands.
+%
+% \DescMacro{\pydatawritekey\marg{key}}
+% Write a key to file.
+%
+% \DescMacro{\pydatawritevalue\marg{value}}
+% Write a single-line value to file.
+%
+% \DescMacro{\pydatawritekeyvalue\marg{key}\marg{value}}
+% Write a key and a single-line value to file simultaneously.
+%
+% \DescMacro{\pydatawritekeyedefvalue\marg{key}\marg{value}}
+% Write a key and a single-line value to file simultaneously.  The value is expanded via |\edef| before being interpreted as verbatim text and then written.
+%
+% \DescEnv{pydatawritemlvalue}
+% Write a multi-line value to file.
+%
+% This environment uses \fvextra\ and \fancyvrb\ internally to capture the environment contents verbatim.  If a new environment is defined as a wrapper for |pydatawritemlvalue|, then |\VerbatimEnvironment| must be used at the beginning of the new environment definition.  This configures \fancyvrb\ to find the end of the new environment correctly.
+%
+% \DescMacro{\pydatawritemlvalueopen}
+%
+% \DescMacro{\pydatawritemlvalueline\marg{line}}
+%
+% \DescMacro{\pydatawritemlvalueclose}
+% These commands allow writing a multi-line value to file one line at a time.  \meta{line} is interpreted verbatim.
+%
+%
+%
+% \subsection{Buffer}
+%
+% Key-value data can be written to file once a dict is opened with |\pydatawritedictopen|. It is also possible to accumulate key-value data in a ``buffer.''  This is convenient when the data serves as input to an external program that generates cached content.  Buffered data can be hashed in memory without being written to file, so the existence of cached content can be checked efficiently.
+%
+% A buffer consists of a sequence of macros of the form |\|\meta{buffername}|line|\meta{n}, where each line of data corresponds to a macro and \meta{n} is an integer greater than or equal to one (one-based indexing).  The length of the buffer is stored in the macro |\|\meta{buffername}|length|.  Buffers are limited to containing comma-separated key-value data, without any opening or closing dict delimiters |{}|.
+%
+% All buffer commands that set the buffer or modify the buffer operate globally (|\global|, |\gdef|, etc.).
+%
+%
+% \subsubsection{Creating and deleting buffers}
+%
+% \DescMacro{\pydatasetbuffername\marg{buffername}}
+% Initialize a new buffer if \meta{buffername} has not been used previously, and configure all buffer operations to use \meta{buffername}.
+%
+% \meta{buffername} is used as a base name for creating the buffer line macros of the form |\|\meta{buffername}|line|\meta{n} and the buffer length macro |\|\meta{buffername}|length|.
+%
+% \DescMacro{\pydataclearbuffername\marg{buffername}}
+% Delete the specified buffer.  |\let| all line macros |\|\meta{buffername}|line|\meta{n} to an undefined macro, and set the length macro |\|\meta{buffername}|length| to zero.
+%
+%
+% \subsubsection{Special buffer operations}
+%
+% \DescMacro{\pydatabuffermdfivesum}
+% Calculate the MD5 hash of the current buffer, using |\pdf@mdfivesum| from \href{https://ctan.org/pkg/pdftexcmds}{\pkg{pdftexcmds}}.  This is fully expandable.  For example:
+% \begin{Verbatim}[gobble=2]
+% \edef\hash{\pydatabuffermdfivesum}
+% \end{Verbatim}
+%
+% \DescMacro{\pydatawritebuffer}
+% Write the current buffer to the file previously configured via |\pydatasetfilename| or |\pydatasetfilehandle|.
+%
+% Writing the buffer does not modify the buffer in any way or delete it.  To delete the buffer after writing, use |\pydataclearbuffername|.
+%
+%
+% \subsubsection{Buffering keys and values}
+% All keys must be single-line strings of text without a newline.  Both single-line and multi-line values are supported.  Keys and values are appended to the buffer previously configured via |\pydatasetbuffername|.
+%
+% The \pydata\ commands read keys and values verbatim.  Like the commands for writing keys and values, the commands for buffering keys and values have limitations when used inside other commands.
+%
+% \DescMacro{\pydatabufferkey\marg{key}}
+% Append a key to the buffer.
+%
+% \DescMacro{\pydatabuffervalue\marg{value}}
+% Append a single-line value to the buffer.
+%
+% \DescMacro{\pydatabufferkeyvalue\marg{key}\marg{value}}
+% Append a key and a single-line value to the buffer simultaneously.
+%
+% \DescMacro{\pydatabufferkeyedefvalue\marg{key}\marg{value}}
+% Append a key and a single-line value to the buffer simultaneously.  The value is expanded via |\edef| before being interpreted as verbatim text and then buffered.
+%
+% \DescEnv{pydatabuffermlvalue}
+% Append a multi-line value to the buffer.
+%
+% This environment uses \fvextra\ and \fancyvrb\ internally to capture the environment contents verbatim.  If a new environment is defined as a wrapper for |pydatabuffermlvalue|, then |\VerbatimEnvironment| must be used at the beginning of the new environment definition.  This configures \fancyvrb\ to find the end of the new environment correctly.
+%
+% \DescMacro{\pydatabuffermlvalueopen}
+%
+% \DescMacro{\pydatabuffermlvalueline\marg{line}}
+%
+% \DescMacro{\pydatabuffermlvalueclose}
+% These commands allow buffering a multi-line value one line at a time.  \meta{line} is interpreted verbatim.
+%
+%
+%
+%
+% \StopEventually{\PrintIndex}
+%
+% \section{Implementation}
+%
+% \iffalse
+%<*package>
+% \fi
+%
+%
+%
+% \subsection{Exception handling}
+% \begin{macro}{\pydata@error}
+% Shortcut for error message.  The |\batchmode\read -1 to \pydata@exitnow| forces an immediate exit with ``\Verb[breaklines]{! Emergency stop [...] cannot \read from terminal in nonstop modes}.''  Due to the potentially critical nature of written or buffered data, any errors in assembling the data should be treated as fatal.
+%    \begin{macrocode}
+\def\pydata@error#1{%
+  \PackageError{latex2pydata}{#1}{}%
+  \batchmode\read -1 to \pydata@exitnow}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydata@warning}
+% Shortcut for warning message.
+%    \begin{macrocode}
+\def\pydata@warning#1{%
+  \PackageWarning{latex2pydata}{#1}}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \subsection{Required packages}
+%    \begin{macrocode}
+\RequirePackage{etoolbox}
+\RequirePackage{fvextra}
+\IfPackageAtLeastTF{fvextra}{2024/05/16}%
+ {}{\pydata@error{package fvextra is outdated; upgrade to the latest version}}
+\RequirePackage{pdftexcmds}
+%    \end{macrocode}
+%
+%
+%
+% \subsection{Util}
+%
+% \begin{macro}{\pydata@empty}
+% Empty macro.
+%    \begin{macrocode}
+\def\pydata@empty{}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydata@newglobalbool, \pydata@provideglobalbool}
+% Variants of \pkg{etoolbox}'s |\newbool| and |\providebool| that create bools whose state is always global.  When these global bools are used with |\setbool|, |\booltrue|, or |\boolfalse|, the global state is updated regardless of whether the command is prefixed with |\global|.  These use a global variant of \LaTeX's |\newif| internally.
+%    \begin{macrocode}
+\def\pydata@gnewif#1{%
+  \count@\escapechar
+  \escapechar\m@ne
+  \global\let#1\iffalse
+  \pydata@gif#1\iftrue
+  \pydata@gif#1\iffalse
+  \escapechar\count@}
+\def\pydata@gif#1#2{%
+  \expandafter\gdef\csname
+    \expandafter\@gobbletwo\string#1\expandafter\@gobbletwo\string#2\endcsname
+     {\global\let#1#2}}
+\newrobustcmd*{\pydata@newglobalbool}[1]{%
+  \begingroup
+  \let\newif\pydata@gnewif
+  \newbool{#1}%
+  \endgroup}
+\newrobustcmd*{\pydata@provideglobalbool}[1]{%
+  \begingroup
+  \let\newif\pydata@gnewif
+  \providebool{#1}%
+  \endgroup}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \subsection{State}
+%
+% Track state of writing data and of buffering data.  Notice that bools for tracking state are a special, custom variant that is always global.
+%
+% \begin{macro}{pydata@canwrite}
+% Whether data can be written.  False if a file handle has not been set or if the top-level data structure has been closed.
+%    \begin{macrocode}
+\pydata@newglobalbool{pydata@canwrite}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydata@hasmeta}
+% Whether metadata was written.  Metadata is a \code{dict[str, str | dict[str, str]]}.
+%    \begin{macrocode}
+\pydata@newglobalbool{pydata@hasmeta}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydata@topexists}
+% Whether the top-level data structure has been configured.  The top-level data structure can be a list or a dict.  The overall data structure must be either |dict[str, str]| or |list[dict[str, str]]|.
+%    \begin{macrocode}
+\pydata@newglobalbool{pydata@topexists}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydata@topislist}
+% Whether the top-level data structure is a list.
+%    \begin{macrocode}
+\pydata@newglobalbool{pydata@topislist}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydata@indict}
+% Whether a dict has been opened.
+%    \begin{macrocode}
+\pydata@newglobalbool{pydata@indict}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydata@haskey}
+% Whether a key has been written (waiting for a value).
+%    \begin{macrocode}
+\pydata@newglobalbool{pydata@haskey}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydata@fhstartstate, \pydata@fhstopstate, \pydata@fhresetstate}
+% Start and stop state tracking for a file handle (|\newwrite|), or reset state after writing is complete.  Each file handle has its own set of state bools of the form |pydata@|\meta{boolname}|@|\meta{fh}.  When a file handle is in use, the values of these bools are copied into the |pydata@|\meta{boolname} bools; when the file handle is no longer in use, |pydata@|\meta{boolname} values are copied back into |pydata@|\meta{boolname}|@|\meta{fh}.
+%    \begin{macrocode}
+\def\pydata@fhstartstate#1{%
+  \expandafter\pydata@fhstartstate@i\expandafter{\number#1}}
+\newbool{pydata@fhnewstate}
+\def\pydata@fhstartstate@i#1{%
+  \ifcsname ifpydata@canwrite@#1\endcsname
+    \boolfalse{pydata@fhnewstate}%
+  \else
+    \booltrue{pydata@fhnewstate}%
+  \fi
+  \def\do##1{%
+    \pydata@provideglobalbool{pydata@##1@#1}%
+    \ifbool{pydata@##1@#1}{\booltrue{pydata@##1}}{\boolfalse{pydata@##1}}}%
+  \docsvlist{canwrite, hasmeta, topexists, topislist, indict, haskey}%
+  \ifbool{pydata@fhnewstate}%
+   {\booltrue{pydata@canwrite}}{}%
+  \ifbool{pydata@fhisreleased@#1}%
+   {\boolfalse{pydata@fhisreleased@#1}\booltrue{pydata@canwrite}}{}}
+\def\pydata@fhstopstate#1{%
+  \expandafter\pydata@fhstopstate@i\expandafter{\number#1}}
+\def\pydata@fhstopstate@i#1{%
+  \ifcsname ifpydata@canwrite@#1\endcsname
+    \def\do##1{%
+      \ifbool{pydata@##1}{\booltrue{pydata@##1@#1}}{\boolfalse{pydata@##1@#1}}%
+      \boolfalse{pydata@##1}}%
+    \docsvlist{canwrite, hasmeta, topexists, topislist, indict, haskey}%
+  \fi}
+\def\pydata@fhresetstate#1{%
+  \expandafter\pydata@fhresetstate@i\expandafter{\number#1}}
+\def\pydata@fhresetstate@i#1{%
+  \def\do##1{%
+    \boolfalse{pydata@##1@#1}}%
+  \docsvlist{canwrite, hasmeta, topexists, topislist, indict, haskey}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydata@bufferhaskey}
+% Whether a key has been added to the buffer (waiting for a value).
+%
+% If multiple buffers are in use, all buffers use the same |pydata@bufferhaskey|.  Inconsistent state is avoided by requiring that |\pydatasetbuffername| can only be invoked when |pydata@bufferhaskey| is false.
+%    \begin{macrocode}
+\pydata@newglobalbool{pydata@bufferhaskey}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \subsection{File handle}
+%
+% \begin{macro}{\pydata@filehandle}
+% File handle for writing data.
+%    \begin{macrocode}
+\let\pydata@filehandle\relax
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydata@checkfilehandle}
+% Check whether file handle has been set.
+%    \begin{macrocode}
+\def\pydata@checkfilehandle{%
+  \ifx\pydata@filehandle\relax
+    \pydata@error{Undefined file handle; use \string\pydatasetfilehandle}%
+  \fi}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatasetfilehandle, \pydatareleasefilehandle}
+% Set and release file handle.  Release isn't strictly required, but it is necessary for basic data checking on the \LaTeX\ side.
+%    \begin{macrocode}
+\def\pydatasetfilehandle#1{%
+  \if\relax\detokenize{#1}\relax
+    \pydata@error{Missing file handle}%
+  \fi
+  \ifx\pydata@filehandle\relax
+  \else\ifx\pydata@filehandle#1\relax
+  \else
+    \pydata@fhstopstate{\pydata@filehandle}%
+  \fi\fi
+  \ifx\pydata@filehandle#1\relax
+  \else
+    \global\let\pydata@filehandle#1\relax
+    \pydata@provideglobalbool{pydata@fhisreleased@\number#1}%
+    \pydata@fhstartstate{#1}%
+  \fi}
+\def\pydatareleasefilehandle#1{%
+  \ifcsname ifpydata@canwrite@\number#1\endcsname
+  \else
+    \pydata@error{Unknown file handle #1}%
+  \fi
+  \ifx\pydata@filehandle#1\relax
+    \pydata@fhstopstate{#1}%
+    \global\let\pydata@filehandle\relax
+  \fi
+  \ifbool{pydata@canwrite@\number#1}%
+   {\ifbool{pydata@haskey@\number#1}%
+     {\pydata@error{Incomplete data: key is waiting for value}}{}%
+    \ifbool{pydata@indict@\number#1}%
+     {\pydata@error{Incomplete data: dict is not closed}}{}%
+    \ifbool{pydata@topislist@\number#1}%
+     {\pydata@error{Incomplete data: list is not closed}}{}}%
+   {}%
+  \pydata@fhresetstate{#1}%
+  \booltrue{pydata@fhisreleased@\number#1}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatasetfilename, \pydataclosefilename}
+% Shortcut for invoking |\newwrite| and then passing the file handle to |\pydatasetfilehandle|.  File handles are global.  If the close macro is not invoked, then basic data checking on the \LaTeX\ side will not be performed.  However, \TeX\ will \href{https://tex.stackexchange.com/a/337291}{automatically close open writes at the end of the compile}.
+%
+% File handles created by |\newwrite| are collected in a file handle ``pool'' and then reused when possible to minimize the potential for ``\Verb[breaklines]{No more room for a new \write}'' errors.
+%    \begin{macrocode}
+\def\pydata@fhpoolsize{0}
+\def\pydatasetfilename#1{%
+  \if\relax\detokenize{#1}\relax
+    \pydata@error{Missing filename}%
+  \fi
+  \ifcsname pydata@filenamefh@#1\endcsname
+    \expandafter\let\expandafter\pydata@fhtmp
+      \csname pydata@filenamefh@#1\endcsname
+    \expandafter\let\expandafter\pydata@fhpoolindextmp
+      \csname pydata@filenamefhpoolindex@#1\endcsname
+  \else
+    \def\pydata@fhpoolindex{0}%
+    \loop\unless\ifnum\pydata@fhpoolindex=\pydata@fhpoolsize\relax
+      \ifbool{pydata@fileisopen@\pydata@fhpoolindex}%
+       {}%
+       {\expandafter\let\expandafter\pydata@fhtmp
+          \csname pydata@fh@\pydata@fhpoolindex\endcsname
+        \let\pydata@fhpoolindextmp\pydata@fhpoolindex
+        \expandafter\global\expandafter
+          \let\csname pydata@filenamefh@#1\endcsname\pydata@fhtmp
+        \expandafter\global\expandafter
+          \let\csname pydata@filenamefhpoolindex@#1\endcsname\pydata@fhpoolindextmp
+        \let\pydata@fhpoolindex\pydata@fhpoolsize}%
+    \repeat
+    \let\pydata@fhpoolindex\pydata@undefined
+    \ifcsname pydata@filenamefh@#1\endcsname
+    \else
+      \expandafter\newwrite\csname pydata@fh@\pydata@fhpoolsize\endcsname
+      \pydata@newglobalbool{pydata@fileisopen@\pydata@fhpoolsize}%
+      \expandafter\let\expandafter\pydata@fhtmp
+        \csname pydata@fh@\pydata@fhpoolsize\endcsname
+      \expandafter\global\expandafter
+        \let\csname pydata@filenamefh@#1\endcsname\pydata@fhtmp
+      \let\pydata@fhpoolindextmp\pydata@fhpoolsize
+      \expandafter\global\expandafter
+        \let\csname pydata@filenamefhpoolindex@#1\endcsname\pydata@fhpoolindextmp
+      \xdef\pydata@fhpoolsize{\the\numexpr\pydata@fhpoolsize+1\relax}%
+    \fi
+  \fi
+  \ifbool{pydata@fileisopen@\pydata@fhpoolindextmp}%
+   {}%
+   {\immediate\openout\pydata@fhtmp=#1\relax
+    \booltrue{pydata@fileisopen@\pydata@fhpoolindextmp}}%
+  \pydatasetfilehandle{\pydata@fhtmp}%
+  \let\pydata@fhtmp\pydata@undefined
+  \let\pydata@fhpoolindextmp\pydata@undefined}
+\def\pydataclosefilename#1{%
+  \ifcsname pydata@filenamefh@#1\endcsname
+    \expandafter\let\expandafter\pydata@fhtmp
+      \csname pydata@filenamefh@#1\endcsname
+    \expandafter\let\expandafter\pydata@fhpoolindextmp
+      \csname pydata@filenamefhpoolindex@#1\endcsname
+    \pydatareleasefilehandle{\pydata@fhtmp}%
+    \immediate\closeout\pydata@fhtmp
+    \boolfalse{pydata@fileisopen@\pydata@fhpoolindextmp}%
+    \expandafter\global\expandafter
+      \let\csname pydata@filenamefh@#1\endcsname\pydata@undefined
+    \expandafter\global\expandafter
+      \let\csname pydata@filenamefhpoolindex@#1\endcsname\pydata@undefined
+    \let\pydata@fhtmp\pydata@undefined
+    \let\pydata@fhpoolindextmp\pydata@undefined
+  \else
+    \pydata@error{Unknown file name "#1"}%
+  \fi}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \subsection{Buffer}
+%
+% Key-value data can be written directly to file once a dict is opened.  It is also possible to accumulate key-value data in a ``buffer.''  This is convenient when the data serves as input to an external program that generates cached content.  Buffered data can be hashed in memory without being written to file, so the existence of cached content can be checked efficiently.
+%
+% The buffer consists of a sequence of macros of the form |\<buffer_name>line<n>|, where each line of data corresponds to a macro and |<n>| is an integer greater than or equal to one.  The length of the buffer is stored in the macro |\<buffer_name>length|.  The buffer includes comma-separated key-value data, without any opening or closing dict delimiters |{}|.
+%
+% \begin{macro}{\pydata@bufferindex}
+% Macro for looping through buffers.
+%    \begin{macrocode}
+\def\pydata@bufferindex{0}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatasetbuffername, \pydata@buffername, \pydata@bufferlinename, \pydata@bufferlengthname, \pydata@bufferlengthmacro}
+% Set the buffer base name and create a corresponding length macro if it does not exist.
+%    \begin{macrocode}
+\def\pydatasetbuffername#1{%
+  \ifbool{pydata@bufferhaskey}%
+   {\pydata@error{Cannot change buffers when a buffered key is waiting for a value}}%
+   {}%
+  \gdef\pydata@buffername{#1}%
+  \gdef\pydata@bufferlinename{#1line}%
+  \gdef\pydata@bufferlengthname{#1length}%
+  \ifcsname\pydata@bufferlengthname\endcsname
+  \else
+    \expandafter\gdef\csname\pydata@bufferlengthname\endcsname{0}%
+  \fi
+  \expandafter\gdef\expandafter\pydata@bufferlengthmacro\expandafter{%
+    \csname\pydata@bufferlengthname\endcsname}}
+\pydatasetbuffername{pydata@defaultbuffer}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatawritebuffer}
+% Write existing buffer macros to file handle.
+%    \begin{macrocode}
+\def\pydatawritebuffer{%
+  \ifnum\pydata@bufferlengthmacro<1\relax
+    \pydata@error{Cannot write empty buffer}%
+  \fi
+  \pydata@checkfilehandle
+  \ifbool{pydata@indict}{}{\pydata@error{Cannot write buffer unless in a dict}}%
+  \ifbool{pydata@haskey}%
+   {\pydata@error{Cannot write buffer when file has a key waiting for a value}}{}%
+  \ifbool{pydata@bufferhaskey}%
+   {\pydata@error{Cannot write buffer when a buffered key is waiting for a value}}{}%
+  \gdef\pydata@bufferindex{1}%
+  \loop\unless\ifnum\pydata@bufferindex>\pydata@bufferlengthmacro\relax
+    \immediate\write\pydata@filehandle{%
+      \csname\pydata@bufferlinename\pydata@bufferindex\endcsname}%
+    \xdef\pydata@bufferindex{\the\numexpr\pydata@bufferindex+1\relax}%
+  \repeat
+  \gdef\pydata@bufferindex{0}}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydataclearbuffername}
+% Delete the buffer:  |\let| all line macros to an undefined macro, and set length to zero.
+%    \begin{macrocode}
+\def\pydataclearbuffername#1{%
+  \def\pydata@clearbuffername{#1}%
+  \ifcsname#1length\endcsname
+  \else
+    \pydata@error{Buffer #1 does not exist}%
+  \fi
+  \gdef\pydata@bufferindex{1}%
+  \loop\unless\ifnum\pydata@bufferindex>\csname#1length\endcsname\relax
+    \expandafter\global\expandafter\let
+      \csname#1line\pydata@bufferindex\endcsname\pydata@undefined
+    \xdef\pydata@bufferindex{\the\numexpr\pydata@bufferindex+1\relax}%
+  \repeat
+  \expandafter\gdef\csname#1length\endcsname{0}%
+  \gdef\pydata@bufferindex{0}%
+  \ifx\pydata@clearbuffername\pydata@buffername
+    \boolfalse{pydata@bufferhaskey}%
+  \fi}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydatabuffermdfivesum}
+% Calculate buffer MD5.
+%    \begin{macrocode}
+\def\pydatabuffermdfivesum{%
+  \pdf@mdfivesum{%
+    \ifnum\pydata@bufferlengthmacro<1
+      \expandafter\@firstoftwo
+    \else
+      \expandafter\@secondoftwo
+    \fi
+    {}{\pydatabuffermdfivesum@i{1}}}}
+\def\pydatabuffermdfivesum@i#1{%
+  \csname\pydata@bufferlinename#1\endcsname^^J%
+  \ifnum\pydata@bufferlengthmacro=#1
+    \expandafter\@gobble
+  \else
+    \expandafter\@firstofone
+  \fi
+  {\expandafter\pydatabuffermdfivesum@i\expandafter{\the\numexpr#1+1\relax}}}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \subsection{String processing}
+%
+% Ensure correct catcode for double quotation mark, which will be used for delimiting all Python string literals.
+%    \begin{macrocode}
+\begingroup
+\catcode`\"=12\relax
+%    \end{macrocode}
+%
+%
+% \begin{macro}{\pydata@escstrtext}
+% Escape string text by replacing |\| with |\\| and |"| with |\"|.  Any text that requires expansion must be expanded prior to escaping.  The string text is processed with |\detokenize| to ensure catcodes and prepare it for writing.  This is redundant in cases where text has already been processed with |\FVExtraDetokenizeVArg|.
+%    \begin{macrocode}
+\begingroup
+\catcode`\!=0
+!catcode`!\=12
+!gdef!pydata@escstrtext#1{%
+  !expandafter!pydata@escstrtext@i!detokenize{#1}\!FV@Sentinel}
+!gdef!pydata@escstrtext@i#1\#2!FV@Sentinel{%
+  !if!relax!detokenize{#2}!relax
+    !expandafter!@firstoftwo
+  !else
+    !expandafter!@secondoftwo
+  !fi
+   {!pydata@escstrtext@ii#1"!FV@Sentinel}%
+   {!pydata@escstrtext@ii#1\\"!FV@Sentinel!pydata@escstrtext@i#2!FV@Sentinel}}
+!gdef!pydata@escstrtext@ii#1"#2!FV@Sentinel{%
+  !if!relax!detokenize{#2}!relax
+    !expandafter!@firstoftwo
+  !else
+    !expandafter!@secondoftwo
+  !fi
+   {#1}%
+   {#1\"!pydata@escstrtext@ii#2!FV@Sentinel}}
+!endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydata@quotestr}
+% Escape a string then quote it with |"|.
+%    \begin{macrocode}
+\gdef\pydata@quotestr#1{%
+  "\pydata@escstrtext{#1}"}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydata@mlstropen, \pydata@mlstrclose}
+% Multi-line string delimiters.  The opening delimiter has a trailing backslash to prevent the string from starting with a newline.
+%    \begin{macrocode}
+\begingroup
+\catcode`\!=0
+!catcode`!\=12
+!gdef!pydata@mlstropen{"""\}
+!gdef!pydata@mlstrclose{"""}
+!endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \noindent End |"| catcode.
+%    \begin{macrocode}
+\endgroup
+%    \end{macrocode}
+%
+%
+%
+% \subsection{Metadata}
+%
+% \begin{macro}{\pydata@schema}
+% Macro storing key-value schema data.
+%    \begin{macrocode}
+\def\pydata@schema{}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatasetschemamissing, \pydata@schemamissing}
+% Define behavior for missing key-value pairs in a schema.
+%    \begin{macrocode}
+\let\pydata@schemamissing@error\relax
+\let\pydata@schemamissing@verbatim\relax
+\let\pydata@schemamissing@evalany\relax
+\def\pydatasetschemamissing#1{%
+  \ifcsname pydata@schemamissing@\detokenize{#1}\endcsname
+  \else
+    \pydata@error{Invalid schema missing setting #1}%
+  \fi
+  \gdef\pydata@schemamissing{#1}}
+\pydatasetschemamissing{error}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatasetschemakeytype}
+% Define a key's schema.  For example, |\pydatasetschemakeytype{key}{int}|.
+%    \begin{macrocode}
+\begingroup
+\catcode`\:=12\relax
+\catcode`\,=12\relax
+\gdef\pydatasetschemakeytype#1#2{%
+  \ifbool{pydata@hasmeta}{\pydata@error{Must create schema before writing metadata}}{}%
+  \ifbool{pydata@topexists}{\pydata@error{Must create schema before writing data}}{}%
+  \expandafter\def\expandafter\pydata@schema\expandafter{%
+    \pydata@schema\pydata@quotestr{#1}: \pydata@quotestr{#2}, }}
+\endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydataclearschema}
+% Delete existing schema.  This isn't done automatically upon writing so that a schema can be defined and then reused.
+%    \begin{macrocode}
+\def\pydataclearschema{%
+  \gdef\pydata@schema{}}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydataclearmeta}
+% Delete existing metadata.  This isn't done automatically upon writing so that metadata can be defined and then reused.
+%    \begin{macrocode}
+\def\pydataclearmeta{%
+  \pydatasetschemamissing{error}%
+  \pydataclearschema}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatawritemeta}
+% Write metadata to file, including any schema.
+%    \begin{macrocode}
+\begingroup
+\catcode`\:=12\relax
+\catcode`\#=12\relax
+\catcode`\,=12\relax
+\gdef\pydatawritemeta{%
+  \ifbool{pydata@canwrite}%
+   {}{\pydata@error{Data was already written; cannot write metadata}}%
+  \ifbool{pydata@hasmeta}{\pydata@error{Already wrote metadata}}{}%
+  \ifbool{pydata@topexists}{\pydata@error{Must write metadata before writing data}}{}%
+  \edef\pydata@meta@exp{%
+    # latex2pydata metadata:
+    \@charlb
+    \pydata@quotestr{schema_missing}:
+    \expandafter\pydata@quotestr\expandafter{\pydata@schemamissing},
+    \pydata@quotestr{schema}:
+    \ifx\pydata@schema\pydata@empty
+      \expandafter\@firstoftwo
+    \else
+      \expandafter\@secondoftwo
+    \fi
+     {None}{\@charlb\pydata@schema\@charrb},
+    \@charrb}%
+  \immediate\write\pydata@filehandle{\pydata@meta@exp}%
+  \booltrue{pydata@hasmeta}}
+\endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \subsection{Collection delimiters}
+%
+% \begin{macro}{\pydatawritelistopen, \pydatawritelistclose}
+% Write list delimiters.  These are only used when the top-level data structure is a list:  |list[dict[str, str]]|.
+%    \begin{macrocode}
+\begingroup
+\catcode`\[=12\relax
+\catcode`\]=12\relax
+\gdef\pydatawritelistopen{%
+  \pydata@checkfilehandle
+  \ifbool{pydata@canwrite}%
+   {}{\pydata@error{Data structure is closed; cannot write delim}}%
+  \ifbool{pydata@topexists}%
+   {\pydata@error{Top-level data structure already exists}}{}%
+  \immediate\write\pydata@filehandle{[}%
+  \booltrue{pydata@topexists}%
+  \booltrue{pydata@topislist}}
+\gdef\pydatawritelistclose{%
+  \ifbool{pydata@topexists}%
+   {}{\pydata@error{No data structure is open; cannot write delim}}%
+  \ifbool{pydata@topislist}%
+   {}{\pydata@error{Top-level data structure is not a list}}%
+  \ifbool{pydata@haskey}%
+   {\pydata@error{Cannot close data structure when key is waiting for value}}{}%
+  \immediate\write\pydata@filehandle{]}%
+  \boolfalse{pydata@topexists}%
+  \boolfalse{pydata@topislist}%
+  \boolfalse{pydata@hasmeta}%
+  \boolfalse{pydata@canwrite}}
+\endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydatawritedictopen, \pydatawritedictclose}
+% Write dict delimiters.  These are not the top-level data structure for |list[dict[str, str]]| but are the top-level data structure for |dict[str, str]|.
+%    \begin{macrocode}
+\begingroup
+\catcode`\,=12\relax
+\gdef\pydatawritedictopen{%
+  \ifbool{pydata@topislist}%
+   {\ifbool{pydata@indict}{\pydata@error{Already in a dict; cannot nest}}{}%
+    \immediate\write\pydata@filehandle{\@charlb}%
+    \booltrue{pydata@indict}}%
+   {\pydata@checkfilehandle
+    \ifbool{pydata@canwrite}%
+     {}{\pydata@error{Data structure is closed; cannot write delim}}%
+    \ifbool{pydata@topexists}%
+     {\pydata@error{Top-level data structure already exists}}{}%
+    \immediate\write\pydata@filehandle{\@charlb}%
+    \booltrue{pydata@topexists}%
+    \booltrue{pydata@indict}}}
+\gdef\pydatawritedictclose{%
+  \ifbool{pydata@indict}{}{\pydata@error{No dict is open; cannot write delim}}%
+  \ifbool{pydata@haskey}%
+   {\pydata@error{Cannot close data structure when key is waiting for value}}{}%
+  \ifbool{pydata@topislist}%
+   {\immediate\write\pydata@filehandle{\@charrb,}%
+    \boolfalse{pydata@indict}}%
+   {\immediate\write\pydata@filehandle{\@charrb}%
+    \boolfalse{pydata@indict}%
+    \boolfalse{pydata@topexists}%
+    \boolfalse{pydata@hasmeta}%
+    \boolfalse{pydata@canwrite}}}
+\endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \subsection{Keys and values}
+%
+% \begin{macro}{\pydatawritekey, \pydatabufferkey}
+% Write key to file or append it to the buffer.
+%    \begin{macrocode}
+\begingroup
+\catcode`\:=12\relax
+\gdef\pydatawritekey{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatawritekey@i}}}
+\gdef\pydatawritekey@i#1{%
+  \ifbool{pydata@indict}{}{\pydata@error{Cannot write a key unless in a dict}}%
+  \ifbool{pydata@haskey}{\pydata@error{Cannot write a key when waiting for a value}}{}%
+  \immediate\write\pydata@filehandle{%
+    \pydata@quotestr{#1}:%
+  }%
+  \booltrue{pydata@haskey}}
+\gdef\pydatabufferkey{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatabufferkey@i}}}
+\gdef\pydatabufferkey@i#1{%
+  \ifbool{pydata@bufferhaskey}%
+   {\pydata@error{Cannot buffer a key when waiting for a value}}{}%
+  \expandafter\xdef\pydata@bufferlengthmacro{%
+    \the\numexpr\pydata@bufferlengthmacro+1\relax}%
+  \expandafter\xdef\csname\pydata@bufferlinename\pydata@bufferlengthmacro\endcsname{%
+      \pydata@quotestr{#1}:%
+    }%
+  \booltrue{pydata@bufferhaskey}}
+\endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatawritevalue, \pydatabuffervalue}
+% Write a value to file or append it to the buffer.
+%    \begin{macrocode}
+\begingroup
+\catcode`\,=12\relax
+\gdef\pydatawritevalue{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatawritevalue@i}}}
+\gdef\pydatawritevalue@i#1{%
+  \ifbool{pydata@haskey}{}{\pydata@error{Cannot write value when waiting for a key}}%
+  \immediate\write\pydata@filehandle{%
+    \pydata@quotestr{#1},%
+  }%
+  \boolfalse{pydata@haskey}}
+\gdef\pydatabuffervalue{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatabuffervalue@i}}}
+\gdef\pydatabuffervalue@i#1{%
+  \ifbool{pydata@bufferhaskey}%
+   {}{\pydata@error{Cannot buffer value when waiting for a key}}%
+  \expandafter\xdef\pydata@bufferlengthmacro{%
+    \the\numexpr\pydata@bufferlengthmacro+1\relax}%
+  \expandafter\xdef\csname\pydata@bufferlinename\pydata@bufferlengthmacro\endcsname{%
+      \pydata@quotestr{#1},%
+    }%
+  \boolfalse{pydata@bufferhaskey}}
+\endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pydatawritekeyvalue, \pydatawritekeyedefvalue, \pydatabufferkeyvalue, \pydatabufferkeyedefvalue}
+% Write a key and a single-line value to file simultaneously, or append them to the buffer.
+%    \begin{macrocode}
+\begingroup
+\catcode`\:=12\relax
+\catcode`\,=12\relax
+\gdef\pydatawritekeyvalue{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatawritekeyvalue@i}}}
+\gdef\pydatawritekeyvalue@i#1{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatawritekeyvalue@ii{#1}}}}
+\gdef\pydatawritekeyvalue@ii#1#2{%
+  \ifbool{pydata@indict}{}{\pydata@error{Cannot write a key unless in a dict}}%
+  \ifbool{pydata@haskey}{\pydata@error{Cannot write a key when waiting for a value}}{}%
+  \immediate\write\pydata@filehandle{%
+    \pydata@quotestr{#1}: \pydata@quotestr{#2},%
+  }}
+\gdef\pydatawritekeyedefvalue{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatawritekeyedefvalue@i}}}
+\gdef\pydatawritekeyedefvalue@i#1#2{%
+  \edef\pydata@tmp{#2}%
+  \expandafter\pydatawritekeyedefvalue@ii\expandafter{\pydata@tmp}{#1}}
+\gdef\pydatawritekeyedefvalue@ii#1#2{%
+  \FVExtraDetokenizeVArg{\pydatawritekeyvalue@ii{#2}}{#1}}
+\gdef\pydatabufferkeyvalue{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatabufferkeyvalue@i}}}
+\gdef\pydatabufferkeyvalue@i#1{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatabufferkeyvalue@ii{#1}}}}
+\gdef\pydatabufferkeyvalue@ii#1#2{%
+  \ifbool{pydata@bufferhaskey}%
+   {\pydata@error{Cannot buffer a key when waiting for a value}}{}%
+  \expandafter\xdef\pydata@bufferlengthmacro{%
+    \the\numexpr\pydata@bufferlengthmacro+1\relax}%
+  \expandafter\xdef\csname\pydata@bufferlinename\pydata@bufferlengthmacro\endcsname{%
+      \pydata@quotestr{#1}: \pydata@quotestr{#2},%
+    }}
+\gdef\pydatabufferkeyedefvalue{%
+  \FVExtraReadVArg{\FVExtraDetokenizeVArg{\pydatabufferkeyedefvalue@i}}}
+\gdef\pydatabufferkeyedefvalue@i#1#2{%
+  \edef\pydata@tmp{#2}%
+  \expandafter\pydatabufferkeyedefvalue@ii\expandafter{\pydata@tmp}{#1}}
+\gdef\pydatabufferkeyedefvalue@ii#1#2{%
+  \FVExtraDetokenizeVArg{\pydatabufferkeyvalue@ii{#2}}{#1}}
+\endgroup
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \begin{macro}{\pydatawritemlvalueopen, \pydatawritemlvalueline, \pydatawritemlvalueclose, \pydatabuffermlvalueopen, \pydatabuffermlvalueline, \pydatabuffermlvalueclose}
+%  Write a line of a multi-line value to file or append it to the buffer.  Write the end delimiter of the value to file or append it to the buffer.
+%    \begin{macrocode}
+\begingroup
+\catcode`\,=12\relax
+\gdef\pydatawritemlvalueopen{%
+  \ifbool{pydata@haskey}{}{\pydata@error{Cannot write value when waiting for a key}}%
+  \immediate\write\pydata@filehandle{%
+    \pydata@mlstropen
+  }}
+\gdef\pydatawritemlvalueline#1{%
+  \ifbool{pydata@haskey}{}{\pydata@error{Cannot write value when waiting for a key}}%
+  \immediate\write\pydata@filehandle{%
+    \pydata@escstrtext{#1}%
+  }}
+\gdef\pydatawritemlvalueclose{%
+  \ifbool{pydata@haskey}{}{\pydata@error{Cannot write value when waiting for a key}}%
+  \immediate\write\pydata@filehandle{%
+    \pydata@mlstrclose,%
+  }%
+  \boolfalse{pydata@haskey}}
+\gdef\pydatabuffermlvalueopen{%
+  \ifbool{pydata@bufferhaskey}%
+   {}{\pydata@error{Cannot buffer value when waiting for a key}}%
+  \expandafter\xdef\pydata@bufferlengthmacro{%
+    \the\numexpr\pydata@bufferlengthmacro+1\relax}%
+  \expandafter\xdef\csname\pydata@bufferlinename\pydata@bufferlengthmacro\endcsname{%
+      \pydata@mlstropen
+    }}
+\gdef\pydatabuffermlvalueline#1{%
+  \ifbool{pydata@bufferhaskey}%
+   {}{\pydata@error{Cannot buffer value when waiting for a key}}%
+  \expandafter\xdef\pydata@bufferlengthmacro{%
+    \the\numexpr\pydata@bufferlengthmacro+1\relax}%
+  \expandafter\xdef\csname\pydata@bufferlinename\pydata@bufferlengthmacro\endcsname{%
+      \pydata@escstrtext{#1}%
+    }}
+\gdef\pydatabuffermlvalueclose{%
+  \ifbool{pydata@bufferhaskey}%
+   {}{\pydata@error{Cannot buffer value when waiting for a key}}%
+  \expandafter\xdef\pydata@bufferlengthmacro{%
+    \the\numexpr\pydata@bufferlengthmacro+1\relax}%
+  \expandafter\xdef\csname\pydata@bufferlinename\pydata@bufferlengthmacro\endcsname{%
+      \pydata@mlstrclose,%
+    }%
+  \boolfalse{pydata@bufferhaskey}}
+\endgroup
+%    \end{macrocode}
+% |*start| and |*end| variants for backward compatibility with versions before v0.5.0.
+%    \begin{macrocode}
+\let\pydatawritemlvaluestart\pydatawritemlvalueopen
+\let\pydatawritemlvalueend\pydatawritemlvalueclose
+\let\pydatabuffermlvaluestart\pydatabuffermlvalueopen
+\let\pydatabuffermlvalueend\pydatabuffermlvalueclose
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydatawritemlvalue}
+%    \begin{macrocode}
+\newenvironment{pydatawritemlvalue}%
+ {\VerbatimEnvironment
+  \pydatawritemlvalueopen
+  \begin{VerbatimWrite}[writer=\pydatawritemlvalueline]}%
+ {\end{VerbatimWrite}}
+\AfterEndEnvironment{pydatawritemlvalue}{\pydatawritemlvalueclose}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{pydatabuffermlvalue}
+%    \begin{macrocode}
+\newenvironment{pydatabuffermlvalue}%
+ {\VerbatimEnvironment
+  \pydatabuffermlvalueopen
+  \begin{VerbatimBuffer}[bufferer=\pydatabuffermlvalueline]}%
+ {\end{VerbatimBuffer}%
+  \pydatabuffermlvalueclose}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+%
+% \iffalse
+%</package>
+% \fi
+%% \Finale
+\endinput

@@ -60,8 +60,30 @@ PIXEL_COMPATIBILITY = r"""% texglot: pdfTeX pixel dimensions for XeTeX
 """
 
 
-XETEX_COMPATIBILITY = r"""% texglot: native XeTeX font and PDF-driver capabilities
-\AddToHook{package/microtype/after}{%
+MINTED_HASH_COMPATIBILITY = r"""% Current minted uses renamed MD5 APIs; retain the old kernel's exact hashes.
+\makeatletter
+\AddToHook{package/minted/before}{%
+\RequirePackage{pdftexcmds}%
+\ifcsname str_mdfive_hash:e\endcsname\else
+\expandafter\let\csname str_mdfive_hash:e\endcsname\pdf@mdfivesum
+\fi
+\ifcsname file_mdfive_hash:n\endcsname\else
+\expandafter\let\csname file_mdfive_hash:n\endcsname\pdf@filemdfivesum
+\fi
+}
+\makeatother
+"""
+
+
+XETEX_COMPATIBILITY = (
+    r"""% texglot: native XeTeX font and PDF-driver capabilities
+% Newer templates use the LaTeX2e spelling of this existing expl3 test.
+\ExplSyntaxOn
+\cs_if_exist:NF \IfBlankTF {\cs_new_eq:NN \IfBlankTF \tl_if_blank:nTF}
+\ExplSyntaxOff
+"""
+    + MINTED_HASH_COMPATIBILITY
+    + r"""\AddToHook{package/microtype/after}{%
 \DeclareMicrotypeSet{texglot-native}{encoding={TU,EU1,EU2}}%
 \UseMicrotypeSet[protrusion]{texglot-native}%
 }
@@ -83,6 +105,7 @@ XETEX_COMPATIBILITY = r"""% texglot: native XeTeX font and PDF-driver capabiliti
 \fi
 }
 """
+)
 
 
 TECTONIC_FONT_COMPATIBILITY = r"""% texglot: vector double-stroke fonts; Tectonic cannot generate PK fonts
@@ -97,7 +120,7 @@ TECTONIC_FONT_COMPATIBILITY = r"""% texglot: vector double-stroke fonts; Tectoni
 """
 
 
-FLOAT_SIZING = r"""% texglot: fit complete oversized float boxes v1
+LEGACY_FLOAT_SIZING = r"""% texglot: fit complete oversized float boxes v1
 \usepackage{graphicx}
 \begingroup
 \makeatletter
@@ -122,6 +145,32 @@ FLOAT_SIZING = r"""% texglot: fit complete oversized float boxes v1
 \typeout{TeXGlot-Float-Fit: \@captype\space \csname the\@captype\endcsname; height \the\dimexpr\ht\@currbox+\dp\@currbox\relax; limit \texglot@floatheight}%
 \global\setbox\@currbox=\vbox{\hbox to\texglot@floatwidth{\hfil\resizebox*{!}{\texglot@floatheight}{\box\@currbox}\hfil}}%
 \fi\fi\fi}%
+}
+\endgroup
+"""
+
+
+FLOAT_SIZING = r"""% texglot: fit complete oversized float boxes v2
+\usepackage{graphicx,etoolbox}
+\begingroup
+\makeatletter
+\AtBeginDocument{%
+\def\texglot@fitfloat{%
+\ifdim\dimexpr\ht\@currbox+\dp\@currbox\relax>\textheight
+\edef\texglot@floatwidth{\the\wd\@currbox}%
+\edef\texglot@floatheight{\the\dimexpr\textheight-\baselineskip\relax}%
+\ifdim\texglot@floatheight>0pt
+\typeout{TeXGlot-Float-Fit: \@currenvir; height \the\dimexpr\ht\@currbox+\dp\@currbox\relax; limit \texglot@floatheight}%
+\global\setbox\@currbox=\vbox{\hbox to\texglot@floatwidth{\hfil\resizebox*{!}{\texglot@floatheight}{\box\@currbox}\hfil}}%
+\fi\fi}%
+% float.sty adds its caption after closing the content box. Measure only
+% after that assembly, before LaTeX's float queue clips the recorded height.
+\let\texglot@largefloatcheck\@largefloatcheck
+\def\@largefloatcheck{\texglot@fitfloat\texglot@largefloatcheck}%
+% Non-floating [H] boxes bypass the float queue, but need the same protection.
+\@ifundefined{float@endH}{}{%
+\patchcmd{\float@endH}{\box\@currbox}{\texglot@fitfloat\box\@currbox}{}{}%
+}%
 }
 \endgroup
 """
@@ -152,7 +201,7 @@ TABLE_FITTING = r"""% texglot: fit complete measured table containers v1
 
 
 def prepare_float_sizing(root: Path, *, literal_environments=frozenset()) -> None:
-    """Keep complete oversized standard figures and tables within a usable page."""
+    """Keep complete oversized floats, including custom code listings, on the page."""
     sources = {
         path: path.read_text(encoding="utf-8")
         for path in root.rglob("*.tex")
@@ -162,13 +211,42 @@ def prepare_float_sizing(root: Path, *, literal_environments=frozenset()) -> Non
         path: visible_tex(text, literal_environments=literal_environments)
         for path, text in sources.items()
     }
-    if not any(
-        re.search(r"\\begin\s*\{(?:figure|table)\*?\}", text)
-        for text in visible.values()
-    ):
+    names = {
+        "figure",
+        "figure*",
+        "table",
+        "table*",
+        "listing",
+        "listing*",
+        "algorithm",
+        "algorithm*",
+        "lstlisting",
+    }
+    declarations = r"\\(?:newfloat|DeclareFloatingEnvironment)\s*(?:\[[^]]*\]\s*)?\{([A-Za-z@][A-Za-z@*]*)\}"
+    context = list(visible.values()) + [
+        visible_tex(
+            p.read_text(encoding="utf-8"), literal_environments=literal_environments
+        )
+        for p in root.rglob("*")
+        if p.is_file() and p.suffix.lower() in {".sty", ".cls"}
+    ]
+    for text in context:
+        names.update(re.findall(declarations, text))
+    pattern = re.compile(
+        r"\\begin\s*\{"
+        + "(?:"
+        + "|".join(re.escape(name) for name in sorted(names))
+        + r")\}"
+    )
+    if not any(pattern.search(text) for text in visible.values()):
         return
     for path, text in sources.items():
         if FLOAT_SIZING.strip() in text:
+            continue
+        if LEGACY_FLOAT_SIZING in text:
+            path.write_text(
+                text.replace(LEGACY_FLOAT_SIZING, FLOAT_SIZING), encoding="utf-8"
+            )
             continue
         if re.search(
             r"\\(?:documentclass|documentstyle)\b", visible[path]
@@ -354,7 +432,11 @@ def normalize_pixel_dimensions(text: str, *, literal_environments=frozenset()) -
 
 
 def normalize_engine(
-    text: str, engine: str, *, literal_environments=frozenset()
+    text: str,
+    engine: str,
+    *,
+    literal_environments=frozenset(),
+    inject_compatibility=True,
 ) -> str:
     text = normalize_comment_terminators(
         text, literal_environments=literal_environments
@@ -369,25 +451,29 @@ def normalize_engine(
         )
         visible = visible_tex(text, literal_environments=literal_environments)
         if (
-            r"\pdfpxdimen" in visible
+            inject_compatibility
+            and r"\pdfpxdimen" in visible
             and re.search(r"\\begin\s*\{document\}", visible)
             and PIXEL_COMPATIBILITY not in text
         ):
             text = PIXEL_COMPATIBILITY + text
             visible = visible_tex(text, literal_environments=literal_environments)
         if (
-            re.search(r"\\begin\s*\{document\}", visible)
+            inject_compatibility
+            and re.search(r"\\begin\s*\{document\}", visible)
             and XETEX_COMPATIBILITY not in text
         ):
             text = XETEX_COMPATIBILITY + text
         if (
-            engine == "tectonic"
+            inject_compatibility
+            and engine == "tectonic"
             and re.search(r"\\begin\s*\{document\}", visible)
             and TECTONIC_FONT_COMPATIBILITY not in text
         ):
             text = TECTONIC_FONT_COMPATIBILITY + text
         if (
-            re.search(r"\\begin\s*\{document\}", visible)
+            inject_compatibility
+            and re.search(r"\\begin\s*\{document\}", visible)
             and r"\PassOptionsToPackage{no-math}{fontspec}" not in visible
         ):
             text = "\\PassOptionsToPackage{no-math}{fontspec}\n" + text
@@ -553,7 +639,9 @@ def normalize_pdftex_features(
     return text
 
 
-def prepare_engine_sources(root: Path, engine: str) -> list[str]:
+def prepare_engine_sources(
+    root: Path, engine: str, *, main: str | None = None
+) -> list[str]:
     """Adapt author-supplied TeX packages as well as the document entry points."""
     if engine == "tectonic":
         # Prefer the author's classes. Supply complete, pinned upstream runtime
@@ -578,10 +666,27 @@ def prepare_engine_sources(root: Path, engine: str) -> list[str]:
         "\n".join(decode_tex(raw) for raw in source_texts.values())
     )
     normalized = {}
+    standalone_children = set()
     for path, original in source_texts.items():
         if path.is_file() and path.suffix.lower() in TEX_SOURCE_SUFFIXES:
+            decoded = decode_tex(original)
+            # standalone ignores a child document's preamble. Injected setup
+            # before documentclass would execute in the parent's body instead.
+            standalone_child = (
+                main is not None
+                and path != root / main
+                and re.search(
+                    r"\\documentclass\s*(?:\[[^]]*\]\s*)?\{standalone\}",
+                    visible_tex(decoded, literal_environments=literal_environments),
+                )
+            )
+            if standalone_child:
+                standalone_children.add(path)
             text = normalize_engine(
-                decode_tex(original), engine, literal_environments=literal_environments
+                decoded,
+                engine,
+                literal_environments=literal_environments,
+                inject_compatibility=not standalone_child,
             )
             normalized[path] = (original, text)
     needs_pixels = engine in ("tectonic", "xelatex") and any(
@@ -590,6 +695,7 @@ def prepare_engine_sources(root: Path, engine: str) -> list[str]:
     for path, (original, text) in normalized.items():
         if (
             needs_pixels
+            and path not in standalone_children
             and re.search(r"\\begin\s*\{document\}", visible_tex(text))
             and PIXEL_COMPATIBILITY not in text
         ):
@@ -929,26 +1035,28 @@ def break_long_code_identifiers(
     return text
 
 
-def use_bundled_bibliography(text: str, path: Path) -> str:
+def use_bundled_bibliography(
+    text: str, path: Path, *, base_dir: Path | None = None
+) -> str:
     """Use arXiv's ready .bbl when its BibTeX databases were not included."""
     bbl = path.with_suffix(".bbl")
     if not bbl.is_file() or r"\begin{thebibliography}" not in bbl.read_text(
         errors="replace", encoding="utf-8"
     ):
         return text
+    base_dir = base_dir or path.parent
     for match in reversed(
-        list(re.finditer(r"\\bibliography\s*\{([^}]+)\}", without_comments(text)))
+        list(re.finditer(r"\\bibliography\s*\{([^}]+)\}", visible_tex(text)))
     ):
         databases = [
-            path.parent
-            / (v.strip() if v.strip().endswith(".bib") else v.strip() + ".bib")
+            base_dir / (v.strip() if v.strip().endswith(".bib") else v.strip() + ".bib")
             for v in match.group(1).split(",")
         ]
         if any(not p.is_file() for p in databases):
             text = (
                 text[: match.start()]
                 + r"\input{"
-                + bbl.name
+                + Path(os.path.relpath(bbl, base_dir)).as_posix()
                 + "}"
                 + text[match.end() :]
             )
@@ -1460,6 +1568,29 @@ def recover_compile_configuration(
     document = root / main
     source = document.read_text(encoding="utf-8")
     visible = visible_tex(source)
+    # Older mfirstuc treats an initial '$' as the letter to uppercase, splitting
+    # the math pair in a generated index. Group only that existing math atom;
+    # retain every entry, its spelling, page references and a byte-exact backup.
+    index_error = re.search(
+        r"(?m)^error: (.+\.ind):\d+: (?:Extra \}, or forgotten \$|Missing \$ inserted)",
+        error.log,
+    )
+    if index_error and re.search(r"(?m)^Package: mfirstuc\b", error.tex_log):
+        index = diagnostic_source_path(root, main, index_error[1])
+        if index is not None and index.suffix == ".ind":
+            raw = index.read_bytes()
+            text = raw.decode("utf-8")
+            pattern = re.compile(r"\\makefirstuc\s*\{\s*(\$(?:[^$\\\n]|\\[^$\n])+\$)")
+            edits = list(pattern.finditer(visible_tex(text)))
+            backup = index.with_name(index.name + ".texglot-original")
+            if edits and not backup.exists():
+                for match in reversed(edits):
+                    a, b = match.span(1)
+                    text = text[:a] + "{" + text[a:b] + "}" + text[b:]
+                with backup.open("xb") as stream:
+                    stream.write(raw)
+                index.write_bytes(text.encode("utf-8"))
+                return "索引词条首部公式的大小写保护"
     # Diagnose the failing package and the actual load record, not declarations
     # in unused classes or conditional branches elsewhere in the source tree.
     trace = error.tex_log.partition("! LaTeX Error")[0]
@@ -1562,15 +1693,58 @@ def recover_compile_configuration(
 
 
 async def _compile_with_recovery(root, main, out, engine, notify, **options):
+    from .bibliography import rebuild_bibliography
     from .minted import remove_unused_minted
     from .pdf_graphics import graphic_failure, recover_pdf_graphic
+    from .tex_runtime import RuntimeOverlay
 
+    overlay = RuntimeOverlay(root, main)
+    biber_pending = biber_rebuilt = False
     configuration_repairs = image_repairs = 0
     minted_repaired = False
     while True:
         try:
+            if biber_pending:
+                preliminary = options | {"output_format": "xdv", "tex_only": True}
+                await _compile_document(root, main, out, engine, notify, **preliminary)
+                await rebuild_bibliography(root, main, out, notify)
+                biber_pending = False
+                biber_rebuilt = True
             return await _compile_document(root, main, out, engine, notify, **options)
         except CompilationError as exc:
+            if engine == "tectonic":
+                if change := overlay.recover(exc):
+                    await notify(f"已按编译诊断补齐 {change}，正在重试")
+                    if "Running external tool biber" in exc.log and not biber_rebuilt:
+                        biber_pending = True
+                    continue
+                if "Running external tool biber" in exc.log and not biber_rebuilt:
+                    biber_pending = True
+                    continue
+            if engine == "tectonic" and re.search(
+                r"File [`'](?:pstricks|pstricks-add)\.sty' not found", exc.log
+            ):
+                raise CompilationError(
+                    "无法为此工程自动补齐 PSTricks 依赖，可能与工程自带宏包冲突。请补齐匹配的宏包，或使用完整 TeX Live；实际 PostScript 绘图需预先转换为 PDF。源码和插图已保留。\n"
+                    + str(exc),
+                    exc.log,
+                    tex_log=exc.tex_log,
+                    bundle=exc.bundle,
+                ) from exc
+            if (
+                "Package minted Error" in exc.log
+                and ("frozencache" in exc.log or "Cannot highlight code" in exc.log)
+                and any(root.rglob("*.style.minted"))
+                and any(root.rglob("*.highlight.minted"))
+                and re.search(r"(?m)^Package: minted[^\n]*\bv[23]\.", exc.tex_log)
+            ):
+                raise CompilationError(
+                    "此工程的 minted 3 冻结缓存与运行时不匹配，或缺少必要缓存。请补齐与源码一致的完整缓存，或使用匹配版本的 TeX Live；工程自带宏包、代码和缓存均已保留。\n"
+                    + str(exc),
+                    exc.log,
+                    tex_log=exc.tex_log,
+                    bundle=exc.bundle,
+                ) from exc
             if name := graphic_failure(exc.log):
                 if image_repairs >= 8:
                     raise
@@ -1617,6 +1791,7 @@ async def _compile_document(
     notify,
     timeout=420,
     output_format="pdf",
+    tex_only=False,
 ) -> tuple[Path, list[str]]:
     out.mkdir(parents=True, exist_ok=True)
     path = root / main
@@ -1686,6 +1861,8 @@ async def _compile_document(
             f"-output-directory={out}",
             str(path),
         ]
+    if tex_only:
+        cmd += ["--pass", "tex"]
     env = {
         k: v
         for k, v in child_environment().items()
@@ -1755,8 +1932,18 @@ async def _compile_document(
             context = ""
             try:
                 with tex_log.open("rb") as stream:
-                    stream.seek(max(0, tex_log.stat().st_size - 64 * 1024))
-                    context = stream.read().decode("utf-8", errors="replace")
+                    size = tex_log.stat().st_size
+                    if size <= 128 * 1024:
+                        raw_context = stream.read(128 * 1024)
+                    else:
+                        head = stream.read(64 * 1024)
+                        stream.seek(size - 64 * 1024)
+                        raw_context = (
+                            head
+                            + b"\n% texglot: middle of log omitted\n"
+                            + stream.read(64 * 1024)
+                        )
+                    context = raw_context.decode("utf-8", errors="replace")
             except OSError:
                 pass
             raise CompilationError(
@@ -1829,4 +2016,8 @@ async def _compile_document(
         await notify(FLOAT_FIT_NOTICE)
     if "Float too large for page" in final_log:
         warnings.append("存在超出页高的浮动体，内容可能被裁切；请检查图表及编译日志")
+    if not tex_only:
+        from .bibliography import validate_frozen_bibliography
+
+        validate_frozen_bibliography(root, main, out)
     return pdf, warnings

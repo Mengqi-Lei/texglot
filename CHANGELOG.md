@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.8 — 2026-11-14
+
+- Preserve authored prompt fences and reserved marker glyphs, and protect emergency-stretch dimensions from translation. / 保留作者提示词中的代码围栏与标记字符，保护应急伸展排版参数不被翻译。
+- Fix chapter bibliography paths and standalone figure initialization; recover diagnosed leading-math index capitalization with original backups. / 修复分章节参考文献路径和独立图文件初始化问题；根据诊断保护索引首部公式并保留原始备份。
+- Avoid quadratic copying when scanning book-length sources. / 避免扫描书籍源码时反复复制整段后缀。
+- Recover incompatible minted 3 frozen caches and missing PSTricks dependencies with pinned upstream runtime profiles; preserve authored packages, cached code and actual figures. / 通过固定版本的官方兼容资源恢复 minted 3 冻结缓存与 PSTricks 依赖，保留作者宏包、缓存代码和真实图形。
+- Rebuild outdated biblatex bibliographies with verified Biber 2.20, retaining original backups and checking cited entries before accepting the PDF. / 使用经过校验的 Biber 2.20 重建过期参考文献缓存，保留原文件备份，并在输出 PDF 前核对引用条目。
+- Translate unambiguous prose arguments in fixed xparse commands and ordinary callouts; fit complete oversized code listings and custom floats, including their captions. / 支持固定参数 xparse 命令与普通提示框中的明确正文参数，并整体缩放过高的代码清单及自定义浮动体，保留标题。
+
+[Release notes](docs/releases/v1.2.8.md) · [中文版本说明](docs/releases/v1.2.8_CN.md)
+
 ## 1.2.7 — 2026-11-12
 
 - Add optional gateway HTTP headers in advanced translation settings, with validation, endpoint-scoped storage, hidden saved values, clear/replace controls and redacted diagnostics. Apply them to connection tests and all LLM requests while preserving existing caches and Zotero task reuse; DeepL remains separate. / 在高级翻译设置中新增可选网关请求头，提供校验、按地址保存、已保存值不回显、清除/替换操作及错误脱敏；连接测试和所有 LLM 请求共同生效，保留旧缓存与 Zotero 任务复用，DeepL 继续独立处理。

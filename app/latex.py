@@ -91,7 +91,7 @@ TEXT_DECLARATIONS = set(
 )
 TEXT_ACCENTS = set("\"'`^~=.")
 DIMENSION_COMMANDS = set(
-    "hskip vskip kern mkern mskip parindent parskip baselineskip lineskip lineskiplimit leftskip rightskip textwidth textheight columnwidth linewidth hsize vsize hangindent topskip hoffset voffset tabcolsep arraycolsep fboxsep fboxrule abovedisplayskip belowdisplayskip abovedisplayshortskip belowdisplayshortskip topmargin oddsidemargin evensidemargin headheight headsep footskip marginparwidth marginparsep leftmargin rightmargin labelwidth labelsep itemindent listparindent itemsep parsep topsep partopsep leftmargini leftmarginii leftmarginiii leftmarginiv leftmarginv leftmarginvi".split()
+    "hskip vskip kern mkern mskip emergencystretch parindent parskip baselineskip lineskip lineskiplimit leftskip rightskip textwidth textheight columnwidth linewidth hsize vsize hangindent topskip hoffset voffset tabcolsep arraycolsep fboxsep fboxrule abovedisplayskip belowdisplayskip abovedisplayshortskip belowdisplayshortskip topmargin oddsidemargin evensidemargin headheight headsep footskip marginparwidth marginparsep leftmargin rightmargin labelwidth labelsep itemindent listparindent itemsep parsep topsep partopsep leftmargini leftmarginii leftmarginiii leftmarginiv leftmarginv leftmarginvi".split()
 )
 REGISTER_DECLARATIONS = {"newdimen", "newlength", "newskip", "newmuskip", "newcount"}
 NULLARY_COMMANDS = set(
@@ -850,7 +850,10 @@ def definition_end(text: str, pos: int, name: str) -> int:
         pos = match.end()
     else:
         return pos
-    return args_end(text, pos, required=2 if "environment" in name else 1)
+    required = 2 if "environment" in name.lower() else 1
+    if name in XPARSE_DEFINITIONS:
+        required += 1  # argument specification, then body (or begin/end bodies)
+    return args_end(text, pos, required=required)
 
 
 def dimension_end(text: str, pos: int) -> int:
@@ -879,7 +882,7 @@ def dimension_end(text: str, pos: int) -> int:
 def collect_text_macros(text: str) -> set[str]:
     from .sources import visible_tex
 
-    visible = visible_tex(text)
+    visible = _fixed_argument_definitions(visible_tex(text))
     wrappers = set()
     allowed = (
         set(
@@ -1045,6 +1048,13 @@ TITLE_DISPLAY_ADORNMENTS = {
     "fontshape": "{",
     "usefont": "{{{{",
 }
+XPARSE_DEFINITIONS = {
+    prefix + kind
+    for prefix in ("New", "Renew", "Provide", "Declare")
+    for kind in ("DocumentCommand", "DocumentEnvironment", "ExpandableDocumentCommand")
+}
+
+
 MACRO_DEFINITIONS = {
     "def",
     "gdef",
@@ -1056,7 +1066,59 @@ MACRO_DEFINITIONS = {
     "DeclareRobustCommand",
     "newenvironment",
     "renewenvironment",
-}
+} | XPARSE_DEFINITIONS
+
+
+def _fixed_argument_definitions(visible: str) -> str:
+    """Canonicalize fixed m/+m xparse declarations for analysis only.
+
+    Never expand macros or rewrite source. Optional, delimited, verbatim and
+    processed argument specifications remain opaque.
+    """
+    edits = []
+    cursor = 0
+    for command in COMMAND.finditer(visible):
+        if command.start() < cursor:
+            continue
+        kind = command[0][1:].rstrip("*")
+        if kind not in MACRO_DEFINITIONS:
+            continue
+        cursor = definition_end(visible, command.end(), kind)
+        if kind not in XPARSE_DEFINITIONS or "Environment" in kind:
+            continue
+        pos = skip_tex_space(visible, command.end())
+        if pos < len(visible) and visible[pos] == "{":
+            end = group_end(visible, pos)
+            target = visible[pos + 1 : end - 1].strip()
+        else:
+            name = COMMAND.match(visible, pos)
+            if not name:
+                continue
+            target, end = name[0], name.end()
+        if not re.fullmatch(r"\\[A-Za-z@]+", target):
+            continue
+        pos = skip_tex_space(visible, end)
+        if pos >= len(visible) or visible[pos] != "{":
+            continue
+        end = group_end(visible, pos)
+        spec = visible[pos + 1 : end - 1]
+        if not re.fullmatch(r"\s*(?:\+?m\s*){1,9}", spec):
+            continue
+        count = spec.count("m")
+        pos = skip_tex_space(visible, end)
+        if pos >= len(visible) or visible[pos] != "{":
+            continue
+        end = group_end(visible, pos)
+        edits.append(
+            (
+                command.start(),
+                end,
+                r"\newcommand{" + target + "}[" + str(count) + "]" + visible[pos:end],
+            )
+        )
+    for a, b, value in reversed(edits):
+        visible = visible[:a] + value + visible[b:]
+    return visible
 
 
 def _title_source_parts(text: str):
@@ -1389,15 +1451,57 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
 
     from .sources import visible_tex
 
-    visible = visible_tex(text)
+    visible = _fixed_argument_definitions(visible_tex(text))
+    declaration_starts = set()
+    definition_ranges = []
+    cursor = 0
+    for control in COMMAND.finditer(visible):
+        if control.start() < cursor:
+            continue
+        kind = control[0][1:].rstrip("*")
+        if kind in MACRO_DEFINITIONS:
+            cursor = definition_end(visible, control.end(), kind)
+            declaration_starts.add(control.start())
+            definition_ranges.append((control.start(), cursor))
     aliases = collect_math_aliases(text)
     registers = collect_numeric_registers(text)
-    constants = set(
-        re.findall(
+    constants = {
+        match[1]
+        for match in re.finditer(
             r"\\(?:newcommand|renewcommand|providecommand|def)\s*\{?\\([A-Za-z@]+)\}?\s*\{",
             visible,
         )
+        if match.start() in declaration_starts
+    }
+    formatting = collect_text_macros(text)
+    boxes = set()
+    environment_counts = Counter(
+        m[1]
+        for m in re.finditer(
+            r"\\(?:newtcolorbox|renewtcolorbox|newenvironment|renewenvironment|(?:New|Renew|Declare|Provide)DocumentEnvironment)\s*(?:\[[^]]*\]\s*)?\{([^{}]+)\}",
+            visible,
+        )
+        if not any(a < m.start() < b for a, b in definition_ranges)
     )
+    for match in re.finditer(
+        r"\\(?:newtcolorbox|renewtcolorbox)\s*(?:\[[^]]*\]\s*)?\{([^{}]+)\}", visible
+    ):
+        if environment_counts[match[1]] != 1 or any(
+            a < match.start() < b for a, b in definition_ranges
+        ):
+            continue
+        pos = skip_tex_space(visible, match.end())
+        while pos < len(visible) and visible[pos] == "[":
+            pos = skip_tex_space(visible, group_end(visible, pos))
+        if pos < len(visible) and visible[pos] == "{":
+            settings = visible[pos + 1 : group_end(visible, pos) - 1]
+            if not re.search(
+                r"listing|verbatim|math|before upper|after upper|\$", settings, re.I
+            ):
+                boxes.add(match[1])
+    from .sources import collect_literal_environments
+
+    boxes -= collect_literal_environments(text)
     known = (
         TEXT_COMMAND
         | set(TEXT_AFTER_ARGS)
@@ -1409,6 +1513,8 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
         | REGISTER_DECLARATIONS
         | CODE_ARGUMENT_COMMANDS
         | constants
+        | formatting
+        | {"refstepcounter", "stepcounter"}
         | set(registers)
         | {
             "begin",
@@ -1427,6 +1533,7 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
         | TEXT_DECLARATIONS
         | FONT_SWITCHES - {"tt", "ttfamily"}
         | {"item"}
+        | formatting
     )
     parameter = re.compile(r"(?<!#)#([1-9])(?!\d)")
     # Fixed-arity labels may be rendered by a project-specific icon command.
@@ -1471,15 +1578,19 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
     declarations = Counter(
         match[1] or match[2]
         for match in re.finditer(
-            r"\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand|def|gdef|edef|xdef)\*?\s*(?:\{\\([A-Za-z@]+)\}|\\([A-Za-z@]+))",
+            r"\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand|(?:New|Renew|Declare|Provide)(?:DocumentCommand|ExpandableDocumentCommand)|def|gdef|edef|xdef)\*?\s*(?:\{\\([A-Za-z@]+)\}|\\([A-Za-z@]+))",
             visible,
         )
+        if match.start() in declaration_starts
     )
     examined = Counter()
     label_commands = {name for name in label_commands if declarations[name] == 1}
     schemas, ambiguous = {}, set()
     cursor = 0
     while match := pattern.search(visible, cursor):
+        if match.start() not in declaration_starts:
+            cursor = match.end()
+            continue
         end = group_end(visible, match.end() - 1)
         body = visible[match.end() : end - 1]
         cursor = end
@@ -1490,7 +1601,14 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
             # have an explicit contract; a template definition cannot open them.
             ambiguous.add(name)
             continue
-        controls = {m[0][1:].rstrip("*") for m in COMMAND.finditer(body)}
+        control_view = body
+        setup_spans = []
+        for opening in re.finditer(r"\\begin\s*\{([^{}]+)\}", body):
+            if opening[1] in boxes:
+                setup_spans.append((opening.start(), args_end(body, opening.end())))
+        for a, b in reversed(setup_spans):
+            control_view = control_view[:a] + " " * (b - a) + control_view[b:]
+        controls = {m[0][1:].rstrip("*") for m in COMMAND.finditer(control_view)}
         # Control symbols (e.g. escaped %) are literal; unknown control words
         # can consume unbraced operands, so their parameter roles are unknown.
         unknown = {
@@ -1498,7 +1616,7 @@ def collect_prose_arguments(text: str) -> dict[str, tuple[int, frozenset[int]]]:
         }
         label_description = literal_label_description(body)
         if (unknown - label_commands if label_description else unknown) or not (
-            controls & prose_controls or label_description
+            controls & prose_controls or label_description or setup_spans
         ):
             ambiguous.add(name)
             continue
@@ -1589,18 +1707,7 @@ def input_references(
             continue
         name = match[0][1:].rstrip("*")
         pos = match.end()
-        if name in {
-            "def",
-            "gdef",
-            "edef",
-            "xdef",
-            "newcommand",
-            "renewcommand",
-            "providecommand",
-            "DeclareRobustCommand",
-            "newenvironment",
-            "renewenvironment",
-        }:
+        if name in MACRO_DEFINITIONS:
             pos = definition_end(visible, pos, name)
             continue
         expansion = aliases.get(name, match[0])
@@ -1823,19 +1930,24 @@ def segments(
                 tokens.append((a, b, True))
             else:
                 cursor = a
+                syntax = list(re.finditer(r"`{3,}|⟪[^⟫\n]*⟫|[⟪⟫]", text[a:b]))
                 names = [
                     match
                     for match in NAMED_IDENTIFIER.finditer(text[a:b])
                     if named_identifier(match[0])
+                    and not any(s.start() <= match.start() < s.end() for s in syntax)
                 ]
                 numbers = [
                     match
                     for match in re.finditer(r"(?<![A-Za-z0-9])" + QUANTITY, text[a:b])
                     if not any(
-                        name.start() <= match.start() < name.end() for name in names
+                        name.start() <= match.start() < name.end()
+                        for name in names + syntax
                     )
                 ]
-                for literal in sorted(names + numbers, key=lambda match: match.start()):
+                for literal in sorted(
+                    names + numbers + syntax, key=lambda match: match.start()
+                ):
                     x, y = a + literal.start(), a + literal.end()
                     if cursor < x:
                         tokens.append((cursor, x, False))

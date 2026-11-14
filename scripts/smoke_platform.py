@@ -124,6 +124,34 @@ async def run(output, portable_compiler, engine=None, eps=False):
     )
     source = folder / "论文 sample.tex"
     source.write_text(SOURCE, encoding="utf-8")
+    compatibility_archive = folder / "代码与参考文献.zip"
+    fixture = ROOT / "tests/fixtures/frozen-minted3-modern"
+    compatibility_source = (fixture / "main.tex").read_text(encoding="utf-8")
+    compatibility_source = compatibility_source.replace(
+        r"\begin{document}",
+        r"""\usepackage{pstricks-add,tcolorbox}
+\usepackage[backend=biber,style=numeric]{biblatex}
+\addbibresource{references.bib}
+\newtcolorbox{nativepanel}[2][]{title=#1,colback=white,#2}
+\NewDocumentCommand{\NativePanel}{m m +m}{\begin{nativepanel}[\IfBlankTF{#2}{#1}{#1: \emph{#2}}]{}#3\end{nativepanel}}
+\begin{document}
+\NativePanel{Example}{}{Native description.}
+\cite{native}
+""",
+    ).replace(r"\end{document}", r"\printbibliography\end{document}")
+    with zipfile.ZipFile(compatibility_archive, "w") as zipped:
+        zipped.writestr("main.tex", compatibility_source.encode("utf-8"))
+        zipped.writestr(
+            "references.bib",
+            "@book{native,author={Alpha, Ada},title={Native reference retained},year={2020}}",
+        )
+        zipped.writestr(
+            "main.bbl",
+            "% $ biblatex auxiliary file $\n% $ biblatex bbl format version 3.3 $\n"
+            + r"\refsection{0}\endrefsection\endinput",
+        )
+        for cached in fixture.glob("*.minted"):
+            zipped.writestr(cached.name, cached.read_bytes())
     font_archive = folder / "字体与代码示例.zip"
     with zipfile.ZipFile(font_archive, "w") as zipped:
         zipped.writestr(
@@ -263,6 +291,7 @@ $b$ & 2 \\
                 str(source),
                 str(archive),
                 str(font_archive),
+                str(compatibility_archive),
                 "--port",
                 str(port),
                 "--json",
@@ -289,7 +318,7 @@ $b$ & 2 \\
             if cli.returncode:
                 raise RuntimeError(f"CLI failed ({cli.returncode}); inspect cli.log")
             result = json.loads(stdout)
-            assert result["completed"] == 3
+            assert result["completed"] == 4
             pages = []
             for paper in result["results"][:2]:
                 pdf = PdfReader(paper["files"]["translated"])
@@ -366,6 +395,26 @@ $b$ & 2 \\
                     in exported_main
                 )
             pages.append(len(font_pdf.pages))
+            compatibility_paper = result["results"][3]
+            compatibility_pdf = PdfReader(compatibility_paper["files"]["translated"])
+            compatibility_text = "\n".join(
+                page.extract_text() for page in compatibility_pdf.pages
+            )
+            assert "本地说明" in re.sub(r"\s+", "", compatibility_text)
+            assert "Native reference retained" in compatibility_text
+            assert compatibility_text.index("first") < compatibility_text.index(
+                "second"
+            )
+            assert not compatibility_paper["warnings"]
+            with zipfile.ZipFile(compatibility_paper["files"]["source"]) as exported:
+                for cached in fixture.glob("*.minted"):
+                    assert exported.read(cached.name) == cached.read_bytes()
+                assert "v3.8.0" in exported.read("minted.sty").decode("utf-8")
+                assert "pstricks.sty" in exported.namelist()
+                assert "biblatex.sty" in exported.namelist()
+                assert "main.bbl.texglot-original" in exported.namelist()
+                assert r"\entry{native}" in exported.read("main.bbl").decode("utf-8")
+            pages.append(len(compatibility_pdf.pages))
             for completed in result["results"]:
                 pdf = PdfReader(completed["files"]["translated"])
                 assert all(
@@ -385,6 +434,7 @@ $b$ & 2 \\
                     "tex",
                     "zip with Unicode include",
                     "font recovery zip",
+                    "frozen code and bibliography zip",
                 ],
                 "status": paper["status"],
                 "unicode_paths": True,
@@ -402,6 +452,10 @@ $b$ & 2 \\
                 "unicode_math_package_recovery": True,
                 "literal_examples_retained": True,
                 "reasoning_outputs_clean": True,
+                "minted3_frozen_cache_recovery": True,
+                "pstricks_dependency_recovery": True,
+                "biber_bibliography_rebuild": True,
+                "xparse_callout_translation": True,
                 "model": "local stub (no paid API)",
                 "result": result,
             }

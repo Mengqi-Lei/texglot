@@ -1,0 +1,381 @@
+%% $Id: pst-arrow.tex 316 2021-11-16 14:19:22Z herbert $
+%%
+%% This is file `pst-arrow.tex',
+%%
+%% IMPORTANT NOTICE:
+%%
+%% Package `pst-arrow.tex'
+%%
+%% Copyright 2021 Herbert Voss <hvoss@tug.org>
+%%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License Distributed from CTAN archives
+%% in directory macros/latex/base/lppl.txt.
+%%
+%% DESCRIPTION:
+%%   `pst-arrow' is a PSTricks package for additional arrows 
+%%
+\csname PSTarrowLoaded\endcsname
+\let\PSTarrowLoaded\endinput
+%
+% Requires some packages
+\ifx\PSTricksLoaded\endinput\else\input pstricks \fi
+\ifx\PSTXKeyLoaded\endinput\else \input pst-xkey \fi
+%
+\def\fileversion{0.05}
+\def\filedate{2021/11/16}
+\message{`pst-arrow' v\fileversion, \filedate\space (dr,hv)}
+%
+\edef\PstAtCode{\the\catcode`\@} \catcode`\@=11\relax
+
+\pst@addfams{pst-arrow}
+%
+\def\psBigArrow{\pst@object{psBigArrow}}
+\def\psBigArrow@i(#1)(#2){%
+  \addbefore@par{doublesep=1cm}
+  \begin@ClosedObj
+  \pssetlength\pst@dimm{\psdoublesep}
+  \pst@getcoor{#1}\pst@tempA 
+  \pst@getcoor{#2}\pst@tempB  
+  \addto@pscode{
+    /Width \pst@number\pst@dimm def
+    \pst@tempA % x1 y1 
+    \pst@tempB % x1 y1 x2 y2
+    exch       % x1 y1 y2 x2
+    4 -1 roll  % y1 y2 x2 x1
+    sub /dxA ED  % y1 y2
+    exch sub /dyA ED  % dx dy
+    dyA dxA atan        % alpha
+    \pst@tempA 
+    translate
+    rotate     
+    0 0 moveto
+    0 Width rlineto 
+    \pst@tempB \pst@tempA Pyth2 /ALength ED
+    ALength Width sub 0 rlineto
+    0 Width 2 div rlineto
+    Width dup -1.5 mul  rlineto
+    Width neg dup 1.5 mul rlineto
+    0 Width 2 div rlineto
+    0 Width neg lineto
+    closepath
+  }%
+  \end@ClosedObj
+}
+%%
+%% Reqrite most of the existing macros 
+%%
+\pst@def{Line}<
+  NArray n 0 eq not { n 1 eq { 0 0 /n 2 def } if
+  (\psk@ArrowInside) length 0 gt { 
+    \ifx\psk@arrowA\arrowType@H   % do we have a Hook arrow at the beginning?
+      \pst@number\pshooklength  % yes 
+    \else
+      \psk@arrowsize\space CLW mul add dup \psk@arrowlength\space mul exch \psk@arrowinset mul neg add  
+    \fi
+    /arrowlength exch def 
+    4 copy 				% copy all four values for the arrow line
+    /y1 ED /x1 ED /y2 ED /x2 ED 	% save them
+    /Alpha y2 y1 sub x2 x1 sub Atan def % the gradient of the line
+%    2 copy /y1 ED /x1 ED ArrowA x1 y1  
+    ArrowA 				% draw arrowA
+    x1 Alpha cos arrowlength mul add	% dx add
+    y1 Alpha sin arrowlength mul add	% dy add, to get the current point at the end of the arrow tip
+    /n n 1 sub def
+    n {
+      4 copy
+      /y1 ED /x1 ED /y2 ED /x2 ED
+      x1 y1
+      \psk@ArrowInsidePos\space 1 gt {
+        /Alpha y2 y1 sub x2 x1 sub Atan def
+        /ArrowPos \psk@ArrowInsideOffset\space def
+        /dArrowPos \psk@ArrowInsidePos\space abs def
+%        /Length x2 x1 sub y2 y1 sub Pyth def
+        \psk@ArrowInsideNo\space cvi {
+          /ArrowPos ArrowPos dArrowPos add def
+%          ArrowPos Length gt { exit } if
+          x1 Alpha cos ArrowPos mul add
+          y1 Alpha sin ArrowPos mul add
+          ArrowInside
+          pop pop
+        } repeat
+      }{
+        /ArrowPos \psk@ArrowInsideOffset\space def
+        /dArrowPos \psk@ArrowInsideNo 1 gt {%
+          1.0 \psk@ArrowInsideNo 1.0 add div
+        }{\psk@ArrowInsidePos } ifelse def
+          \psk@ArrowInsideNo\space cvi {
+            /ArrowPos ArrowPos dArrowPos add def
+            x2 x1 sub ArrowPos mul x1 add
+            y2 y1 sub ArrowPos mul y1 add
+            ArrowInside
+            pop pop
+          } repeat
+      } ifelse
+      pop pop Lineto
+    } repeat
+  }{ ArrowA /n n 2 sub def n { Lineto } repeat } ifelse
+  CP 4 2 roll ArrowB L pop pop } if >
+%
+
+% Redefinition of the PostScript /Polygon macro to print the intermediate
+% arrow on each segment of the line
+\pst@def{Polygon}<{%
+    NArray n 2 eq { 0 0 /n 3 def } if
+    n 3 lt {
+	n { pop pop } repeat
+    }{
+	n 3 gt { CheckClosed } if
+	n 2 mul	-2 roll
+	/y0 ED
+	/x0 ED
+    	/y1 ED
+    	/x1 ED
+    	/xx1 x1 def
+    	/yy1 y1 def
+    	x1 y1
+    	/x1 x0 x1 add 2 div def
+    	/y1 y0 y1 add 2 div def
+    	x1 y1 moveto
+    	/n n 2 sub def
+	/drawArrows {
+	    x11 y11
+	    \psk@ArrowInsidePos\space 1 gt {
+		/Alpha y12 y11 sub x12 x11 sub atan def
+		/ArrowPos \psk@ArrowInsideOffset\space def
+		/Length x12 x11 sub y12 y11 sub Pyth def
+		/dArrowPos \psk@ArrowInsidePos\space abs def
+		{
+		    /ArrowPos ArrowPos dArrowPos add def
+		    ArrowPos Length gt { exit } if
+		    x11 Alpha cos ArrowPos mul add
+		    y11 Alpha sin ArrowPos mul add
+		    currentdict /ArrowInside known { ArrowInside } if
+		    pop pop
+		} loop
+	    }{
+		/ArrowPos \psk@ArrowInsideOffset\space def
+		/dArrowPos \psk@ArrowInsideNo\space 1 gt {%
+	    	    1.0 \psk@ArrowInsideNo\space 1.0 add div
+		}{ \psk@ArrowInsidePos } ifelse def
+		\psk@ArrowInsideNo\space cvi {
+		    /ArrowPos ArrowPos dArrowPos add def
+		    x12 x11 sub ArrowPos mul x11 add
+		    y12 y11 sub ArrowPos mul y11 add
+		    currentdict /ArrowInside known { ArrowInside } if
+		    pop pop
+		} repeat
+	    } ifelse
+	    pop pop Lineto
+	} def
+	n {
+	    4 copy
+	    /y11 ED /x11 ED /y12 ED /x12 ED
+	    drawArrows
+	} repeat
+	x1 y1 x0 y0
+	6 4 roll
+	2 copy
+	/y11 ED /x11 ED /y12 y0 def /x12 x0 def
+	drawArrows
+	/y11 y0 def /x11 x0 def /y12 yy1 def /x12 xx1 def
+	drawArrows
+	pop pop
+    	closepath
+    } ifelse %
+}>
+%
+%
+% Redefinition of the PostScript /OpenBezier macro to print the intermediate
+% arrow
+\pst@def{OpenBezier}<{%
+  /dArrowPos \psk@ArrowInsideNo 1 gt {%
+    1.0 \psk@ArrowInsideNo 1.0 add div
+    }{ \psk@ArrowInsidePos } ifelse def
+      BezierNArray
+      n 1 eq { pop pop
+      }{ 2 copy
+        /y0 ED /x0 ED
+        ArrowA
+        n 4 sub 3 idiv { 6 2 roll 4 2 roll curveto } repeat
+        6 2 roll
+        4 2 roll
+        ArrowB
+        /y3 ED /x3 ED /y2 ED /x2 ED /y1 ED /x1 ED
+        /cx x1 x0 sub 3 mul def
+        /cy y1 y0 sub 3 mul def
+        /bx x2 x1 sub 3 mul cx sub def
+        /by y2 y1 sub 3 mul cy sub def
+        /ax x3 x0 sub cx sub bx sub def
+        /ay y3 y0 sub cy sub by sub def
+        /getValues {
+          ax t0 3 exp mul bx t0 t0 mul mul add cx t0 mul add x0 add
+          ay t0 3 exp mul by t0 t0 mul mul add cy t0 mul add y0 add
+          ax t 3 exp mul bx t t mul mul add cx t mul add x0 add
+          ay t 3 exp mul by t t mul mul add cy t mul add y0 add
+        } def
+        /getdL {
+          getValues
+          3 -1 roll sub 3 1 roll sub Pyth
+        } def
+        /CurveLength {
+          /u 0 def
+          /du 0.01 def
+          0 100 {
+            /t0 u def
+            /u u du add def
+            /t u def
+            getdL add
+          } repeat } def
+          /GetArrowPos {
+            /ende \psk@ArrowInsidePos\space 1 gt
+              {ArrowPos}
+              {ArrowPos CurveLength mul} ifelse def
+            /u 0 def
+            /du 0.01 def
+            /sum 0 def
+            { /t0 u def
+              /u u du add def
+              /t u def
+              /sum getdL sum add def
+              sum ende gt {exit} if
+            } loop u
+          } def
+          /ArrowPos \psk@ArrowInsideOffset\space def
+          /loopNo \psk@ArrowInsidePos\space 1 gt {%
+            CurveLength \psk@ArrowInsidePos\space div cvi
+          }{ \psk@ArrowInsideNo } ifelse def
+            loopNo cvi {
+              /ArrowPos ArrowPos dArrowPos add def
+              /t GetArrowPos def
+              /t0 t 0.95 mul def
+              getValues
+              ArrowInside pop pop pop pop
+            } repeat
+            x1 y1 x2 y2 x3 y3 curveto
+  } ifelse
+}>
+%
+% Redefinition of the PostScript /NCLine macro to print the intermediate
+% arrow of the line
+\pst@def{NCLine}<{%
+	NCCoor
+	tx@Dict begin
+	ArrowA CP 4 2 roll ArrowB
+	4 copy
+	/y2 ED /x2 ED /y1 ED /x1 ED
+	x1 y1
+	\psk@ArrowInsidePos\space 1 gt {
+		/Alpha y2 y1 sub x2 x1 sub atan def
+		/ArrowPos \psk@ArrowInsideOffset\space def
+		/Length x2 x1 sub y2 y1 sub Pyth def
+		/dArrowPos \psk@ArrowInsidePos\space abs def
+		{%
+			/ArrowPos ArrowPos dArrowPos add def
+			ArrowPos Length gt { exit } if
+			x1 Alpha cos ArrowPos mul add
+			y1 Alpha sin ArrowPos mul add
+			ArrowInside
+			pop pop
+		} loop
+	}{%
+		/ArrowPos \psk@ArrowInsideOffset\space def
+		/dArrowPos \psk@ArrowInsideNo 1 gt {%
+			1.0 \psk@ArrowInsideNo 1.0 add div
+		}{ \psk@ArrowInsidePos } ifelse def
+		\psk@ArrowInsideNo\space cvi {
+			/ArrowPos ArrowPos dArrowPos add def
+			x2 x1 sub ArrowPos mul x1 add
+			y2 y1 sub ArrowPos mul y1 add
+			ArrowInside
+			pop pop
+		} repeat
+	} ifelse
+	pop pop lineto pop pop
+	end%
+}>
+%
+\pst@def{NCCurve}<{%
+	GetEdgeA GetEdgeB
+	xA1 xB1 sub yA1 yB1 sub
+	Pyth 2 div dup 3 -1 roll mul
+	/ArmA ED
+	mul
+	/ArmB ED
+	/ArmTypeA 0 def
+	/ArmTypeB 0 def
+	GetArmA GetArmB
+	xA2 yA2 xA1 yA1
+	2 copy
+	/y0 ED /x0 ED
+	tx@Dict begin
+		ArrowA
+	end
+	xB2 yB2 xB1 yB1
+	tx@Dict begin
+		ArrowB
+	end
+	/y3 ED /x3 ED /y2 ED /x2 ED /y1 ED /x1 ED
+	/cx x1 x0 sub 3 mul def
+	/cy y1 y0 sub 3 mul def
+	/bx x2 x1 sub 3 mul cx sub def
+	/by y2 y1 sub 3 mul cy sub def
+	/ax x3 x0 sub cx sub bx sub def
+	/ay y3 y0 sub cy sub by sub def
+	/getValues {
+		ax t0 3 exp mul bx t0 t0 mul mul add cx t0 mul add x0 add
+		ay t0 3 exp mul by t0 t0 mul mul add cy t0 mul add y0 add
+		ax t 3 exp mul bx t t mul mul add cx t mul add x0 add
+	ay t 3 exp mul by t t mul mul add cy t mul add y0 add
+	} def
+	/getdL {
+		getValues
+		3 -1 roll sub 3 1 roll sub Pyth
+	} def
+	/CurveLength {
+		/u 0 def
+		/du 0.01 def
+		0 100 {
+			/t0 u def
+			/u u du add def
+			/t u def
+			getdL add
+		} repeat } def
+	/GetArrowPos {
+		/ende \psk@ArrowInsidePos\space 1 gt {ArrowPos}{ArrowPos CurveLength mul} ifelse def
+		/u 0 def
+		/du 0.01 def
+		/sum 0 def
+		{
+			/t0 u def
+			/u u du add def
+			/t u def
+			/sum getdL sum add def
+			sum ende gt {exit} if
+		} loop u
+	} def
+	/dArrowPos \psk@ArrowInsideNo 1 gt {%
+		1.0 \psk@ArrowInsideNo 1.0 add div
+	}{ \psk@ArrowInsidePos } ifelse def
+	/ArrowPos \psk@ArrowInsideOffset\space def
+	/loopNo \psk@ArrowInsidePos\space 1 gt {%
+		CurveLength \psk@ArrowInsidePos\space div cvi
+		}{ \psk@ArrowInsideNo } ifelse def
+	loopNo cvi {
+		/ArrowPos ArrowPos dArrowPos add def
+		/t GetArrowPos def
+		/t0 t 0.95 mul def
+		getValues
+		ArrowInside pop pop pop pop
+	} repeat
+	x1 y1 x2 y2 x3 y3 curveto
+	/LPutVar [ xA1 yA1 xA2 yA2 xB2 yB2 xB1 yB1 ] cvx def
+	/LPutPos { t LPutVar BezierMidpoint } def
+	/HPutPos { { HPutLines } HPutCurve } def
+	/VPutPos { { VPutLines } HPutCurve } def
+}>
+%
+\catcode`\@=\PstAtCode\relax
+%
+%% END: pst-arrow.tex
+\endinput

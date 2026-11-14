@@ -1,0 +1,16 @@
+\RequirePackage{pstricks}
+\ProvidesPackage{pst-func}[2018/12/13 package wrapper for pst-func.tex (hv)]
+\RequirePackage{pst-plot}
+\RequirePackage{pst-math}
+\RequirePackage{pst-tools}
+\RequirePackage{pstricks-add}
+\RequirePackage{pst-xkey}
+%
+\input{pst-func.tex}
+\ProvidesFile{pst-func.tex}
+  [\filedate\space v\fileversion\space `PST-func' (hv)]
+\IfFileExists{pst-func.pro}{%
+  \ProvidesFile{pst-func.pro}[2018/12/13 v. 0.17,  PostScript prologue file (hv)]
+\@addtofilelist{pst-func.pro}}{}%
+\endinput
+%% $Id: pst-func.sty 306 2021-10-29 14:48:08Z herbert $
