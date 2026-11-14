@@ -12,3 +12,6 @@ app/resources/cmaps/* -whitespace
 *.jpg binary
 app/resources/tex/aastex.cls text eol=lf -whitespace linguist-vendored
 app/resources/tex/AASTeX-LICENSE text eol=lf -whitespace linguist-vendored
+# Pinned upstream resources and frozen caches must retain their exact bytes.
+app/resources/tex/profiles/** -text -whitespace linguist-vendored
+tests/fixtures/** -text
