@@ -18,7 +18,7 @@ import httpx
 
 from .config import DATA
 from .platforms import process_options, terminate_process_tree
-from .runtime import child_environment
+from .runtime import child_environment, external_subprocess
 
 ASSET_ROOT = "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/"
 ASSETS = {
@@ -369,7 +369,7 @@ async def rebuild_bibliography(root: Path, main: str, out: Path, notify):
         )
         if cmd[:2] == ["/usr/bin/sandbox-exec", "-p"]:
             cmd[2] += "\n(deny network*)\n"
-        proc = await asyncio.create_subprocess_exec(
+        proc = await external_subprocess(
             *cmd,
             cwd=work,
             env=env,
