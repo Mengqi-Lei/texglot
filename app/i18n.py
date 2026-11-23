@@ -3,6 +3,7 @@
 import re
 
 MESSAGES = {
+    "已按编译诊断补齐 subcaption 1.6b，正在重试": "Retrying with subcaption 1.6b to preserve existing subfigure counters",
     "Windows 参考文献工具无法使用当前临时目录，请将 TEMP 设置为可写的英文路径后重试": "The Windows bibliography tool cannot use this temporary directory. Set TEMP to a writable ASCII path and retry",
     "内置 TeX 兼容资源校验失败，请重新安装 TeXGlot": "Bundled TeX compatibility resources failed verification. Reinstall TeXGlot",
     "已按编译诊断补齐 PSTricks 官方宏包依赖，正在重试": "Added pinned upstream PSTricks dependencies based on compiler diagnostics; retrying",
@@ -195,6 +196,10 @@ MESSAGES = {
     "译文异常短，可能遗漏正文": "Translation is unusually short and may omit content",
 }
 RULES = [
+    (
+        r"子图宏包 subcaption 与 (subfigure|subfig) 冲突。请统一子图命令，或先加载 \1 再加载 subcaption 1\.6 及以上版本。",
+        r"Conflicting subfigure packages: subcaption and \1. Use one set of subfigure commands, or load \1 before subcaption 1.6 or later.",
+    ),
     (
         r"结构修复片段 (\d+) 未返回完整译文",
         r"Repair slot \1 did not return a complete translation",

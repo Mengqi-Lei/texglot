@@ -40,7 +40,7 @@ def test_runtime_distribution_is_complete_and_unmodified():
 
 
 @pytest.mark.parametrize(
-    "profile", ["minted3", "minted3-modern", "pstricks", "biblatex"]
+    "profile", ["minted3", "minted3-modern", "pstricks", "biblatex", "subcaption"]
 )
 @pytest.mark.parametrize("nested", [False, True])
 def test_runtime_never_overwrites_an_author_package(tmp_path, profile, nested):

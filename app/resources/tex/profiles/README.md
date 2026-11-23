@@ -6,6 +6,7 @@ These are unmodified upstream TeX packages for diagnostic-driven compatibility r
 - `minted3-modern`: minted 3.8.0, fvextra 1.14.0, latex2pydata 0.7.0; a second, bounded attempt for newer frozen-cache keys.
 - `pstricks`: PSTricks and dependencies from TeX Live 2022 final. Package loading is supported; actual PostScript drawing remains unsupported by the restricted compiler.
 - `biblatex`: biblatex 3.20 from TeX Live 2024 final, paired with separately downloaded, checksum-pinned Biber 2.20 (BCF 3.11 / BBL 3.3).
+- `subcaption`: subcaption 1.6b from TeX Live 2024 final. Used when an older bundled subcaption rejects an already-loaded subfigure or subfig package. The original provider keeps its counters. Source and installer are retained under `source/`.
 
 LPPL is retained in `LICENSE.txt`; individual files keep their notices. Minted-family `.dtx` and `.ins` companions are under each profile's `source/`. Biber's Artistic License 2.0 is in `BIBER-LICENSE.txt`. Upstream locations are also listed in the root `THIRD_PARTY.md`.
 

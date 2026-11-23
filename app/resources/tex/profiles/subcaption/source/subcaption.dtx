@@ -1,0 +1,2551 @@
+% \iffalse meta-comment
+% 
+% This is file `subcaption.dtx'.
+% 
+% Copyright (C) 2007-2023 Axel Sommerfeldt (axel.sommerfeldt@f-m.fm)
+% 
+% --------------------------------------------------------------------------
+% 
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2003/12/01 or later.
+% 
+% This work has the LPPL maintenance status "maintained".
+% 
+% This Current Maintainer of this work is Axel Sommerfeldt.
+% 
+% This work consists of the files
+%   caption.ins, caption.dtx, caption-light.dtx, caption2.dtx, caption3.dtx,
+%   caption-ams-smf.dtx, caption-beamer.dtx, caption-elsarticle.dtx,
+%   caption-koma.dtx, caption-memoir.dtx, caption-ntg.dtx,
+%   caption-thesis.dtx, bicaption.dtx, ltcaption.dtx, subcaption.dtx,
+% the derived files
+%   caption.sty, caption-light.sty, caption2.sty, caption3.sty,
+%   caption-ams-smf.sto, caption-beamer.sto, caption-elsarticle.sto,
+%   caption-koma.sto, caption-memoir.sto, caption-ntg.sto,
+%   caption-thesis.sto, bicaption.sty, ltcaption.sty, subcaption.sty.
+% 
+% \fi
+%
+% \CheckSum{511}
+%
+% \iffalse
+%<*driver>
+\NeedsTeXFormat{LaTeX2e}[1994/12/01]
+\ProvidesFile{subcaption.drv}[2023/08/13 v1.6 Adds a sub-caption feature to the caption package]
+%\errorcontextlines=3
+%
+\documentclass{captiondoc}
+\hypersetup{pdfkeywords={LaTeX, package, subcaption}}
+%
+\usepackage{caption}[2022/01/07]    % needs v3.6 or newer to typeset this document
+\usepackage{subcaption}[2022/01/07] % needs v1.5 or newer to typeset this document
+\DeclareCaptionSubType*[arabic]{table}
+\captionsetup[subtable]{labelformat=simple,labelsep=colon}
+%
+\usepackage{array,diagbox,graphicx,overpic,pict2e,stackengine,tikz}
+%
+\begin{document}
+  \DocInput{subcaption.dtx}
+\end{document}
+%</driver>
+% \fi
+%
+% \def\thispackage{the \pkg{subcaption} package}
+% \def\Thispackage{The \pkg{subcaption} package}
+%
+% \GetFileInfo{subcaption.drv}
+% \let\docdate\filedate
+% \let\docversion\fileversion
+% \GetFileInfo{subcaption.sty}
+%
+% \title{\texorpdfstring{\Thispackage\thanks{%^^A
+%          This package has version number \docversion.}}%^^A
+%        {The subcaption package}}
+% \author{Axel Sommerfeldt\\
+%         \url{https://gitlab.com/axelsommerfeldt/caption}}
+% \date{\docdate}
+% \maketitle
+% 
+% \begin{abstract}
+% This package offers an user interface to typeset sub-captions.
+% \end{abstract}
+%
+% \begin{background}
+% At the end of each section, text marked with the mountain symbol
+% will contain background knowledge on how the particular command or
+% environment is actually implemented.
+% If you just want to use this package as it is, you don't have to read or
+% understand them.
+% \end{background}
+%
+% \begin{background*}
+% Since version $3.1$ the \pkg{caption} package offers a low-level interface to typeset sub-captions:
+% |\Declare|\-|Caption|\-|Sub|\-|Type| defines the required counters and internal commands,
+% |\set|\-|caption|\-|sub|\-|type| switches to the sub-caption mode, and
+% |\caption@sub|\-|type|\-|hook| could be extended to apply own code when a switch to the sub-caption mode is in progress.
+%
+% This package demonstrates its usage by offering a high-level user interface additionally.
+% \end{background*}
+% 
+% \clearpage
+% \setcounter{tocdepth}{2}
+% \tableofcontents
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \clearpage
+% \section{Loading the package}
+%
+% Load this package using
+% \begin{quote}
+%   |\usepackage|\oarg{options}|{subcaption}|\quad.
+% \end{quote}
+% The options for \thispackage\ are the same ones as for the \pkg{caption}
+% package, but specify settings which are used for sub-captions
+% \emph{additionally}.
+% In fact
+% \begin{quote}
+%   |\usepackage|\oarg{options}|{subcaption}|
+% \end{quote}
+% is identical to
+% \begin{quote}
+%   |\usepackage{subcaption}|\\
+%   |\subcaptionsetup|\marg{options}\quad.
+% \end{quote}
+%
+% \bigskip
+%
+% \pagebreak[3]
+% The default settings for sub-captions are:
+% \begin{quote}
+%   |margin=0pt,font+=smaller,labelformat=parens,labelsep=space,|\\
+%   |skip=6pt,list=false,hypcap=false|~\footnote{%^^A
+%     This means that sub-captions are not listed in the List of Figures
+%     or Tables by default, but you can enable it by
+%     specifying the option \texttt{list=true}.}
+% \end{quote}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{Setting options}
+% \label{sec:options}
+%
+% \DescribeMacro\subcaptionsetup
+% \NEWfeature*{v1.6}
+% The |\subcaptionsetup| command sets options specifically for sub-captions.
+%
+% \begin{quote}
+%   |\subcaptionsetup|\marg{options}
+% \end{quote}
+% sets options valid for all sub-captions.
+%
+% \pagebreak[3]
+% An example:
+% \begin{quote}
+%   |\subcaptionsetup{font=it}|
+% \end{quote}
+% sets the font to ``italic'' for all sub-captions.
+%
+% \medskip
+%
+% \begin{quote}
+%   |\subcaptionsetup|\oarg{environment}\marg{options}
+% \end{quote}
+% is an alternative syntax to
+% \begin{quote}
+%   |\caption|\-|setup[sub|\meta{environment}|]|\marg{options}\quad.
+% \end{quote}
+%
+% \pagebreak[3]
+% An example:
+% \begin{quote}
+%   |\subcaptionsetup[table]{labelformat=simple}|
+% \end{quote}
+% is identical to
+% \begin{quote}
+%   |\captionsetup[subtable]{labelformat=simple}|
+% \end{quote}
+% and sets the labelformat to ``simple'' for all sub-captions inside tables.
+%
+% \bigskip
+%
+% Options specified with |\usepackage[|\ldots|]{sub|\-|caption}| and
+% |\sub|\-|caption|\-|setup{|\ldots|}| will override the ones specified by
+% |\caption|\-|setup{|\ldots|}| and |\caption|\-|setup[fig|\-|ure]{|\ldots|}|,
+% but are again overwritten by |\subcaption|\-|setup[figure]{|\ldots|}|
+% (same for `table'). So finally we have the following order how
+% settings for sub-captions are applied:
+% \begin{enumerate}
+% \item Global settings
+%  {\small(|\usepackage[|\ldots|]{caption}| and |\captionsetup{|\ldots|}|)}
+% \item Environmental settings
+%  {\small(|\captionsetup[figure|\emph{ -or- }|table]{|\ldots|}|)}
+% \item Local settings
+%  {\small(|\captionsetup{|\ldots|}| inside |figure| or |table| environment)}
+% \item Default `sub' settings
+%  {\small(|margin=0pt,font+=smaller,|\ldots, see above)}
+% \item Custom `sub' settings
+%  {\small(|\usepackage[|\ldots|]{subcaption}| and |\subcaptionsetup{|\ldots|}|)}
+% \item Environmental `sub' settings
+%  {\small(|\subcaptionsetup[figure|\emph{ -or- }|table]{|\ldots|}|)}
+% \item Local `sub' settings
+%  {\small(|\captionsetup{|\ldots|}| inside |sub|\-|figure| or |sub|\-|table|)}
+% \end{enumerate}
+%
+% \pagebreak[3]
+% An example:
+% \begin{quote}
+%   |\usepackage[labelsep=quad,indention=10pt]{caption}|\\
+%   |\usepackage[labelfont=bf,list=true]{subcaption}|\\
+%   |\captionsetup[table]{textfont=it,position=top}|\\
+%   |\subcaptionsetup[table]{textfont=sf}|
+% \end{quote}
+% causes sub-captions inside |table| environments to be typeset with
+% the settings
+% \begin{quote}
+%   |indention=10pt,position=top,margin=0pt,font=small,|\\
+%   |labelformat=parens,labelsep=space,skip=6pt,hypcap=false,|\\
+%   |labelfont=bf,list=true,textfont=sf|\quad.
+% \end{quote}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{The \cs{subcaptionbox} command}
+%
+% \DescribeMacro\subcaptionbox
+% The |\sub|\-|caption|\-|box| command typesets given content and caption.
+% It automatically aligns the sub-figures or sub-tables by their very first caption line.
+%
+% \pagebreak[3]
+% Its syntax is:
+% \begingroup
+% \leftmargini=12pt
+% \begin{quote}
+%   |\subcaptionbox|\oarg{list entry}\marg{heading}\oarg{width}\oarg{inner-pos}\marg{contents}\\
+%   |\subcaptionbox*|\marg{heading}\oarg{width}\oarg{inner-pos}\marg{contents}
+% \end{quote}
+% \endgroup
+% \begin{small}
+% The arguments \meta{list entry} \& \meta{heading} will be used for typesetting the |\caption|.
+%
+% \meta{width} is the width of the resulting |\par|\-|box|; the default value is the width of the contents.
+%
+% \meta{inner-pos} specifies how the contents will be justified inside the resulting |\parbox|;
+% it can be either `c' (centered, using |\centering|), `l' (left-justified, using |\ragged|\-|right|),
+% `r' (right-justified, using |\ragged|\-|left|), or `s' (for no special justification).
+% The default is `c'.
+% (But you can use any justification defined with
+% |\Declare|\-|Caption|\-|Jus|\-|ti|\-|fi|\-|ca|\-|tion| as well,
+% e.g.: `|center|\-|last|')
+% \end{small}
+%
+% \bigskip
+%
+% When using |\sub|\-|caption|\-|box|, the baseline of the resulting box will be placed
+% right between contents and heading. So usually you don't have to care about the
+% vertical alignment of the sub-figures for yourself.
+% Also the hyperlink anchor is placed properly with respect to the |hyp|\-|cap=| setting.
+%
+% \pagebreak[3]
+% An example:
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \subcaptionbox{A cat\label{cat}}|\\
+%   |    {\includegraphics{cat}}|\\
+%   |  \subcaptionbox{An elephant\label{elephant}}|\\
+%   |    {\includegraphics{elephant}}|\\
+%   |  \caption{Two animals}\label{animals}|\\
+%   |\end{figure}|
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \subcaptionbox{A cat\label{cat}}
+%     {\includegraphics[width=30pt]{cat}}
+%   \subcaptionbox{An elephant\label{elephant}}
+%     {\includegraphics[width=140pt]{elephant}}
+%   \caption[Two animals]{Two animals~\footnotemark}\label{animals}
+% \end{minipage}
+% \footnotetext{The pictures were taken with permission from the
+%   \LaTeX\ Companion\cite{TLC2} examples.}
+%
+% \bigskip
+%
+% As you see the result is not satisfying;
+% the caption below the cat looks ugly because of the small width of the
+% graphic. This can be solved by using the optional arguments of
+% |\sub|\-|caption|\-|box|, increasing the width of the resulting box:
+% \begin{quote}
+%   |  |\ldots\\
+%   |  \subcaptionbox{A cat\label{cat}}|\\
+%   |    |\textcolor{blue}{\csoarg{2.5cm}}|{\includegraphics{cat}}|\\
+%   |  |\ldots
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \subcaptionbox{A cat\label{cat2}}
+%     [2.5cm]{\includegraphics[width=30pt]{cat}}
+%   \subcaptionbox{An elephant\label{elephant2}}
+%     {\includegraphics[width=140pt]{elephant}}
+%   \caption{Two animals}\label{animals2}
+% \end{minipage}
+%
+% \bigskip
+%
+% Furthermore the main caption, which is centered with respect to the
+% |\text|\-|width|, looks mis-aligned with respect to the sub-captions.
+% This can (again) be solved by using the optional arguments of
+% |\sub|\-|caption|\-|box|, giving both boxes the same width, for example:
+% \begin{quote}
+%   |  |\ldots\\
+%   |  \subcaptionbox{A cat\label{cat}}|\\
+%   |    |\textcolor{blue}{\csoarg{.4\cs{textwidth}}}|{\includegraphics{cat}}%|\\
+%   |  \subcaptionbox{An elephant\label{elephant}}|\\
+%   |    |\textcolor{blue}{\csoarg{.4\cs{textwidth}}}|{\includegraphics{elephant}}|\\
+%   |  |\ldots
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \subcaptionbox{A cat\label{cat3}}
+%     [.4\textwidth]{\includegraphics[width=30pt]{cat}}%^^A
+%   \subcaptionbox{An elephant\label{elephant3}}
+%     [.4\textwidth]{\includegraphics[width=140pt]{elephant}}
+%   \caption{Two animals}\label{animals3}
+% \end{minipage}
+%
+% \bigskip
+%
+% \begin{background}
+% The |\sub|\-|caption|\-|box| is a |\par|\-|box| with
+% |\set|\-|caption|\-|sub|\-|type| as first contents line.
+% \end{background}
+%
+% \subsection{Comparison with \cs{captionbox}}
+%
+% Both, |\caption|\-|box| (offered by the \pkg{caption} package) and |\sub|\-|caption|\-|box|,
+% put its contents and caption into a |\par|\-|box| of either natural or given width and share the
+% same (mandatory and optional) arguments, but while |\caption|\-|box| uses a regular caption,
+% |\sub|\-|caption|\-|box| uses a sub-caption instead, like ``(a)'' or ``2.1''.
+%
+% \pagebreak[3]
+% So for example the last example would look like this when using |\caption|\-|box|
+% instead of |\sub|\-|caption|\-|box|:
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \captionbox{A cat\label{cat}}|\\
+%   |    |\csoarg{.4\cs{textwidth}}|{\includegraphics{cat}}%|\\
+%   |  \captionbox{An elephant\label{elephant}}|\\
+%   |    |\csoarg{.4\cs{textwidth}}|{\includegraphics{elephant}}|\\
+%   |\end{figure}|
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \captionbox{A cat\label{cat3.1}}
+%     [.4\textwidth]{\includegraphics[width=30pt]{cat}}%^^A
+%   \captionbox{An elephant\label{elephant3.1}}
+%     [.4\textwidth]{\includegraphics[width=140pt]{elephant}}
+% \end{minipage}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{The \env{subcaptionblock} environment}
+%
+% \DescribeEnv{subcaptionblock}
+% \NEWfeature*{v1.5}
+% The |sub|\-|caption|\-|block| environment makes a box with given width.
+% Inside this box the regular caption commands (like |\caption|, |\phantom|\-|caption|, \ldots) could be used to typeset sub-captions.
+%
+% \pagebreak[3]
+% |sub|\-|caption|\-|block| has the same (optional \& mandatory) arguments as the |mini|\-|page| environment:
+% \begingroup
+% \leftmargini=12pt
+% \begin{quote}
+%   |\begin{subcaptionblock}|\oarg{outer-pos}\oarg{height}\oarg{inner-pos}\marg{width}\\
+%   |  |\ldots\\
+%   |\end{subcaptionblock}|
+% \end{quote}
+% \endgroup
+%
+% The default value for \meta{outer-pos} is either `b' (if no main caption was typeset so far) or `t' (if a main caption was already typeset),
+% and the default value for \meta{inner-pos} is `s'.
+%
+% \NEWfeature{v1.2}
+% Beside the \meta{outer-pos} values of `c', `t', and `b', \thispackage\ also offers the
+% values `T' and `B' additionally which align the contents at the
+% very top or bottom. (In contrast `t' and `b' align the contents at the
+% top or bottom \textit{baseline}.)
+%
+% \bigskip
+%
+% \pagebreak[3]
+% The same example as \autoref{animals3}, but this time using the |sub|\-|caption|\-|block| environment
+% instead of |\sub|\-|caption|\-|box|:
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  |\textcolor{blue}{\cs{begin}\csmarg{subcaptionblock}\csmarg{.4\cs{textwidth}}}\\
+%   |    \centering|\\
+%   |    \includegraphics{cat}|\\
+%   |    |\textcolor{blue}{\cs{caption}}|{A cat}\label{cat}|\\
+%   |  |\textcolor{blue}{\cs{end}\csmarg{subcaptionblock}}|%|\\
+%   |  |\textcolor{blue}{\cs{begin}\csmarg{subcaptionblock}\csmarg{.4\cs{textwidth}}}\\
+%   |    \centering|\\
+%   |    \includegraphics{elephant}|\\
+%   |    |\textcolor{blue}{\cs{caption}}|{An elephant}\label{elephant}|\\
+%   |  |\textcolor{blue}{\cs{end}\csmarg{subcaptionblock}}|%|\\
+%   |  \caption{Two animals}\label{animals}|\\
+%   |\end{figure}|
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \begin{subcaptionblock}{.4\textwidth}
+%     \centering
+%     \includegraphics[width=30pt]{cat}
+%     \caption{A cat}\label{cat4}
+%   \end{subcaptionblock}%
+%   \begin{subcaptionblock}{.4\textwidth}
+%     \centering
+%     \includegraphics[width=140pt]{elephant}
+%     \caption{An elephant}\label{elephant4}
+%   \end{subcaptionblock}
+%   \caption{Two animals}\label{animals4}
+% \end{minipage}
+%
+% \medskip
+%
+% \pagebreak[3]
+% Some additional notes:
+% \begin{itemize}
+% \item
+% You can override the setttings for a specific subcaption
+% with a |\caption|\-|setup| inside the |sub|\-|caption|\-|block|, e.g.:
+% \begin{quote}
+%   |\begin{subcaptionblock}{.4\textwidth}|\\
+%   |  \centering|\\
+%   |  \includegraphics{owl}|\\
+%   |  |\textcolor{blue}{\cs{captionsetup}\csmarg{skip=3pt}}\\
+%   |  \caption{An owl}\label{owl}|\\
+%   |\end{subcaptionblock}|
+% \end{quote}
+% \item
+% Just like |figure| or |table|, a |sub|\-|caption|\-|block| could have multiple captions, e.g.:
+% \begin{quote}
+%   |\begin{subcaptionblock}{.4\textwidth}|\\
+%   |  \centering|\\
+%   |  \includegraphics{cat}|\\
+%   |  \caption{A cat}\label{cat}|\\
+%   |  \medskip|\\
+%   |  \includegraphics{elephant}|\\
+%   |  \caption{An elephant}\label{elephant}|\\
+%   |\end{subcaptionblock}|
+% \end{quote}
+% \item
+% Hyperlinks targeted to this sub-figure will jump to the beginning
+% of the |sub|\-|caption|\-|block|, and not to the |\caption| inside it
+% (if |hypcap=true| is set for sub-captions).
+% \See{\longref{hypcap}}
+% \end{itemize}
+%
+% \DescribeEnv{subfigure}
+% \DescribeEnv{subtable}
+% The |sub|\-|caption|\-|block| environment is also offered as |sub|\-|figure| or |sub|\-|table|.
+% (And prior version $1.5$ of \thispackage\ it was only available as |sub|\-|figure| or |sub|\-|table|.)
+%
+% There is no difference in them except the environment name should match the current floating environment,
+% i.e. inside a |figure| a |sub|\-|figure| should be used, and inside a |table| a |sub|\-|table| should be used.
+% Using the wrong sub-environment will cause a warning since \version{1.5} of the \pkg{subcaption} package.
+%
+% So if in doubt, or when writing own \LaTeX\ commands which should work in every floating environment,
+% using |sub|\-|caption|\-|block| is the correct choice.
+%
+% (Note that the default value for \meta{outer-pos} has changed from `c' to either `b' or `t' in version $1.5$ of \thispackage.)
+%
+% \smallskip
+%
+% \begin{background}
+% The |sub|\-|caption|\-|block|, |sub|\-|figure|, and |sub|\-|table| environments are |mini|\-|page|
+% environments with |\set|\-|caption|\-|sub|\-|type| as first contents line.
+%
+% |sub|\-|figure| and |sub|\-|table| are defined with the help of
+% |\For|\-|Each|\-|Caption|\-|Sub|\-|Type| offered by the \pkg{caption} package,
+% which executes code for every sub-type declared with |\Declare|\-|Caption|\-|Sub|\-|Type|.
+% \end{background}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{The \env{subcaptiongroup} environment}
+%
+% \DescribeEnv{subcaptiongroup}
+% \NEWfeature*{v1.5}
+% The |sub|\-|caption|\-|group| environment is only switching to the sub-caption mode inside an own \TeX\ group.
+% Inside this environment the regular caption commands (like |\caption|, |\phantom|\-|caption|, \ldots) could be used to typeset sub-captions.
+%
+% \pagebreak[3]
+% Its syntax is:
+% \begingroup
+% \leftmargini=12pt
+% \begin{quote}
+%   |\begin{subcaptiongroup}|\\
+%   |  |\ldots\\
+%   |\end{subcaptiongroup}|
+% \end{quote}
+% \endgroup
+%
+% \pagebreak[3]
+% There is a starred variant of this environment as well which uses |\set|\-|caption|\-|sub|\-|type*|
+% instead of |\set|\-|caption|\-|sub|\-|type| internally:
+% \begingroup
+% \leftmargini=12pt
+% \begin{quote}
+%   |\begin{subcaptiongroup*}|\\
+%   |  |\ldots\\
+%   |\end{subcaptiongroup*}|
+% \end{quote}
+% \endgroup
+%
+% While this gives you great flexibility, it also offers you no help formatting its contents.
+%
+% \pagebreak[3]
+% The same example as \autoref{animals4}, but this time using the |sub|\-|caption|\-|group| environment
+% instead of |\sub|\-|caption|\-|block|:
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  |\textcolor{blue}{\cs{begin}\csmarg{subcaptiongroup}}\\
+%   |    \centering|\\
+%   |    \parbox[b]{.4\textwidth}{%|\\
+%   |      \centering|\\
+%   |      \includegraphics{cat}|\\
+%   |      \caption{A cat}\label{cat}}%|\\
+%   |    \parbox[b]{.4\textwidth}{%|\\
+%   |      \centering|\\
+%   |      \includegraphics{elephant}|\\
+%   |      \caption{An elephant}\label{elephant}}%|\\
+%   |  |\textcolor{blue}{\cs{end}\csmarg{subcaptiongroup}}\\
+%   |  \caption{Two animals}\label{animals}|\\
+%   |\end{figure}|
+% \end{quote}
+% --or--
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  |\textcolor{blue}{\cs{begin}\csmarg{subcaptiongroup}}\\
+%   |    \centering|\\
+%   |    \begin{minipage}[b]{.4\textwidth}|\\
+%   |      \centering|\\
+%   |      \includegraphics{cat}|\\
+%   |      \caption{A cat}\label{cat}|\\
+%   |    \end{minipage}%|\\
+%   |    \begin{minipage}[b]{.4\textwidth}|\\
+%   |      \centering|\\
+%   |      \includegraphics{elephant}|\\
+%   |      \caption{An elephant}\label{elephant}|\\
+%   |    \end{minipage}|\\
+%   |  |\textcolor{blue}{\cs{end}\csmarg{subcaptiongroup}}\\
+%   |  \caption{Two animals}\label{animals}|\\
+%   |\end{figure}|
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \begin{subcaptiongroup}
+%     \centering
+%     \begin{minipage}[b]{.4\textwidth}
+%       \centering
+%       \includegraphics[width=30pt]{cat}
+%       \caption{A cat}\label{cat5}
+%     \end{minipage}%
+%     \begin{minipage}[b]{.4\textwidth}
+%       \centering
+%       \includegraphics[width=140pt]{elephant}
+%       \caption{An elephant}\label{elephant5}
+%     \end{minipage}
+%   \end{subcaptiongroup}
+%   \caption{Two animals}\label{animals5}
+% \end{minipage}
+%
+% \bigskip
+%
+% \begin{background}
+% The |sub|\-|caption|\-|group| environment is a \LaTeX\ environment
+% with |\set|\-|caption|\-|sub|\-|type| as first contents line.
+% \end{background}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{The \cs{DeclareCaptionSubType} command}
+%
+% \DescribeMacro\DeclareCaptionSubType
+% For using the sub-caption feature of the \pkg{caption} package some
+% commands and counters must be prepared. This is done with
+% \begin{quote}
+%  |\DeclareCaptionSubType|\oarg{numbering scheme}\marg{type}\\
+%  |\DeclareCaptionSubType*|\oarg{numbering scheme}\marg{type}
+% \end{quote}
+% For the environments |figure| \& |table|, and all the ones
+% defined with |\Declare|\-|Floating|\-|Environment| offered by the
+% \pkg{newfloat} package, this will be done automatically,
+% but for other environments (e.g.~the ones defined with |\newfloat| offered by the
+% \pkg{float} package or |\Declare|\-|New|\-|Float|\-|Type| offered by the
+% \pkg{floatrow} package) this has to be done manually.
+%
+% \medskip
+%
+% The starred variant provides the sub-caption numbering format
+% \meta{type}|.|\meta{subtype} (for example `|1.2|') while the non-starred variant
+% simply uses \meta{subtype} (for example `|a|').
+%
+% \pagebreak[3]
+% Own numbering formats can be created by redefining |\thesub|\meta{type}, e.g.:
+% \begingroup
+% \leftmargini=12pt
+% \begin{quote}
+%   |\DeclareCaptionSubType*{figure}|\\
+%   |\renewcommand\thesubfigure{\thefigure\alph{subfigure}}|
+% \end{quote}
+% \endgroup
+% would give you sub-caption numbers like `|1b|'.
+%
+% The default numbering scheme is |alph|, but you can use any \LaTeX\ (or self-defined)
+% command name here which converts a counter to a text value, e.g.: |arabic|, |roman|,
+% |Roman|, |alph|, |Alph|, |fnsymbol|, \ldots
+%
+% \pagebreak[3]
+% But |\DeclareCaptionSubType| is not only for defining new sub-caption types,
+% you can use this command for re-definitions as well, e.g.:
+% \begingroup
+% \leftmargini=12pt
+% \begin{quote}
+%   |\DeclareCaptionSubType*[arabic]{table}|\\
+%   |\subcaptionsetup[table]{labelformat=simple,labelsep=colon}|
+% \end{quote}
+% \endgroup
+% \pagebreak[2]
+% will give you sub-captions in |table|s like these ones:
+% \par\bigskip
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=table}
+%   \centering
+%   \caption{Two tables}
+%   \subcaptionbox{Table one}[3cm][c]{\begin{tabular}{cc}A & B\\ C & D\\ \end{tabular}}
+%   \subcaptionbox{Table two}[3cm][c]{\begin{tabular}{cc}E & F\\ G & H\\ \end{tabular}}
+% \end{minipage}
+%
+% \begin{background}
+% |\Declare|\-|Caption|\-|Sub|\-|Type| and |\For|\-|Each|\-|Caption|\-|Sub|\-|Type|
+% are integral parts of the \pkg{caption} package kernel.
+% \end{background}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{Cross Referencing}
+% \label{crossreferencing}
+%
+% The macro |\the|\-\meta{counter} is not only responsible for the look of the \meta{counter},
+% but for the look of the references typeset with |\ref|, too. References will be prefixed by
+% \LaTeX{} with the internal macro |\p@|\-\meta{counter}.
+%
+% |\Declare|\-|Caption|\-|Sub|\-|Type| will define both of them for sub-captions
+% (e.g. |sub|\-|figure| and |sub|\-|table|), and as you have seen in the last section
+% |\Declare|\-|Caption|\-|Sub|\-|Type| will give you some options to control the
+% internal (re-)definition of |\the|\-\meta{counter} and |\p@|\-\meta{counter}.
+%
+% \pagebreak[3]
+% \DescribeMacro\thesubfigure
+% \DescribeMacro\p@subfigure
+% For example |\thesubfigure| and |\p@subfigure| are (as default) internally defined as
+% \begin{quote}
+%   |\newcommand\thesubfigure{\alph{subfigure}}|\\
+%   |\newcommand\p@subfigure{\thefigure}|
+% \end{quote}
+% so the label of sub-captions will look like `|a|' (decorated by the selected label format),
+% while references will look like `|1a|' since they are prefixed by |\p@sub|\-|figure| $=$
+% |\the|\-|figure|.
+%
+% After |\Declare|\-|Caption|\-|Sub|\-|Type*[arabic]{figure}|, |\the|\-|sub|\-|figure| and
+% |\p@sub|\-|figure| will look like
+% \begin{quote}
+%   |\renewcommand\thesubfigure{\thefigure.\arabic{subfigure}}|\\
+%   |\renewcommand\p@subfigure{}|
+% \end{quote}
+%
+% But if you want detailed control on how the references will look like,
+% the options of |\Declare|\-|Caption|\-|Sub|\-|Type| are potentially not sufficient.
+% In this case one need to redefine these two macros on his/her own.
+% Some examples:
+%
+% If you want parentheses around the sub-figure part of the reference,
+% so they will look like `|1(a)|', you may get them this way:
+% \begin{quote}
+%   |\usepackage[labelformat=simple]{subcaption}|\\
+%   |\renewcommand\thesubfigure{(\alph{subfigure})}|
+% \end{quote}
+% {\small (\emph{Note:} Since |parens| is the default label format you will get double
+% parentheses in sub-captions when not specifiying a different label format, e.g. |simple|.)}
+%
+% But if you want only a closing parenthesis, so references will look like `|1a)|',
+% but the sub-captions itself should still look like `|(a)|',
+% this would be a possible solution:
+% \begin{quote}
+%   |\usepackage{subcaption}|\\
+%   |\renewcommand\thesubfigure{\alph{subfigure})}|\\
+%   |\DeclareCaptionLabelFormat{opening}{(#2}|\\
+%   |\subcaptionsetup[figure]{labelformat=opening}|
+% \end{quote}
+%
+% \bigskip
+%
+% \pagebreak[3]
+% \INFO
+% {\small Please note that you need to surround redefinitions of |\p@|\-\meta{counter}
+% with |\make|\-|at|\-|letter| and |\make|\-|at|\-|other|. See
+% \url{http://tex.stackexchange.com/questions/8351/}
+% for details.
+%
+% Since October 2019 |\p@|\-\meta{counter} could be redefined using |\label|\-|format| instead,
+% dropping the need to use |\make|\-|at|\-|letter| and |\make|\-|at|\-|other|.
+% Furthermore not only prefixes could be specified this way,
+% instead the counter representation could be used at any position in the text.
+% So for example
+% \begin{quote}
+%   |\makeatletter|\\
+%   |\renewcommand\p@subfigure{\thefigure}|\\
+%   |\makeatother|\\
+% \end{quote}
+% (which prefixes the subfigure counter representation with the figure counter representation)
+% could be replaced by
+% \begin{quote}
+%   |\labelformat{subfigure}{\thefigure #1}|
+% \end{quote}}
+%
+% \pagebreak[3]
+% \subsection{The \cs{subref} command}
+% \label{subref}
+%
+% While |\ref|\marg{key} (and |\ref*|\marg{key}, if the \pkg{hyperref}
+% package is used) usually gives a combined result representing the main
+% caption counter and the sub-caption one, it is sometimes useful to have
+% a reference to the sub-caption only. For this purpose you can use
+% \begin{quote}
+%   |\subref|\marg{key}\\
+%   |\subref*|\marg{key}~\footnote{%^^A
+%     Like \cs{ref*}, \cs{subref*} is only available if the \pkg{hyperref}
+%     package\cite{hyperref} is used.}%^^A
+%     \qquad.
+% \end{quote}
+% So for example |\ref{cat}| gives the result `\ref{cat}' but |\subref{cat}|
+% gives `\subref{cat}'.
+%
+% \begin{small}
+% \emph{Note:} If the sub-caption was (re-)defined with the starred variant
+% |\Declare|\-|Caption|\-|Sub|\-|Type*|, both |\ref| and |\sub|\-|ref| usually gives
+% the same result.
+% \end{small}
+%
+% \begin{background}
+% The |\sub|\-|ref| command demonstrates the usage of |\caption@sub|\-|type|\-|hook|
+% which will be called during |\caption|\-|setup{sub|\-|type}|.
+% \end{background}
+%
+% \pagebreak[3]
+% \subsection{The \opt{subrefformat=} option}
+% \label{subrefformat}
+%
+% \DescribeMacro{subrefformat=}
+% \NEWfeature*{v1.1}
+% By applying |\Declare|\-|Caption|\-|Sub|\-|Type|, or by redefining |\the|\-\meta{counter}
+% and |\p@|\-\meta{counter}, you will change the look of references typeset with |\ref|
+% \emph{and} |\sub|\-|ref|.
+%
+% But maybe you only want to change the output of |\sub|\-|ref| without
+% affecting the references typeset with |\ref|?
+%
+% \pagebreak[3]
+% This is possible, too, by using the option \opt{subrefformat}:
+% \begin{quote}
+%   |\captionsetup{subrefformat=|\meta{label format}|}|
+% \end{quote}
+% This one will choose a label format (either a pre-defined one, or a one defined with
+% |\Declare|\-|Caption|\-|Label|\-|Format|) as decorative element to sub-references.
+% The default one is |simple| which has no decorative elements but simply typeset
+% the reference as it is.
+%
+% \pagebreak[3]
+% For example
+% \begin{quote}
+%   |\captionsetup{subrefformat=parens}|
+% \end{quote}
+% will result in references (typeset with |\ref|) like `|1a|' but sub-references
+% (typeset with |\subref|) like `|(a)|'.
+%
+% \subsection{Referencing sub-figures without sub-captions}
+% \label{without}
+%
+% \DescribeMacro\phantomcaption
+% If you don't want to give a sub-figure a caption (yet), because the picture itself
+% already contains the caption, or for some other reason, you could use the command
+% \begin{quote}
+%   |\phantomcaption|
+% \end{quote}
+% instead of |\caption|.
+%
+% |\phantom|\-|caption| is offered by the \pkg{caption} package since version $3.2$ and
+% does not generate any output but increases the sub-figure or sub-table counter
+% and gives you an anchor for a |\label| command which can be placed after it.
+%
+% \pagebreak[3]
+% An example:
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \begin{subcaptiongroup}|\\
+%   |    \includegraphics{cat_with_a}|\\
+%   |    |\textcolor{blue}{\cs{phantomcaption}}|\label{cat}|\\
+%   |    \includegraphics{elephant_with_b}|\\
+%   |    |\textcolor{blue}{\cs{phantomcaption}}|\label{elephant}|\\
+%   |  \end{subcaptiongroup}|\\
+%   |  \captionsetup{subrefformat=parens}|\\
+%   |  \caption{Two animals: \subref{cat} a cat,|\\
+%   |           and \subref{elephant} an elephant}|\\
+%   |  \label{animals}|\\
+%   |\end{figure}|
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \begin{subcaptiongroup}
+%     \phantomcaption\label{cat6.3}
+%     \begin{overpic}[width=30pt]{cat}
+%       \put(40,34){\captiontext*{}}
+%     \end{overpic}
+%     \phantomcaption\label{elephant6.3}
+%     \begin{overpic}[width=140pt]{elephant}
+%       \put(58,40){\captiontext*{}}
+%     \end{overpic}
+%   \end{subcaptiongroup}
+%   \captionsetup{subrefformat=parens}
+%   \caption{Two animals: \subref{cat6.3} a cat, and \subref{elephant6.3} an elephant}
+% \end{minipage}
+%
+% \bigskip
+%
+% \pagebreak[3]
+% \DescribeMacro\captionlistentry
+% If you don't want to give a sub-figure a caption (yet), because the picture itself
+% already contains the caption, or for some other reason, you could also use the command
+% \begin{quote}
+%   |\captionlistentry|\marg{list entry}
+% \end{quote}
+% instead of |\caption|.
+%
+% |\caption|\-|list|\-|entry| is offered by the \pkg{caption} package since version $3.3$ and
+% (just like |\phantom|\-|caption|) does not generate any output but increases
+% the sub-figure or sub-table counter
+% and gives you an anchor for a |\label| command which can be placed after it.
+% Additionally to |\phantom|\-|caption| this command puts an entry into the list
+% of figures or tables.
+%
+% \pagebreak[3]
+% An example:
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \begin{subcaptiongroup}|\\
+%   |    \includegraphics{cat_with_a}|\\
+%   |    |\textcolor{blue}{\cs{captionlistentry}\csmarg{A cat}}\\
+%   |    \label{cat}|\\
+%   |    \includegraphics{elephant_with_b}|\\
+%   |    |\textcolor{blue}{\cs{captionlistentry}\csmarg{An elephant}}\\
+%   |    \label{elephant}|\\
+%   |  \end{subcaptiongroup}|\\
+%   |  \captionsetup{subrefformat=parens}|\\
+%   |  \caption{Two animals: \subref{cat} a cat,|\\
+%   |           and \subref{elephant} an elephant}|\\
+%   |  \label{animals}|\\
+%   |\end{figure}|
+% \end{quote}
+%
+% \pagebreak[3]
+% \subsection{Typesetting sub-captions without generating a (new) reference}
+% \label{without2}
+%
+% The |\caption| command is a multi-purpose command:
+% \begin{enumerate}
+% \item It increments the sub-figure or sub-table counter and generates an internal reference which could be used with |\label|
+% \item It puts an entry into the list of figures or tables
+% \item It finally typesets a caption
+% \end{enumerate}
+%
+% When put into a command or into an environment which either evaluates its content more than once or
+% does not like one of the first two actions (for whatever reason), the result could be either an error message or an incorrect
+% result, for example a sub-figure or sub-table counter which was incremented more than once.
+%
+% \DescribeMacro\captiontext
+% In these cases the |\caption| command could be split into
+% |\phantom|\-|caption| which performs step one only (or |\caption|\-|list|\-|entry| which performs steps one and two),
+% and |\caption|\-|text| which performs step three only.
+% This way critical steps could be out-sourced from the target command or environment,
+% for example by prepending |\phantom|\-|caption| and using |\caption|\-|text| inside.
+%
+% \pagebreak[3]
+% The syntax of |caption|\-|text| is
+% \begin{quote}
+%   |\captiontext|\oarg{number}\marg{text of sub-caption}\\
+%   |\captiontext*|\oarg{number}\marg{text of sub-caption}
+% \end{quote}
+% |\caption|\-|text| is offered by the \pkg{caption} package since version $3.6$ and
+% as opposite to |\caption| it does not increase the sub-figure or sub-table counter
+% and does not give you an anchor for a |\label| command.
+% It typesets the caption only, using existing counter values unless a \meta{number} is given explicitly.
+%
+% For example code please take a look at \longref{inside}.
+%
+% \pagebreak[3]
+% \subsection{Where to place the \cs{label} command?}
+% \label{label}
+%
+% When |\caption|
+% inside a |caption|\-|sub|\-|block|, |sub|\-|figure|, |sub|\-|table|, or |caption|\-|sub|\-|group| environment,
+% the |\label| can be either placed inside the caption text or right after the command, e.g.:
+% \begin{quote}
+%   |\caption{Some text here\label{text}}|\\
+%    \ldots\\
+%   |\caption{Some other text}\label{othertext}|\\
+%    \ldots\\
+%   |\caption{Something completely different}|\\
+%   |\label{differenttext}|
+% \end{quote}
+%
+% When using |\phantom|\-|caption| or |\caption|\-|list|\-|entry|
+% inside a |caption|\-|sub|\-|block|, |sub|\-|figure|, |sub|\-|table|, or |caption|\-|sub|\-|group| environment,
+% the |\label| should be placed right after the command, e.g.:
+% \begin{quote}
+%   |\phantomcaption\label{this}|\\
+%    \ldots\\
+%   |\phantomcaption|\\
+%   |\label{that}|
+% \end{quote}
+%
+% But when using the |\sub|\-|caption|\-|box| command, the |\label| should be placed inside
+% the caption text, e.g.:
+% \begin{quote}
+%   |\subcaptionbox{A description here\label{todo1}}|\\
+%   |              {Some content here}|\\
+%    \ldots\\
+%   |\subcaptionbox[List-of-Figures entry]|\\
+%   |              {A description here\label{todo2}}|\\
+%   |              {Some content here}|
+% \end{quote}
+% Placing |\label| outside the |\sub|\-|caption|\-|box| would produce an incorrect reference.
+%
+% \pagebreak[3]
+% \subsection{Where do hyperlinks jump?}
+% \label{hypcap}
+%
+% For the |caption|\-|sub|\-|block|, |sub|\-|figure|, |sub|\-|table|, and |caption|\-|sub|\-|group| environments,
+% and for the |\sub|\-|caption|\-|box| command (and all other constructs which use |\set|\-|caption|\-|sub|\-|type|)
+% the hyperlink anchors will be placed in respect to the |hypcap=| setting.
+% While usage of this option is straight-forward for ordinary captions,
+% the usage for sub-captions depends on the setting regarding the main captions.
+%
+% This table gives you an overview where the hyperlinks will jump:
+%
+% \bigskip
+%
+% \begin{small}
+% \centering
+% \DeleteShortVerb{\|}
+% \renewcommand\arraystretch{1.5}
+% \begin{tabular}{|l|p{3cm}p{3cm}|}
+% \hline
+% \backslashbox{subcaption}{caption} &
+%   \multicolumn{1}{c}{\texttt{hypcap=false}} &
+%   \multicolumn{1}{c|}{\texttt{hypcap=true}} \\
+% \hline
+% \raisebox{-1.5ex}[1.5ex]{\texttt{hypcap=false}} &
+%   sub-caption & figure or table\par\hfill\textit{(default setting)}\\
+% \raisebox{-1.5ex}[1.5ex]{\texttt{hypcap=true}} &
+%   sub-figure or\par sub-table & sub-figure or\par sub-table \\
+% \hline
+% \end{tabular}\par
+% \MakeShortVerb{\|}
+% \end{small}
+% \bigskip
+%
+% But if the |caption|\-|sub|\-|group*| environment is used
+% (or a different construct which uses |\set|\-|caption|\-|sub|\-|type*|)
+% and |hypcap=true| is set for sub-captions,
+% \thispackage\ does not know where the sub-figure or sub-table actually
+% begins, so it will jump to the sub-caption instead.
+%
+% \medskip
+% \emph{Remember:} If you use the \pkg{hypcap} package\cite{hypcap},
+% it controls the placement of the hyperlink anchors, making the rules
+% above invalid.
+%
+% \bigskip
+% {\small(See also the documentation of the \pkg{caption} package,
+% sections about \pkg{hyperref} \& \pkg{hypcap}.)}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{Captions inside sub-figures}
+% \label{inside}
+%
+% Nearly all code examples so far have placed the caption either above or below the sub-figure.
+% But it is possible to put the caption inside the sub-figure, too:
+% \begin{itemize}
+% \item The caption could already be part of the image. (This case is already handled in \longref{without}.)
+% \item \LaTeX\ packages like \pkg{overpic}, \pkg{stackengine}, or \pkg{tikz} could be used.
+% Note that the commands or environments offered by these packages usually evaluate their content more than once,
+% resulting in either errors or wrong reference counters.
+% For this reason |\caption| should not be used here, instead
+% |\phantomcaption| or |\captionlistentry| should be used outside the command or environment and
+% |\captiontext| should be used inside it.
+% See also \longref{without2}
+% \item The options |skip=| and |margin=| could be used to place the caption onto the image.
+% \end{itemize}
+%
+% \pagebreak[3]
+% \subsection{Using the overpic package}
+% \label{overpic}
+%
+% The same example as in section \longref{without}, but using the \env{overpic} environment
+% offered by the \pkg{overpic} package~\cite{overpic}
+% to place the captions inside the pictures:
+% \begin{quote}
+%   |\usepackage{overpic}|\\
+%   \ldots\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \begin{subcaptiongroup}|\\
+%   |    |\textcolor{blue}{\cs{subcaptionlistentry}\csmarg{A cat}}\\
+%   |    \label{cat}|\\
+%   |    \begin{overpic}[width=60pt]{cat}|\\
+%   |      \put(40,34){|\textcolor{blue}{\cs{captiontext*}\csmarg{}}|}|\\
+%   |    \end{overpic}|\\
+%   |    |\textcolor{blue}{\cs{subcaptionlistentry}\csmarg{An elephant}}\\
+%   |    \label{elephant}|\\
+%   |    \begin{overpic}[width=140pt]{elephant}|\\
+%   |      \put(58,40){|\textcolor{blue}{\cs{captiontext*}\csmarg{}}|}|\\
+%   |    \end{overpic}|\\
+%   |  \end{subcaptiongroup}|\\
+%   |  \captionsetup{subrefformat=parens}|\\
+%   |  \caption{Two animals: \subref{cat} a huge cat,|\\
+%   |           and \subref{elephant} an elephant}|\\
+%   |\end{figure}|
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \begin{subcaptiongroup}
+%     \subcaptionlistentry{A cat}\label{cat7.1}
+%     \begin{overpic}[width=60pt]{cat}
+%       \put(40,34){\captiontext*{}}
+%     \end{overpic}
+%     \subcaptionlistentry{An elephant}\label{elephant7.1}
+%     \begin{overpic}[width=140pt]{elephant}
+%       \put(58,40){\captiontext*{}}
+%     \end{overpic}
+%   \end{subcaptiongroup}
+%   \captionsetup{subrefformat=parens}
+%   \caption{Two animals: \subref{cat7.1} a huge cat, and \subref{elephant7.1} an elephant}
+% \end{minipage}
+%
+% \bigskip
+%
+% If neither a reference to the sub-figures nor an entry in the List of Figures is needed,
+% the usage of |\phantom|\-|caption| or |\caption|\-|list|\-|entry| could be dropped.
+% Since this leaves |\caption|\-|text| without a valid sub-figure number value it must be
+% given to it explicitly as optional argument.
+%
+% Furthermore the usage of the |sub|\-|caption|\-|group| environment could be dropped here,
+% instead it would be sufficient to replace |\caption|\-|text| with |\sub|\-|caption|\-|text|.
+% \See{\longref{subcaption}}
+%
+% \begin{quote}
+%   |\usepackage{overpic}|\\
+%   \ldots\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \begin{overpic}[width=60pt]{cat}|\\
+%   |    \put(40,34){|\textcolor{blue}{\cs{subcaptiontext*}\csoarg{1}\csmarg{}}|}|\\
+%   |  \end{overpic}|\\
+%   |  \begin{overpic}[width=140pt]{elephant}|\\
+%   |    \put(58,40){|\textcolor{blue}{\cs{subcaptiontext*}\csoarg{2}\csmarg{}}|}|\\
+%   |  \end{overpic}|\\
+%   |  \caption{Two animals: A huge cat and an elephant}|\\
+%   |\end{figure}|
+% \end{quote}
+%
+% \pagebreak[3]
+% \subsection{Using the stackengine package}
+% \label{stackengine}
+%
+% The same example as in section \longref{without}, but using the |\stack|\-|inset| command
+% offered by the \pkg{stackengine} package~\cite{stackengine}
+% to place the captions inside the pictures:
+% \begin{quote}
+%   |\usepackage{stackengine}|\\
+%   \ldots\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \begin{subcaptiongroup}|\\
+%   |    |\textcolor{blue}{\cs{subcaptionlistentry}\csmarg{A cat}}\\
+%   |    \label{cat}|\\
+%   |    \stackinset{l}{25pt}{b}{20pt}{|\textcolor{blue}{\cs{captiontext*}\csmarg{}}|}|\\
+%   |      {\includegraphics[width=60pt]{cat}}|\\
+%   |    |\textcolor{blue}{\cs{subcaptionlistentry}\csmarg{An elephant}}\\
+%   |    \label{elephant}|\\
+%   |    \stackinset{l}{80pt}{b}{60pt}{|\textcolor{blue}{\cs{captiontext*}\csmarg{}}|}|\\
+%   |      {\includegraphics[width=140pt]{elephant}}|\\
+%   |  \end{subcaptiongroup}|\\
+%   |  \captionsetup{subrefformat=parens}|\\
+%   |  \caption{Two animals: \subref{cat} a huge cat,|\\
+%   |           and \subref{elephant} an elephant}|\\
+%   |\end{figure}|
+% \end{quote}
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \begin{subcaptiongroup}
+%     \subcaptionlistentry{A cat}\label{cat7.2}
+%     \stackinset{l}{25pt}{b}{20pt}{\captiontext*{}}{\includegraphics[width=60pt]{cat}}
+%     \subcaptionlistentry{An elephant}\label{elephant7.2}
+%     \stackinset{l}{80pt}{b}{60pt}{\captiontext*{}}{\includegraphics[width=140pt]{elephant}}
+%   \end{subcaptiongroup}
+%   \captionsetup{subrefformat=parens}
+%   \caption{Two animals: \subref{cat7.2} a huge cat, and \subref{elephant7.2} an elephant}
+% \end{minipage}
+%
+% \bigskip
+%
+% \pagebreak[3]
+% If neither a reference to the sub-figures nor an entry in the List of Figures is needed,
+% this code could be simpified to:
+% \begin{quote}
+%   |\usepackage{stackengine}|\\
+%   \ldots\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \stackinset{l}{25pt}{b}{20pt}{|\textcolor{blue}{\cs{subcaptiontext*}\csoarg{1}\csmarg{}}|}|\\
+%   |    {\includegraphics[width=60pt]{cat}}|\\
+%   |  \stackinset{l}{80pt}{b}{60pt}{|\textcolor{blue}{\cs{subcaptiontext*}\csoarg{2}\csmarg{}}|}|\\
+%   |    {\includegraphics[width=140pt]{elephant}}|\\
+%   |  \caption{Two animals: A huge cat and an elephant}|\\
+%   |\end{figure}|
+% \end{quote}
+%
+% \pagebreak[3]
+% \subsection{Using the tikz package}
+% \label{tikz}
+%
+% The same example as in section \longref{without}, but using the \env{tikzpicture} environment
+% offered by the \pkg{tikz} package~\cite{tikz}
+% to place the captions inside the pictures:
+% \begin{quote}
+%   |\usepackage{tikz}|\\
+%   \ldots\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \begin{subcaptiongroup}|\\
+%   |    |\textcolor{blue}{\cs{subcaptionlistentry}\csmarg{A cat}}\\
+%   |    \label{cat}|\\
+%   |    \begin{tikzpicture}|\\
+%   |      \node (cat) at (0,0)|\\
+%   |        {\includegraphics[width=60pt]{cat}};|\\
+%   |      \node at (0.1,-0.1) {|\textcolor{blue}{\cs{captiontext*}\csmarg{}}|};|\\
+%   |    \end{tikzpicture}|\\
+%   |    |\textcolor{blue}{\cs{subcaptionlistentry}\csmarg{An elephant}}\\
+%   |    \label{elephant}|\\
+%   |    \begin{tikzpicture}|\\
+%   |      \node (elephant) at (0,0)|\\
+%   |        {\includegraphics[width=140pt]{elephant}};|\\
+%   |      \node at (0.5,-0.1) {|\textcolor{blue}{\cs{captiontext*}\csmarg{}}|};|\\
+%   |    \end{tikzpicture}|\\
+%   |  \end{subcaptiongroup}|\\
+%   |  \captionsetup{subrefformat=parens}|\\
+%   |  \caption{Two animals: \subref{cat} a huge cat,|\\
+%   |           and \subref{elephant} an elephant}|\\
+%   |\end{figure}|
+% \end{quote}
+%
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \begin{subcaptiongroup}
+%     \subcaptionlistentry{A cat}\label{cat7.3}
+%     \begin{tikzpicture}
+%       \node (cat) at (0,0) {\includegraphics[width=60pt]{cat}};
+%       \node at (0.1,-0.1) {\captiontext*{}};
+%     \end{tikzpicture}
+%     \subcaptionlistentry{An elephant}\label{elephant7.3}
+%     \begin{tikzpicture}
+%       \node (cat) at (0,0) {\includegraphics[width=140pt]{elephant}};
+%       \node at (0.5,-0.1) {\captiontext*{}};
+%     \end{tikzpicture}
+%   \end{subcaptiongroup}
+%   \captionsetup{subrefformat=parens}
+%   \caption{Two animals: \subref{cat7.3} a huge cat, and \subref{elephant7.3} an elephant}
+% \end{minipage}
+%
+% \bigskip
+%
+% \pagebreak[3]
+% If neither a reference to the sub-figures nor an entry in the List of Figures is needed,
+% this code could be simpified to:
+% \begin{quote}
+%   |\usepackage{tikz}|\\
+%   \ldots\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \begin{tikzpicture}|\\
+%   |    \node (cat) at (0,0)|\\
+%   |      {\includegraphics[width=60pt]{cat}};|\\
+%   |    \node at (0.1,-0.1) {|\textcolor{blue}{\cs{subcaptiontext*}\csoarg{1}\csmarg{}}|};|\\
+%   |  \end{tikzpicture}|\\
+%   |  \begin{tikzpicture}|\\
+%   |    \node (elephant) at (0,0)|\\
+%   |      {\includegraphics[width=140pt]{elephant}};|\\
+%   |    \node at (0.5,-0.1) {|\textcolor{blue}{\cs{subcaptiontext*}\csoarg{2}\csmarg{}}|};|\\
+%   |  \end{tikzpicture}|\\
+%   |  \caption{Two animals: A huge cat and an elephant}|\\
+%   |\end{figure}|
+% \end{quote}
+%
+% \pagebreak[3]
+% \subsection{Using the skip and margin options}
+% For a particular sub-caption the |skip=|\ldots could be set to a negative value so it will overlap with the image.
+% Combined with |singlelinecheck=off| (to switch off the centering of short captions) and |margin=|\ldots it could be placed
+% at a specific horizontal position within the image, too.
+%
+% \pagebreak[3]
+% The same example as in section \longref{without}, but using the |skip=|\ldots and |margin=|\ldots options:
+% \begin{quote}
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \subcaptionsetup[figure]|\\
+%   |    {skip=-28pt,slc=off,margin={25pt,0pt}}|\\
+%   |  \subcaptionbox{\label{cat}}|\\
+%   |    {\includegraphics[width=60pt]{cat}}|\\
+%   |  \subcaptionsetup[figure]|\\
+%   |    {skip=-60pt,slc=off,margin={80pt,0pt}}|\\
+%   |  \subcaptionbox{\label{elephant}}|\\
+%   |    {\includegraphics[width=140pt]{elephant}}|\\
+%   |  \captionsetup{subrefformat=parens}|\\
+%   |  \caption{Two animals: \subref{cat} a huge cat,|\\
+%   |           and \subref{elephant} an elephant}|\\
+%   |\end{figure}|
+% \end{quote}
+%
+% \noindent\begin{minipage}{\linewidth}
+%   \captionsetup{type=figure}
+%   \centering
+%   \captionsetup[subfigure]{skip=-28pt,slc=off,margin={25pt,0pt}}
+%   \subcaptionbox{\label{cat7.4}}{\includegraphics[width=60pt]{cat}}
+%   \captionsetup[subfigure]{skip=-60pt,slc=off,margin={80pt,0pt}}
+%   \subcaptionbox{\label{elephant7.4}}{\includegraphics[width=140pt]{elephant}}
+%   \captionsetup{subrefformat=parens}
+%   \caption{Two animals: \subref{cat7.4} a huge cat, and \subref{elephant7.4} an elephant}
+% \end{minipage}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{Numbering}
+%
+% \subsection{Pittfall \#1: Using multiple main captions}
+%
+% When multiple main captions are used within a figure or table, and sub-captions
+% are used as well, how does the \pkg{subcaption} package know which
+% sub-captions belong to which caption, i.e. what is the main counter value for
+% the sub-captions?
+%
+% \pagebreak[3]
+% Let's illustrate this problem with an example document:
+% \begin{quote}
+%   |\documentclass{article}|\\
+%   |\usepackage{graphicx,subcaption}|\\
+%   |\begin{document}|\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \includegraphics[width=4cm]{example-image-c}|\\
+%   |  \caption{Caption no. 1}|\\
+%   |  \bigskip|\\
+%   |  \subcaptionbox|\\
+%   |    {\label{fig:2a}}|\\
+%   |    {\includegraphics[width=2cm]{example-image-a}}|\\
+%   |  \subcaptionbox|\\
+%   |    {\label{fig:2b}}|\\
+%   |    {\includegraphics[width=2cm]{example-image-b}}|\\
+%   |  \caption{Caption no. 2}|\\
+%   |\end{figure}|\\
+%   |Look at sub-figures \ref{fig:2a} and \ref{fig:2b}.|\\
+%   |\end{document}|
+% \end{quote}
+%
+% It's obvious that the sub-captions belong to 2nd caption, and therefore
+% |\ref{fig:2a}| will become ``2a'', isn't it?
+% But since the \pkg{subcaption} package is only involved when using
+% \LaTeX\ commands either defined or patched by the \pkg{caption} or
+% \pkg{subcaption} package, this is what the \pkg{caption} package
+% is aware of:
+% \begin{quote}
+%   |\usepackage{subcaption}|\\
+%   |\begin{document}|\\
+%   |\begin{figure}|\\
+%   |  \caption{Caption no. 1}|\\
+%   |  \subcaptionbox|\\
+%   |    {\label{fig:2a}}|\\
+%   |    {|\meta{unknown content}|}|\\
+%   |  \subcaptionbox|\\
+%   |    {\label{fig:2b}}|\\
+%   |    {|\meta{unknown content}|}|\\
+%   |  \caption{Caption no. 2}|\\
+%   |\end{figure}|\\
+%   |\end{document}|
+% \end{quote}
+%
+% So from \pkg{caption}s point of view it's not easy to decide if the
+% sub-captions belong to the 1st or 2nd main caption since they are placed
+% between them. (Note: The \pkg{subcaption} package is only offering
+% an user interface to the sub-caption feature of the \pkg{caption} package,
+% and therefore this decision is the responsibility of the \pkg{caption} package.)
+%
+% But how does the \pkg{caption} package makes a decision?
+% If in doubt, it rather clings to the past than to the future, i.e.~in this
+% case it decides that the sub-captions belong to the 1st caption and therefore
+% the result of |\ref{fig:2a}| is not ``2a'' but ``1a''.
+% If the \pkg{caption} package is unsure about its decision (like in this
+% case), a warning will be issued:
+% \begingroup
+% \leftmargini=12pt
+% \begin{quote}
+%   |Package caption Warning: Ambiguous sub-caption(s),|\\
+%   |                         use \nextfloat on input line 15.|\\
+%   |See the caption package documentation for explanation.|
+% \end{quote}
+% \endgroup
+%
+% \pagebreak[3]
+% How to fix it? Use |\next|\-|float| to tell the \pkg{caption} package
+% where the 2nd figure within the |figure| environment starts:
+% \begin{quote}
+%   |\documentclass{article}|\\
+%   |\usepackage{graphicx,subcaption}|\\
+%   |\begin{document}|\\
+%   |\begin{figure}|\\
+%   |  \centering|\\
+%   |  \includegraphics[width=4cm]{example-image-c}|\\
+%   |  \caption{Caption no. 1}|\\
+%   |  \bigskip|\\
+%   ||\textcolor{blue}{\cs{nextfloat}}\\
+%   |  \subcaptionbox|\\
+%   |    {\label{fig:2a}}|\\
+%   |    {\includegraphics[width=2cm]{example-image-a}}|\\
+%   |  \subcaptionbox|\\
+%   |    {\label{fig:2b}}|\\
+%   |    {\includegraphics[width=2cm]{example-image-b}}|\\
+%   |  \caption{Caption no. 2}|\\
+%   |\end{figure}|\\
+%   |Look at sub-figures \ref{fig:2a} and \ref{fig:2b}.|\\
+%   |\end{document}|
+% \end{quote}
+%
+% \INFO
+% Note that the |\next|\-|float| command was introduced in \pkg{caption} package
+% \version{3.6}.
+% Previous versions of the \pkg{caption} package have bound the decision to the
+% |position=| setting of the floating environment instead, i.e.~sub-captions belonged to
+% the caption above if |position=top| was set and they belonged to the caption below
+% if |position=below| was set.
+% While this would be beneficial in this case, there were several cases were it was not
+% and especially it was not always comprehensible to the user why his references got an
+% incorrect numbering.
+%
+% Furthermore the new decision algorithm always succeeds if there is only one caption
+% within the figure or table (which is the case most of the time) while the old one did not.
+%
+% \pagebreak[3]
+% If you still prefer the old decision algorithm (for example because you want to process
+% an already existing document), you need to specify the \pkg{caption} package version
+% explicitly, for example:
+% \begin{quote}
+%   |\documentclass{article}|\\
+%   |\usepackage{caption}[=v3.5]|\\
+%   |\usepackage{graphicx,subcaption}|\\
+%   \ldots
+% \end{quote}
+%
+% See also: \longref{sec:caption}
+%
+% \subsection{Pittfall \#2: Expecting \cs{caption} to increment the counter}
+%
+% \pagebreak[3]
+% Usually |\caption| increments the figure or table counter and therefore
+% it is usally safe to assume that the counter was not incremented yet in code
+% used before |\caption|:
+% \begin{quote}
+%   |\documentclass{article}|\\
+%   |\begin{document}|\\
+%   |\begin{figure}|\\
+%   |  Figure counter before caption: \thefigure|\\
+%   |  \caption{Some text}|\\
+%   |  Figure counter after caption: \thefigure|\\
+%   |\end{figure}|\\
+%   |\end{document}|
+% \end{quote}
+%
+% Unsurprisingly the results are 0 and 1 for the counter values.
+%
+% \pagebreak[3]
+% But this happens if we use the \pkg{subcaption} package:
+% \begin{quote}
+%   |\documentclass{article}|\\
+%   |\usepackage{subcaption}|\\
+%   |\begin{document}|\\
+%   |\begin{figure}|\\
+%   |  \subcaptionbox{}{some content}|\\
+%   |  \subcaptionbox{}{some content}|\\
+%   |  Figure counter before caption: \thefigure|\\
+%   |  \caption{Some text}|\\
+%   |  Figure counter after caption: \thefigure|\\
+%   |\end{figure}|\\
+%   |\end{document}|
+% \end{quote}
+%
+% Here the results are 1 and 1 for the counter values. Why?
+%
+% Since the \pkg{caption} package assumes that there will be a |\caption|
+% following |\sub|\-|caption|\-|box| it decides that the sub-captions belong
+% to the upcoming main caption and therefore share the same main counter value
+% which needs to be incremented before its use.
+% Therefore the first |\sub|\-|caption|\-|box| in the figure increments the
+% figure counter while the second one and especially the |\caption| does not.
+%
+% Usually this is no problem at all but keep this in mind if you are doing
+% tricky stuff with the figure or table counter within figures or tables.
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{Abbreviatory commands}
+% \label{subcaption}
+%
+% \DescribeMacro\subcaption
+% \DescribeMacro\phantomsubcaption
+% \DescribeMacro\subcaptionlistentry
+% \DescribeMacro\subcaptiontext
+% \hskip1pt %^^A work-around for bug in \DescribeMacro to prevent red colored margin note
+% As we have seen in sections {\longref{overpic}, \longref{stackengine}, and \longref{tikz}}
+% it's sometimes inconvenient to use the commands and environments
+% described so far.
+%
+% \pagebreak[3]
+% For example it would be inconvenient to use \env{captiongroup} just for
+% a single |\caption|\-|text| in this particular case:
+% \begin{quote}
+%   \ldots\\
+%   |\begin{overpic}[width=60pt]{cat}|\\
+%   |  \put(40,34)|\\
+%   |    {\begin{captiongroup*}|\\
+%   |       \captiontext*[1]{}|\\
+%   |     \end{captiongroup*}}|\\
+%   |\end{overpic}|\\
+%   \ldots
+% \end{quote}
+%
+% \pagebreak[3]
+% Since |\caption|\-|text| is already used in an extra environment (|overpic|)
+% we don't need an extra |caption|\-|group*| here,
+% instead using |\set|\-|caption|\-|sub|\-|type*| (which switches into the
+% sub-caption mode without making an \pkg{hyperref} anchor) would be sufficient:
+% \begin{quote}
+%   \ldots\\
+%   |\begin{overpic}[width=60pt]{cat}|\\
+%   |  \put(40,34)|\\
+%   |    {\setcaptionsubtype*|\\
+%   |     \captiontext*[1]{}}|\\
+%   |\end{overpic}|\\
+%   \ldots
+% \end{quote}
+%
+% \pagebreak[3]
+% But this is still inconvenient when used many times, and therefore \thispackage\ defines
+% several extra commands which are prefixed with |\set|\-|caption|\-|sub|\-|type*|:
+%
+% \medskip
+%
+% \begin{minipage}{\textwidth}
+% \centering
+% \begin{tabular}{l|l|l}
+%   Regular command     & using \cs{setcaptionsubtype*} & available since \\
+%   \hline
+%   |\caption|          & |\subcaption|                 & \version{1.0} \\
+%   |\phantomcaption|   & |\phantomsubcaption|          & \version{1.1} \\
+%   |\captionlistentry| & |\subcaptionlistentry|        & \version{1.5} \\
+%   |\captiontext|      & |\subcaptiontext|             & \version{1.5} \\
+% \end{tabular}
+% \end{minipage}
+%
+% \bigskip
+%
+% \pagebreak[3]
+% This way our code snipped above could be simplified to:
+% \begin{quote}
+%   \ldots\\
+%   |\begin{overpic}[width=60pt]{cat}|\\
+%   |  \put(40,34){\subcaptiontext*[1]{}}|\\
+%   |\end{overpic}|\\
+%   \ldots
+% \end{quote}
+%
+% \INFO
+% Since |\set|\-|caption|\-|sub|\-|type| should only be used within an
+% extra group or environment, the same applies to these commands as well.
+% (In this case |\sub|\-|caption|\-|text| is encapsulated by the
+% |overpic| environment, so we are ok here.
+%
+% \begin{background}
+% The |\sub|\-|caption| command is just a simple combination of
+% |\set|\-|caption|\-|sub|\-|type*| and |\caption|. Same for all other
+% abbreviatory commands here.
+% \end{background}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{The \cs{subfloat} command}
+% \label{subfloat}
+%
+% \DescribeMacro\subfloat
+% \NEWfeature*{v1.3}
+% To allow a smoother transition from the \pkg{subfig} package~\cite{subfig}
+% (which is unmaintained for over 16 years)
+% this package also offers |\sub|\-|float| with the same syntax:
+% \begin{quote}
+%   |\subfloat|\oarg{list\_entry}\oarg{sub-caption}\marg{body}
+% \end{quote}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \section{Required packages}
+% \label{sec:caption}
+%
+% \NEWfeature{v1.4}
+% Starting with version $1.4$ the \pkg{subcaption} package requires at least version $3.1$
+% of the \pkg{caption} package and loads it automatically.
+% (Older versions of the \pkg{subcaption} package have required exactly the version of the
+% \pkg{caption} package which was released with it.)
+%
+% \pagebreak[3]
+% If you need to use a specific version of the \pkg{caption} package you need to load it
+% \emph{before} the \pkg{subcaption} package, e.g.:
+% \begin{quote}
+%   |\usepackage[| \ldots |]{caption}[=v3.5]|\\
+%   |\usepackage[| \ldots |]{subcaption}|
+% \end{quote}
+%
+% \pagebreak[3]
+% Note that there are limitations if an older version of the \pkg{caption} package
+% is used:
+% \begin{itemize}
+%   \item The |\phantomsubcaption| command needs at least \pkg{caption} \version{3.2}.
+%   \item The |\subcaptionlistentry| command needs at least \pkg{caption} \version{3.3}.
+%   \item The |\subfloat| emulation needs at least \pkg{caption} \version{3.4}.
+%   \item The |\subcaptiontext| command needs at least \pkg{caption} \version{3.6}.
+%   \item The |\subcaptionsetup| command needs at least \pkg{caption} \version{3.6l}.
+% \end{itemize}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \section{Other packages with similar offerings}
+% \label{sec:otherpackages}
+%
+% The \pkg{subcaption} package is not the only one defining sub-figure counters and offering commands or environments to typeset sub-figures.
+% The most established are:
+% \begin{itemize}
+% \item The \cls{memoir} document class
+% \item The \pkg{subfigure} package and its successor, the \pkg{subfig} package
+% \end{itemize}
+%
+% \NEWfeature{v1.6}
+% Prior subcaption version $1.6$ an error message was issued if the `subfigure' or `subtable' counter was already defined by any of them.
+% Since subcaption version $1.6$ the `subfigure' and `subtable' counters will only be defined by the \pkg{subcaption} package if they are not defined yet,
+% but the usage of any of the commands or environments described in this document will result in an error message ``The counter sub\ldots was defined by \ldots''
+% if the corresponding counter was not defined by the \pkg{subcaption} package.
+% Equally the commands or environments offered by the above document classes or packages should not be used with counters defined by the \pkg{subcaption} package,
+% this will result in either \LaTeX\ errors or unwanted behaviour.
+%
+% So the rule of thumb is:
+% If the counter `subfigure' or `subtable' is defined by document class or package \textit{xyz},
+% then the corresponding commands and environments offered by the document class or package \textit{xyz} should be used.
+%
+% \pagebreak[3]
+% An example document:
+% \begingroup\small\leftmargini=12pt\relax
+% \begin{quote}
+%   |\documentclass{memoir}|\\
+%   |\newsubfloat{table}      % defines the `subtable' counter|\\
+%   |\usepackage{subcaption}  % defines the `subfigure' counter|\\
+%   |\begin{document}|\\
+%   |\begin{figure}|\\
+%   |\subcaptionbox{...}{...} % <- This is fine|\\
+%   |\caption{...}|\\
+%   |\end{figure}|\\
+%   |\begin{table}|\\
+%   |\caption{...}|\\
+%   |\subcaptionbox{...}{...} % <- This results in an error,|\\
+%   |\end{table}                   \subtop should be used instead|\\
+%   |\end{document}|\\
+% \end{quote}
+% \endgroup
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{Beyond this package}
+% \label{keyfloat}\label{floatrow}
+%
+% For a more advanced usage of the sub-caption feature of the
+% \pkg{caption} package, please take a look at the excellent
+% \pkg{keyfloat} package\cite{keyfloat} which provides the environments
+% |key|\-|sub|\-|figs|, |key|\-|sub|\-|tabs|, and |key|\-|sub|\-|floats| for
+% typesetting sub-figures and sub-tables.
+%
+% Furthermore the \pkg{floatrow} package\cite{floatrow} provides the
+% |sub|\-|float|\-|row| environment for typesetting sub-figures.
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \PageBreak
+% \section{Thanks}
+%
+% I would like to thank
+% Stephen Dalton
+% who helped to make this package a better one.
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \StopEventually{%^^A
+% \begin{thebibliography}{9}
+%
+%   \bibitem{TLC2}
+%   Frank Mittelbach and Michel Goossens:\\
+%   \newblock {\em The {\LaTeX} Companion (2nd.~Ed.)},\\
+%   \newblock Addison-Wesley, 2004.
+%
+%   \bibitem{caption}
+%   Axel Sommerfeldt:\\
+%   \href{http://www.ctan.org/pkg/caption}%
+%        {\emph{Customizing captions of floating environments}},\\
+%   2022/01/07
+%
+%   \bibitem{floatrow}
+%   Olga Lapko:\\
+%   \href{http://www.ctan.org/pkg/floatrow}%
+%        {\emph{The floatrow package documentation}},\\
+%   2007/12/24
+%
+%   \bibitem{hyperref}
+%   Sebastian Rahtz \& Heiko Oberdiek:\\
+%   \href{http://www.ctan.org/pkg/hyperref}%
+%        {\emph{Hypertext marks in \LaTeX}},\\
+%   November 12, 2007
+%
+%   \bibitem{hypcap}
+%   Heiko Oberdiek:\\
+%   \href{http://www.ctan.org/pkg/hypcap}%
+%        {\emph{The hypcap package -- Adjusting anchors of captions}},\\
+%   2007/04/09
+%
+%   \bibitem{keyfloat}
+%   Brian Duun:\\
+%   \href{http://www.ctan.org/pkg/keyfloat}%
+%        {\emph{The \LaTeX\ keyfloat Package}},\\
+%   2019/09/23
+%
+%   \bibitem{overpic}
+%   Rolf Niepraschk:\\
+%   \href{http://www.ctan.org/pkg/overpic}%
+%        {\emph{The overpic package}},\\
+%   2020/02/22
+%
+%   \bibitem{stackengine}
+%   Steven B. Segletes:\\
+%   \href{http://www.ctan.org/pkg/stackengine}%
+%        {\emph{The stackengine Package}},\\
+%   July 22, 2021
+%
+%   \bibitem{tikz}
+%   Till Tantau:\\
+%   \href{http://www.ctan.org/pkg/tikz}%
+%        {\emph{The TikZ and PGF Packages}},\\
+%   May 15, 2021
+%
+%   \bibitem{subfig}
+%   Steven D. Cochran:\\
+%   \href{http://www.ctan.org/pkg/subfig}%
+%        {\emph{The subfig package}},\\
+%   2005/07/05
+%
+% \end{thebibliography}
+% }
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \DoNotIndex{\\,\_,\ ,\@@par}
+% \DoNotIndex{\@bsphack}
+% \DoNotIndex{\@car,\@cdr,\@classoptionslist,\@cons,\@currext,\@currname}
+% \DoNotIndex{\@ehc,\@ehd,\@empty,\@esphack,\@expandtwoargs}
+% \DoNotIndex{\@for,\@firstofone,\@firstoftwo}
+% \DoNotIndex{\@gobble,\@gobblefour,\@gobbletwo,\@hangfrom}
+% \DoNotIndex{\if@minipage,\@ifnextchar,\@ifpackagelater,\@ifpackageloaded}
+% \DoNotIndex{\@ifstar,\@ifundefined,\@latex@error,\@namedef,\@nameuse}
+% \DoNotIndex{\@onlypreamble,\@parboxrestore,\@plus,\@ptionlist}
+% \DoNotIndex{\@removeelement,\@restorepar,\@secondoftwo,\@setpar}
+% \DoNotIndex{\@tempa,\@tempboxa,\@tempdima,\@tempdimb,\@tempdimc,\@tempb,\@tempc}
+% \DoNotIndex{\@testopt}
+% \DoNotIndex{\@undefined,\@unprocessedoptions,\@unusedoptionlist}
+% \DoNotIndex{\p@,\z@}
+% \DoNotIndex{\active,\addtocounter,\addtolength,\advance,\aftergroup}
+% \DoNotIndex{\baselineskip,\begin,\begingroup,\bfseries,\box}
+% \DoNotIndex{\catcode,\centering,\changes,\csname,\def,\divide,\do,\downarrow}
+% \DoNotIndex{\edef,\else,\empty,\end,\endcsname,\endgraf,\endgroup,\expandafter}
+% \DoNotIndex{\fi,\footnotesize,\global}
+% \DoNotIndex{\hangindent,\hbox,\hfil,\hsize,\hskip,\hspace,\hss}
+% \DoNotIndex{\ifcase,\ifdim,\ifnum,\ifodd,\ifvoid,\ifvmode}
+% \DoNotIndex{\ifx,\ignorespaces,\itshape}
+% \DoNotIndex{\kernel@ifnextchar}
+% \DoNotIndex{\Large,\large,\leavevmode,\leftmargini,\leftskip,\let,\linewidth}
+% \DoNotIndex{\llap,\long,\m@ne,\margin,\mdseries,\message}
+% \DoNotIndex{\newcommand,\newdimen,\newlength,\newline,\newif,\newsavebox}
+% \DoNotIndex{\next,\nobreak,\nobreakspace,\noexpand,\noindent,\numberline}
+% \DoNotIndex{\normalcolor,\normalfont,\normalsize,\or,\par,\parbox,\parfillskip}
+% \DoNotIndex{\parindent,\parskip,\prevdepth,\protect,\protected@edef,\protected@write}
+% \DoNotIndex{\providecommand,\quad}
+% \DoNotIndex{\raggedleft,\raggedright,\relax,\renewcommand,\RequirePackage}
+% \DoNotIndex{\rightskip,\rmfamily}
+% \DoNotIndex{\sbox,\scriptsize,\scshape,\setbox,\setlength,\sffamily,\slshape}
+% \DoNotIndex{\small,\string,\space,\strut}
+% \DoNotIndex{\textheight,\the,\toks@,\typeout,\ttfamily}
+% \DoNotIndex{\unvbox,\uparrow,\upshape,\usebox,\usepackage}
+% \DoNotIndex{\value,\vbox,\vsize,\vskip,\wd,\width,\z@skip}
+% \DoNotIndex{\AtBeginDocument,\AtEndOfPackage,\CurrentOption,\DeclareOption}
+% \DoNotIndex{\ExecuteOptions,\GenericWarning,\IfFileExists,\InputIfFileExists}
+% \DoNotIndex{\NeedsTeXFormat,\MessageBreak}
+% \DoNotIndex{\PackageError,\PackageInfo,\PackageWarning,\PackageWarningNoLine}
+% \DoNotIndex{\PassOptionsToPackage,\ProcessOptions,\ProvidesPackage}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \setlength{\parskip}{0pt plus 1pt}
+% \changes{v0.1}{2007/09/01}{First demo}
+% \changes{v0.2}{2007/11/11}{\cs{subcaptionbox} added}
+% \changes{v0.3}{2007/12/06}{Adapted to \pkg{caption} package \version{3.1f}}
+% \changes{v1.0}{2008/03/16}{\cs{subfloat} added}
+% \changes{v1.0}{2010/10/27}{An error message will be issued when the subfigure or subfig package is loaded}
+% \changes{v1.0}{2011/01/22}{Undocumented command \cs{subfloat} removed}
+%
+% \newcommand*\Note[2][Note]{\par{\small\emph{#1:} #2}}
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \clearpage
+% \section{The implementation}
+%
+% \iffalse
+%<*package>
+% \fi
+%
+% \subsection{Identification}
+%
+% We need at least \LaTeX2e\ version 1994/12/01.
+%    \begin{macrocode}
+\NeedsTeXFormat{LaTeX2e}[1994/12/01]
+%    \end{macrocode}
+%
+% Bypass the release declarations in case the \LaTeX\ kernel doesn’t know how to deal with them
+% (as suggested by \url{https://www.latex-project.org/publications/2018-FMi-TUB-tb122mitt-version-rollback.pdf}).
+%    \begin{macrocode}
+\providecommand\DeclareRelease[3]{}
+\providecommand\DeclareCurrentRelease[2]{}
+%    \end{macrocode}
+%
+% Declare all supported releases.
+%    \begin{macrocode}
+\DeclareCurrentRelease{v1}{2007/12/06}
+%    \end{macrocode}
+%
+% Identify the current version of the package.
+%    \begin{macrocode}
+\ProvidesPackage{subcaption}[2023/07/28 v1.6b Sub-captions (AR)]
+%    \end{macrocode}
+%
+% Since we base on the \pkg{caption} package we load it here.
+%    \begin{macrocode}
+\RequirePackage{caption}[2010/01/09] % we need at least v3.1m
+%    \end{macrocode}
+%
+% \subsection{Initial code}
+%
+% \begin{macro}{\subcaption@Info}
+% \changes{v1.6}{2022/04/07}{This macro added}
+%   |\subcaption@Info|\marg{message}\\
+%   issues an info message (with code line indication).
+%    \begin{macrocode}
+\newcommand*\subcaption@Info{%
+  \PackageInfo{subcaption}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaption@Warning}
+% \changes{v1.5}{2022/01/06}{This macro added}
+%   |\subcaption@Warning|\marg{message}\\
+%   issues an warning message (with code line indication).
+%    \begin{macrocode}
+\newcommand*\subcaption@Warning{%
+  \PackageWarning{subcaption}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaption@Error}
+% \changes{v1.3h}{2020/09/28}{This macro added}
+%   |\subcaption@Error|\marg{message}\\
+%   issues an error message (with code line indication).
+%    \begin{macrocode}
+\newcommand*\subcaption@Error[1]{%
+  \PackageError{subcaption}{#1}{\caption@@eh{subcaption}}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\providecommand*\caption@@eh[1]{%
+  If you do not understand this error, please take a closer look\MessageBreak
+  at the documentation of the `#1' package, especially the\MessageBreak
+  section about errors.\MessageBreak\@ehc}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaption@OutsideFloat}
+% \changes{v1.5}{2022/01/07}{This macro definition added}
+% |\subcaption@OutsideFloat}| issues a ``\meta{command} outside float'' error.
+%    \begin{macrocode}
+\newcommand*\subcaption@OutsideFloat[1]{%
+  \subcaption@Error{\string#1 outside float}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsection{Main code}
+%
+% \begin{macro}{\setcaptionsubtype}
+% \changes{v1.4}{2020/12/24}{This macro definition added}
+% \changes{v1.5}{2022/01/07}{Check added if used inside a floating environment}
+% |\setcaptionsubtype| is available since \pkg{caption} package \version{3.2},
+% so we need to define it first if only an older version is loaded (in fallback mode).
+%    \begin{macrocode}
+\providecommand\setcaptionsubtype{%
+  \caption@iftype
+    {\@ifstar{\captionsetup{subtype*}}{\captionsetup{subtype}}}%
+    {\subcaption@OutsideFloat\setcaptionsubtype}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsubsection{The \env{subcaptiongroup} environment}
+%
+% \begin{environment}{subcaptiongroup}
+% \changes{v1.5}{2022/01/07}{This environment definition added}
+% \env{subcaptiongroup} is the simplest of all environments or commands this package has to offer.
+% It's simply an environment containing |\set|\-|caption|\-|sub|\-|type|, that's all.
+% A starred variant of this environment is available, too, which uses |\set|\-|caption|\-|sub|\-|type*|.
+%    \begin{macrocode}
+\newenvironment{subcaptiongroup}
+  {\caption@iftype
+     {\setcaptionsubtype\relax}%
+     {\subcaption@OutsideFloat{subcaptiongroup}}}
+  {}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newenvironment{subcaptiongroup*}
+  {\caption@iftype
+     {\setcaptionsubtype*}%
+     {\subcaption@OutsideFloat{subcaptiongroup*}}}
+  {}
+%    \end{macrocode}
+% \end{environment}
+%
+% \subsubsection{The \env{subcaptionblock} environment (and aliases)}
+%
+% \begin{macro}{\subcaption@minipage}
+% \changes{v1.2}{2016/02/21}{Optional argument values `B' and `T' added}
+% \changes{v1.3d}{2020/01/22}{Definition and usage of \cs{@subfloatboxreset} added}
+% \changes{v1.5}{2022/01/07}{This macro definition out-sourced from \cs{subcaption@newminipage}}
+% \changes{v1.5}{2022/01/07}{Usage of \cs{@ifnextchar} replaced by \cs{@testopt}}
+% \changes{v1.5}{2022/01/07}{Default value of \meta{outer-pos} changed from `c' to `b'}
+% \changes{v1.5a}{2022/04/16}{Default value of \meta{outer-pos} changed from `b' to either `b' or `t'}
+% This is a \env{minipage} with |\set|\-|caption|\-|sub|\-|type| as first contents line.
+%    \begin{macrocode}
+\newcommand*\subcaption@minipage{%
+  \kernel@ifnextchar[%]
+    \subcaption@iminipage
+    {\caption@ifcaption{\subcaption@iminipage[t]}{\subcaption@iminipage[b]}}}
+%    \end{macrocode}
+% We pass all other optional arguments using the generic helper macro
+% |\caption@with|\-|opt|\-|args| offered by the \pkg{caption} kernel).
+%    \begin{macrocode}
+\def\subcaption@iminipage[#1]{%
+% \caption@withoptargs{\subcaption@iiminipage{#1}}}  % would need at least caption3 v1.5
+  \def\subcaption@tempa{\subcaption@iiminipage{#1}}%
+  \caption@withoptargs\subcaption@tempa}
+%    \end{macrocode}
+% `B' and `T' will add a |\vspace{0pt}|, all other values (and additional
+% optional arguments) will be passed unseen to the |minipage| environment.
+%    \begin{macrocode}
+\newcommand*\subcaption@iiminipage[3]{%
+  \let\subcaption@endminipage@hook\@empty
+  \if#1B%
+    \minipage[b]#2{#3}%
+    \def\subcaption@endminipage@hook{\vspace{0pt}}%
+  \else\if#1T%
+    \minipage[t]#2{#3}%
+    \vspace{0pt}%
+  \else
+    \minipage[#1]#2{#3}%
+  \fi\fi
+  \@subfloatboxreset
+  \setcaptionsubtype\relax}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newcommand*\subcaption@endminipage{%
+  \subcaption@endminipage@hook
+  \endminipage}
+%    \end{macrocode}
+%    \begin{macrocode}
+\providecommand*\@subfloatboxreset{}
+%    \end{macrocode}
+%    \begin{macrocode}
+\providecommand*\caption@ifcaption{\caption@ifflag2} % caption >= v3.3 < v3.6
+\providecommand*\caption@ifflag[1]{\@secondoftwo}    % caption < v3.3
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{environment}{subcaptionblock}
+% \changes{v1.5}{2022/01/07}{This environment definition added}
+% \env{subcaptionblock} is a \env{minipage} with |\set|\-|caption|\-|sub|\-|type| as first contents line.
+%    \begin{macrocode}
+\newenvironment{subcaptionblock}{\subcaption@minipage}{\subcaption@endminipage}
+%    \end{macrocode}
+% \end{environment}
+%
+% \begin{macro}{\subcaption@newminipage}
+% \changes{v1.4d}{2022/01/04}{Test of environment name added, should match `sub\cs{@captype}'}
+% \changes{v1.5}{2022/01/06}{Test of environment name revised, results in a warning now instead of an error}
+% \changes{v1.5}{2022/01/07}{This command renamed from \cs{subcaption@newenvironment} to \cs{subcaption@newminipage} and revised}
+% |\subcaption@newminipage|\marg{name of new environment}\\
+% defines a new environment containing |\sub|\-|caption@mini|\-|page| and |\sub|\-|caption@end|\-|mini|\-|page|.
+% Furthermore a test will be included which checks if the environment name matches |sub\@captype|.
+%    \begin{macrocode}
+\newcommand*\subcaption@newminipage[1]{%
+  \newenvironment{#1}{\subcaption@minipage@{#1}}{\subcaption@endminipage}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newcommand*\subcaption@minipage@[1]{%
+  \caption@iftype
+    {\edef\caption@tempa{#1}%
+     \edef\caption@tempb{sub\@captype}%
+     \ifx\caption@tempa\caption@tempb \else
+       \subcaption@Warning{%
+         `\caption@tempa' is treated as `\caption@tempb'\MessageBreak}%
+     \fi}%
+    {\subcaption@OutsideFloat{#1}}%
+  \subcaption@minipage}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{environment}{subfigure}
+% \begin{environment}{subtable}
+% \changes{v1.3e}{2020/07/29}{Uses \cs{ForEachCaptionSubType} (instead of \cs{caption@For}) to define the environments now}
+% The sub-environments will be defined using the helper macro |\For|\-|Each|\-|Caption|\-|Sub|\-|Type|
+% offered by the \pkg{caption} kernel v1.13 (2020/07/29), so for every caption sub-type
+% declared with |\Declare|\-|Caption|\-|Sub|\-|Type| a corresponding `sub' environment will be defined automatically.
+% (If the \pkg{caption} kernel v1.13 is not available we use \cs{caption@For} as fallback.)
+%    \begin{macrocode}
+\@ifundefined{ForEachCaptionSubType}  % caption3 v1.13
+  {\caption@For{subtypelist}{\subcaption@newminipage{sub#1}}}
+  {\ForEachCaptionSubType{\subcaption@newminipage{#1}}}
+%    \end{macrocode}
+% \end{environment}
+% \end{environment}
+%
+% \subsubsection{The \cs{subcaptionbox} command}
+%
+% \begin{macro}{\subcaptionbox}
+% \changes{v1.0}{2008/05/06}{Adapted to the \opt{rule} option of the \pkg{caption} package}
+% \changes{v1.0}{2008/08/31}{Definition and usage of \cs{subcaption@hrule} added}
+% \changes{v1.0}{2010/12/17}{Uses \cs{caption@box} now}
+% \changes{v1.1}{2011/08/16}{Adapted to actual version of \cs{caption@box}}
+% \changes{v1.1}{2012/04/09}{Adapted to actual version of \cs{caption@ibox}}
+% \changes{v1.4}{2020/12/24}{Fallback definition of \cs{caption@ibox} added}
+% A |\parbox| with contents and sub-caption, separated by an invisible |\hrule|.\par
+% The code of this macro was moved to the \pkg{caption} package \version{3.2}
+% (so it could offer it as |\caption|\-|box| as well), so since then it's
+% sufficient to simply use |\caption@ibox| here.\par
+% But if only \pkg{caption} package \version{3.1} is available (since the user
+% decided to use this particular fallback version), we still must define the code
+% on our own.
+%    \begin{macrocode}
+\@ifundefined{caption@ibox}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*\subcaptionbox{%  caption v3.1
+    \def\subcaption@tempa{\caption@ibox\setcaptionsubtype\relax}%
+    \caption@withoptargs\subcaption@tempa}
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand\caption@ibox[3]{%
+    \kernel@ifnextchar[%]
+      {\caption@iibox{#1}{#2}{#3}}%
+      {\caption@iibox@{#1}{#2}{#3}}}
+%    \end{macrocode}
+%    \begin{macrocode}
+  \long\def\caption@iibox#1#2#3[#4]{%
+    \@testopt{\caption@iiibox{#1}{#2}{#3}[{#4}]}\captionbox@innerpos@default}
+%    \end{macrocode}
+%    \begin{macrocode}
+  \long\def\caption@iibox@#1#2#3#4{%
+    \setbox\@tempboxa\hbox{#4}%
+    \caption@iiibox{#1}{#2}{#3}%
+      [\wd\@tempboxa]%
+      [\captionbox@innerpos@default]%
+      {\unhbox\@tempboxa}}
+%    \end{macrocode}
+%    \begin{macrocode}
+  \long\def\caption@iiibox#1{%
+    \caption@iiiibox{#1}\vbox\vtop}
+%    \end{macrocode}
+%    \begin{macrocode}
+  \long\def\caption@iiiibox#1#2#3#4#5[#6][#7]#8{%
+    \@ifundefined{caption@hj@#7}%
+      {\subcaption@Error{Undefined justification `#7'}\@gobble}%
+      {\@firstofone}%
+    {\begingroup
+     #1*% set \caption@position so \caption@iftop expands correctly
+     \caption@iftop{%
+       \endgroup
+       \parbox[t]{#6}{%
+         #1\relax
+         \caption@setposition t%
+         #2{\caption#4{#5}}%
+         \captionbox@hrule
+         \csname caption@hj@#7\endcsname
+         #8}%
+     }{%
+       \endgroup
+       \parbox[b]{#6}{%
+         #1\relax
+         \caption@setposition b%
+         \csname caption@hj@#7\endcsname
+         #8%
+         \captionbox@hrule
+         #3{\caption#4{#5}}}%
+     }}}
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*\captionbox@innerpos@default{c}
+  \newcommand*\captionbox@hrule{\hrule\@height\z@\relax}
+%    \end{macrocode}
+%    \begin{macrocode}
+  \providecommand*\caption@hj@c{\centering}
+  \providecommand*\caption@hj@l{\raggedright}
+  \providecommand*\caption@hj@r{\raggedleft}
+  \providecommand*\caption@hj@s{}
+%    \end{macrocode}
+%    \begin{macrocode}
+}{\@ifundefined{caption@iiibox}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*\subcaptionbox{%  caption v3.2
+    \def\captionbox@type{subtype}%
+    \let\captionbox@settype\setcaptionsubtype
+    \caption@withoptargs\caption@box}
+%    \end{macrocode}
+%    \begin{macrocode}
+}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*\subcaptionbox{%  caption >= v3.3
+    \caption@withoptargs{\caption@ibox\setcaptionsubtype}}
+%    \end{macrocode}
+%    \begin{macrocode}
+}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsubsection{The \cs{subref} command}
+%
+% We redefine |\label| to |\subcaption@label| at |\setcaptionsubtype|.
+%    \begin{macrocode}
+\g@addto@macro\caption@subtypehook{%
+  \ifx\label\subcaption@label \else
+    \let\subcaption@ORI@label\label
+    \let\label\subcaption@label
+  \fi}
+%    \end{macrocode}
+%
+% \begin{macro}{\subcaption@label}
+% \changes{v1.1}{2011/09/12}{Adapted to the \pkg{showkeys} package}
+% \changes{v1.1}{2011/09/12}{Uses \cs{caption@withoptargs} now}
+% \changes{v1.1}{2016/02/20}{Unwanted space removed}
+% \changes{v1.4b}{2021/01/08}{Local re-definitions of \cs{@bsphack} and \cs{@esphack} added}
+% \changes{v1.4c}{2021/04/10}{Adaption to the \pkg{showkeys} package out-sourced to \cs{subcaption@prepare@label}}
+% When a label will be placed for a sub-caption, we automatically place
+% a second one for |\sub|\-|ref|, too. This second label will contain
+% the sub-type counter only.
+%    \begin{macrocode}
+\newcommand*\subcaption@label{%
+  \caption@withoptargs\subcaption@@label}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newcommand*\subcaption@@label[2]{%
+  \@bsphack\begingroup
+    \let\@bsphack\relax
+    \let\@esphack\relax
+%    \end{macrocode}
+% Label |\@currentlabel| by expanding the original |\label| code.
+%    \begin{macrocode}
+    \subcaption@ORI@label#1{#2}%
+%    \end{macrocode}
+% Set |\@currentlabel| to the `sub' counter value and expand the original |\label| code again.
+% (But this time without optional arguments.)
+%    \begin{macrocode}
+    \subcaption@prepare@label
+    \protected@edef\@currentlabel{\csname thesub\@captype\endcsname}%
+    \subcaption@ORI@label{sub@#2}%
+  \endgroup\@esphack}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaption@prepare@label}
+% \changes{v1.4c}{2021/04/10}{This macro added}
+% \changes{v1.4c}{2021/04/10}{Adapted to the \pkg{showlabels} package}
+%    \begin{macrocode}
+\newcommand*\subcaption@prepare@label{%
+%    \end{macrocode}
+% Adaption to the \pkg{showkeys} package: Hide the `sub' label from it.
+%    \begin{macrocode}
+  \let\SK@\@gobbletwo
+%    \end{macrocode}
+% Adaption to the \pkg{showlabels} package: Hide the `sub' label from it
+% by expanding to the original definition saved to |\SL@orig#1|
+% (with |#1| $=$ |\SL@orig|\-|label|, \ldots).
+%    \begin{macrocode}
+  \def\SL@showlabels##1{\@nameuse{SL@orig##1}}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subref}
+% \changes{v1.1}{2011/08/14}{Caption option \opt{subrefformat=} added}
+% \changes{v1.1}{2011/08/18}{Uses \cs{caption@setoptions*} now}
+% \changes{v1.1}{2012/01/12}{Usage of \cs{caption@setoptions*} replaced by \cs{caption@setoptions}}
+% \changes{v1.1}{2012/04/09}{Revised}
+% \changes{v1.1}{2018/12/26}{Bugfix: Missing curly braces added}
+% This one calls |\ref| with the second label. (see |\subcaption@label|)
+%    \begin{macrocode}
+\DeclareRobustCommand*\subref{%
+  \@ifstar
+    {\caption@withoptargs\subcaption@ref*}%
+    {\caption@withoptargs\@subref}}
+\newcommand*\@subref[2]{%
+  \@ifundefined{hyperref}%
+    {\subcaption@ref{#1}{#2}}%
+    {\hyperref[{#2}]{\subcaption@ref{*#1}{#2}}}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newcommand*\subcaption@ref[2]{%
+  \begingroup
+    \caption@setoptions{sub}%
+    \subcaption@reffmt\p@subref{\ref#1{sub@#2}}%
+  \endgroup}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newcommand*\p@subref{}
+%    \end{macrocode}
+% \end{macro}
+%
+%    \begin{macrocode}
+\DeclareCaptionOption{subrefformat}{\subcaption@setrefformat{#1}}
+%    \end{macrocode}
+%
+% \begin{macro}{\subcaption@setrefformat}
+% \changes{v1.3g}{2020/07/27}{Adapted to \pkg{caption3} v2.0}
+% \changes{v1.3h}{2020/09/28}{Usage of \cs{caption@Error} replaced by \cs{subcaption@Error}}
+% \changes{v1.3j}{2020/10/07}{Definition of the label formats \texttt{subsimple} and \texttt{subparens} added}
+% \changes{v1.4}{2020/12/24}{Adapted to older versions of the caption package (fallback)}
+% \changes{v1.6b}{2023/07/28}{Adapted to the \pkg{subfig} package}
+%  |\subcaption@setrefformat|\marg{name}\par
+%  Selecting a subref format simply means saving the code (in |\subcaption@reffmt|).
+%    \begin{macrocode}
+\newcommand*\subcaption@setrefformat[1]{%
+  \@ifundefined{caption@labelformat@#1}%  caption3 v2.x
+    {\@ifundefined{caption@lfmt@#1}%      caption3 v1.x
+       {\@ifundefined{caption@subreffmt@#1}{\subcaption@Error{Undefined label format `#1'}}{}}%
+       {\expandafter\let\expandafter\subcaption@reffmt\csname caption@lfmt@#1\endcsname}}%
+    {\expandafter\let\expandafter\subcaption@reffmt\csname caption@labelformat@#1\endcsname}%
+  \@ifundefined{caption@subreffmt@#1}{}{\caption@setsubrefformat{#1}}} % subfig v1.3
+%    \end{macrocode}
+%    \begin{macrocode}
+\subcaption@setrefformat{simple}
+%    \end{macrocode}
+%  To offer a smooth transition from the \pkg{subfig} to the \pkg{subcaption} package
+%  we offer the options |sub|\-|ref|\-|format=sub|\-|simple| and |sub|\-|ref|\-|format=sub|\-|parens|, too.
+%    \begin{macrocode}
+\DeclareCaptionLabelFormat{subsimple}{#2}
+\DeclareCaptionLabelFormat{subparens}{(#2)}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsection{Execution of options}
+%
+% \changes{v1.1}{2018/05/01}{Option \texttt{font+=small} changed to \texttt{font+=smaller}}        \changenote{released 2018/05/02}
+% \changes{v1.2}{2018/05/13}{Option \texttt{font+=smaller} changed to \texttt{size=smaller}}       \changenote{merged from former SVN/trunk 2019/03/16, released 2019/08/18}
+% \changes{v1.3e}{2020/07/27}{Option \texttt{size=smaller} changed back to \texttt{font+=smaller}} \changenote{merged from feature/documentclass 2020/07/29, released 2020/08/30}
+% We use |\caption@Execute|\-|Options| and |\caption@Process|\-|Options| here to add
+% the options to the `|sub|' option list instead of executing them immediately.
+%    \begin{macrocode}
+\let\caption@setkeys@ORI\caption@setkeys
+\@ifundefined{caption@SetupOptions}  % caption3 v1.3
+  {\renewcommand\caption@setkeys[2]{\captionsetup[sub]{#2}}}
+  {\caption@SetupOptions{subcaption}{\captionsetup[sub]{#2}}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\@ifundefined{caption@smaller}       % caption3 v1.7-169
+  {\caption@ExecuteOptions{subcaption}{%
+     font+=small,labelformat=parens,labelsep=space,skip=6pt,list=0,hypcap=0}}
+  {\caption@ExecuteOptions{subcaption}{%
+     font+=smaller,labelformat=parens,labelsep=space,skip=6pt,list=0,hypcap=0}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\caption@ProcessOptions*{subcaption}
+%    \end{macrocode}
+%    \begin{macrocode}
+\let\caption@setkeys\caption@setkeys@ORI
+\let\caption@setkeys@ORI\@undefined
+%    \end{macrocode}
+%
+% \begin{macro}{\subcaption@DeclareType}
+% \changes{v1.6}{2022/04/07}{This macro added}
+%   |\subcaption@DeclareType|\marg{type}\\
+%   defines the sub-counter via |\Declare|\-|Caption|\-|Sub|\-|Type| offered by the \pkg{caption} package.
+%    \begin{macrocode}
+\newcommand*\subcaption@DeclareType[1]{%
+  \@ifundefined{c@sub#1}%
+    {\DeclareCaptionSubType{#1}}%
+    {\caption@subtypesource\caption@subtype@source{sub#1}%
+     \subcaption@Info{The counter `sub#1' was already defined by\MessageBreak\caption@subtype@source}}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\providecommand*\caption@subtypesource[2]{\def#1{a different package}} % caption3 v2.4
+%    \end{macrocode}
+% \end{macro}
+%
+% We call |\Declare|\-|Caption|\-|Sub|\-|Type| for |figure| and |table|,
+% and each floating environment declared with |\Declare|\-|Floating|\-|Environment| here.
+%    \begin{macrocode}
+\@ifundefined{ForEachCaptionType}      % caption3 v1.13
+  {\@ifundefined{caption@ForEachType}  % caption3 v1.4a
+     {\@ifundefined{c@figure}{}{\subcaption@DeclareType{figure}}%
+      \@ifundefined{c@table}{}{\subcaption@DeclareType{table}}%
+      \caption@For{typelist}{\subcaption@DeclareType{#1}}}
+     {\caption@ForEachType{\subcaption@DeclareType{#1}}}}
+  {\ForEachCaptionType{\subcaption@DeclareType{#1}}}
+%    \end{macrocode}
+%
+% \subsection{Bonus material}
+%
+% \subsubsection{The \cs{subcaption}, \cs{phantomsubcaption}, \cs{subcaptionlistentry}, and \cs{subcaptiontext} commands}
+%
+% \begin{macro}{\subcaption@newabbreviation}
+% \changes{v1.5}{2022/01/07}{This macro added}
+% |\subcaption@newabbreviation|\marg{new command}\marg{existing command}\marg{extra code in case of error}\\
+% defines a new command as abbreviation of |\set|\-|caption|\-|sub|\-|type*| plus \meta{command}.
+% (With a prefacing |\set|\-|caption|\-|sub|\-|type|, \meta{new command} is reduced to \meta{command}.
+% Unfortunately we have to do this on our own since using |\set|\-|caption|\-|sub|\-|type| multiple times
+% is not suppressed until \pkg{caption} package \version{3.6}.)
+% \Note{Since \cs{setcaptionsubtype} is used, the new command is designed to be used inside an own group!}
+%    \begin{macrocode}
+\newcommand*\subcaption@newabbreviation[3]{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*{#1}{%
+    \caption@iftype
+      {\setcaptionsubtype*#2}%
+      {\subcaption@OutsideFloat#1#3}}%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \g@addto@macro\caption@subtypehook{\let#1#2}}% needed for caption < 3.6
+%    \end{macrocode}
+%    \begin{macrocode}
+\@onlypreamble\subcaption@newabbreviation
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\caption@gobble}
+% \changes{v1.4}{2020/12/24}{This macro added}
+%   |\caption@gobble*|\oarg{arg}\oarg{\ldots}\marg{arg}\\
+%   is similar to |\@gobble| but gobbles a star and optional arguments as well.
+%    \begin{macrocode}
+\@ifundefined{caption@gobble}{%
+  \DeclareRobustCommand*\caption@gobble{%  caption3 < v1.4
+    \caption@withoptargs\@gobbletwo}%
+}{}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaption}
+% \changes{v1.1}{2012/04/06}{Overwrites the definition defined by the \pkg{memoir} document class}
+% |\subcaption| is an abbreviation of |\set|\-|caption|\-|sub|\-|type*| plus |\caption|.
+%    \begin{macrocode}
+\@ifclassloaded{memoir}{\let\subcaption\undefined}{}
+\subcaption@newabbreviation\subcaption\caption\caption@gobble
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\phantomsubcaption}
+% \changes{v1.1}{2011/08/17}{This macro added}
+% \changes{v1.3h}{2020/09/28}{Usage of \cs{caption@Error} replaced by \cs{subcaption@Error}}
+% |\phantom|\-|sub|\-|caption| is an abbreviation of |\set|\-|caption|\-|sub|\-|type*| plus |\phantom|\-|caption|.
+% \Note{This commands needs at least \pkg{caption} package \version{3.2}.}
+%    \begin{macrocode}
+\subcaption@newabbreviation\phantomsubcaption\phantomcaption\relax
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaptionlistentry}
+% \changes{v1.5}{2022/01/05}{This macro added}
+% |\sub|\-|caption|\-|list|\-|entry| is an abbreviation of |\set|\-|caption|\-|sub|\-|type*| plus |\caption|\-|list|\-|entry|.
+% \Note{This commands needs at least \pkg{caption} package \version{3.3}.}
+%    \begin{macrocode}
+\subcaption@newabbreviation\subcaptionlistentry\captionlistentry\caption@gobble
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaptiontext}
+% \changes{v1.5}{2022/01/05}{This macro added}
+% |\sub|\-|caption|\-|text| is an abbreviation of |\set|\-|caption|\-|sub|\-|type*| plus |\caption|\-|text|.
+% \Note{This commands needs at least \pkg{caption} package \version{3.6}.}
+%    \begin{macrocode}
+\subcaption@newabbreviation\subcaptiontext\captiontext\caption@gobble
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\caption@subfloatrow@hook}
+% \changes{v1.6}{2022/04/17}{Support of this hook added}
+% Inside the |sub|\-|float|\-|row| environment offered by the \pkg{floatrow} package
+% the usage of |\caption| etc.~needs to be mapped to |\sub|\-|caption| etc.
+%    \begin{macrocode}
+\providecommand*\caption@subfloatrow@hook{} % caption < v3.7
+%    \end{macrocode}
+%    \begin{macrocode}
+\g@addto@macro\caption@subfloatrow@hook{%
+  \let\caption\subcaption
+  \let\phantomcaption\phantomsubcaption
+  \let\captionlistentry\subcaptionlistentry
+  \let\captiontext\subcaptiontext}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsubsection{The \cs{subfloat} command}
+%
+% \begin{macro}{\subfloat}
+% \changes{v0.4}{2008/03/01}{This macro added}
+% \changes{v1.0c}{2011/01/22}{This macro removed since it's too incompatible with the one from \pkg{subfig}}
+% \changes{v1.3}{2019/08/31}{This macro re-added and revised}
+% \changes{v1.3a}{2019/09/01}{\cs{ignorespaces} copied from \cs{sf@@@subfloat}}
+% \changes{v1.3b}{2020/01/03}{Previous definition of \cs{subfloat} will be overwritten}
+% \changes{v1.3f}{2020/07/29}{Bugfix: Usage of \cs{caption@hj@default} replaced by \cs{captionbox@innerpos@default}}
+% \changes{v1.3i}{2020/09/28}{This macro will be defined with \cs{providecommand} now to preserve an original definition}
+% \changes{v1.4}{2020/12/24}{Usage of \cs{caption@getlabel} replaced by \cs{subcaption@getlabel}}
+% \changes{v1.4a}{2020/12/26}{Clearance of \cs{caption@thelabel} replaced by \cs{subcaption@clrlabel}}
+% \changes{v1.5}{2022/01/07}{Usage of \cs{@ifnextchar} replaced by \cs{kernel@ifnextchar}}
+% \changes{v1.5}{2022/01/07}{Overwrites the definition done by the \cls{memoir} document class}
+% \changes{v1.6}{2022/04/16}{Emulates the definition done by the \cls{memoir} document class}
+%  |\subfloat|\oarg{list\_entry}\oarg{sub-caption}\marg{body}\par
+%  If \meta{sub-caption} is given, we map this to |\sub|\-|caption|\-|box|
+%  but transfer the |\label| from \meta{body} to \meta{sub-caption}.
+%  If not, we do the same as |\sub|\-|caption|\-|box| does, but use |\phantom|\-|caption| instead of |\caption|.
+%  In both cases we do a |\ignore|\-|spaces| at the end since the original implementation of |\sub|\-|float| does this, too.
+%    \begin{macrocode}
+\caption@AtBeginDocument{%
+  \begingroup
+    \newenvironment{subcaption@memoir@subfloat}{}{}%
+    \ifx\subfloat\subcaption@memoir@subfloat
+      \endgroup
+      % "subfloat" = empty environment, defined by memoir
+      \renewcommand*\subfloat{%
+        \def\subcaption@currenvir{subfloat}%
+        \ifx\@currenvir\subcaption@currenvir
+          % emulate (empty) subfloat environment
+        \else
+          \expandafter\subcaption@subfloat
+        \fi}%
+    \else
+      \endgroup
+      \providecommand*\subfloat{\subcaption@subfloat}%
+    \fi}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newcommand*\subcaption@subfloat{%
+  \kernel@ifnextchar[%]
+    \subcaption@@subfloat
+    \subcaption@subfloat@}
+%    \end{macrocode}
+%    \begin{macrocode}
+\long\def\subcaption@@subfloat[#1]{%
+  \kernel@ifnextchar[%]
+    {\subcaption@@@subfloat{#1}}%
+    {\subcaption@@subfloat@\subcaptionbox{#1}}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\long\def\subcaption@@@subfloat#1[#2]{%
+  \subcaption@@subfloat@{\subcaptionbox[{#1}]}{#2}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\long\def\subcaption@@subfloat@#1#2#3{%
+  \subcaption@getlabel{#3}%
+  #1{#2\caption@thelabel}{\let\label\caption@gobble#3}%
+  \subcaption@clrlabel
+  \ignorespaces}
+%    \end{macrocode}
+%    \begin{macrocode}
+\def\subcaption@subfloat@#1{%
+  \setbox\@tempboxa\hbox{#1}%
+  \caption@iiiibox
+    \setcaptionsubtype
+    {\phantomcaption\@gobble}{\phantomcaption\@gobble}% no box with \caption
+    {}% no optional arguments for \caption
+    {}% no sub-caption
+    [\wd\@tempboxa][\captionbox@innerpos@default]%
+    {\unhbox\@tempboxa}%
+  \ignorespaces}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaption@getlabel}
+% \changes{v1.4}{2020/12/24}{This macro added}
+%   |\subcaption@getlabel|\marg{text}\\
+%   gets the label command out of the given caption text and stores it to |\caption@the|\-|label|.
+%   It uses |\caption@get|\-|label| for this purpose which interface unfortunately has changed over time.
+%   (Changing the interface was a bad idea in the first place but now it is as it is).
+%    \begin{macrocode}
+\@ifundefined{caption@getlabel}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand\subcaption@getlabel[1]{%  caption3 < v1.7
+    \subcaption@Error{\noexpand\subfloat needs at least caption v3.4}%
+    \let\caption@thelabel\relax}
+%    \end{macrocode}
+%    \begin{macrocode}
+}{\@ifundefined{caption@@@@getlabel}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand\subcaption@getlabel[1]{%  caption3 >= v1.7
+    \caption@getlabel#1\label{}\@nil}
+%    \end{macrocode}
+%    \begin{macrocode}
+}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*\subcaption@getlabel{%    caption3 >= v2.0
+    \caption@getlabel}
+%    \end{macrocode}
+%    \begin{macrocode}
+}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\subcaption@clrlabel}
+% \changes{v1.4a}{2020/12/26}{This macro added}
+%   |\subcaption@clrlabel|\\
+%   resets |\caption@the|\-|label| to |\relax|.
+%    \begin{macrocode}
+\@ifundefined{caption@clrlabel}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*\subcaption@clrlabel{\let\caption@thelabel\relax} %  caption3 < v2.3
+%    \end{macrocode}
+%    \begin{macrocode}
+}{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \newcommand*\subcaption@clrlabel{\caption@clrlabel}           %  caption3 >= v2.3
+%    \end{macrocode}
+%    \begin{macrocode}
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \iffalse
+%</package>
+% \fi
+%
+% \iffalse
+% --------------------------------------------------------------------------- %
+% \fi
+%
+% \Finale
+%
+\endinput

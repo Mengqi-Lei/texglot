@@ -16,6 +16,22 @@ from pathlib import Path
 RESOURCES = Path(__file__).parent / "resources/tex/profiles"
 
 
+def subcaption_clash(error) -> str:
+    """Read the conflicting provider from subcaption's multiline TeX error."""
+    if "Package subcaption Error:" not in error.log:
+        return ""
+    for log in (error.tex_log, error.log):
+        match = re.search(
+            r"(?m)^(?:! |[^\r\n]+:\d+: )Package subcaption Error: "
+            r"This package can't be used in cooperation[ \t]*\r?\n"
+            r"\(subcaption\)[ \t]+with the (subfigure|subfig) package\.",
+            log,
+        )
+        if match:
+            return match[1]
+    return ""
+
+
 @lru_cache(maxsize=1)
 def profiles():
     return json.loads((RESOURCES / "manifest.json").read_text(encoding="utf-8"))[
@@ -115,6 +131,22 @@ class RuntimeOverlay:
         return bool(plan)
 
     def recover(self, error) -> str:
+        # The old package performs this check both during load and at begin
+        # document. Only the former proves the other provider already owns the
+        # counters, which is the order supported by upstream 1.6b.
+        if (
+            subcaption_clash(error)
+            and re.search(
+                r"(?m)^error: (?:[^\r\n]*[/\\])?subcaption\.sty:\d+: Package subcaption Error:",
+                error.log,
+            )
+            and re.search(
+                r"(?m)^Package: subcaption[ \t]+[^\r\n]*\bv1\.[0-5][a-z]?\b",
+                error.tex_log,
+            )
+            and self.install("subcaption")
+        ):
+            return "subcaption 1.6b"
         missing = re.search(r"File [`']([^`'\r\n]+)' not found", error.log)
         if missing and missing[1] in profiles()["pstricks"]["files"]:
             if self.install("pstricks"):

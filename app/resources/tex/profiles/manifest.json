@@ -996,6 +996,30 @@
         "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/biblatex.tar.xz": "cb6c92694230297877cf7bcfd16f31ea1e8041f70493ca3c3a12d85ca995807e"
       },
       "description": "biblatex 3.20 (bbl format 3.3, bcf 3.11) from TeX Live 2024 final"
+    },
+    "subcaption": {
+      "description": "subcaption 1.6b from TeX Live 2024 final; respects subfigure/subfig counters already defined by the template",
+      "archives": {
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/caption.tar.xz": "541ef8c11c1eda6ce3383097dc848edcae2ac2d6b2d45f2e38895a9707e893f8",
+        "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/caption.source.tar.xz": "6becd07152d3e55abaf41e3b5508f35c72b0e1d6f2bd193f9a80602ed9b13b09"
+      },
+      "files": {
+        "subcaption.sty": {
+          "sha256": "5b6b3644307e6db3b04f0f3e2bd0709b8a84add87094da9e5395285e0b705d7e",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/caption.tar.xz#tex/latex/caption/subcaption.sty",
+          "runtime": true
+        },
+        "source/subcaption.dtx": {
+          "sha256": "915933917246a5ccb62df45b0e3ff2a017c4a526cb31773eff9da6281461f576",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/caption.source.tar.xz#source/latex/caption/subcaption.dtx",
+          "runtime": false
+        },
+        "source/caption.ins": {
+          "sha256": "b1c2ad4fa23384cb4be37f9c14cb5925b57b4bc1e9b9c30e830958e14a35f2c9",
+          "origin": "https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2024/tlnet-final/archive/caption.source.tar.xz#source/latex/caption/caption.ins",
+          "runtime": false
+        }
+      }
     }
   }
 }

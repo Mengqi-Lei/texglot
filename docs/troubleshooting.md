@@ -7,6 +7,7 @@ TeXGlot translates **LaTeX source**, not arbitrary uploaded PDFs or scanned docu
 | Situation | What to check |
 | :--- | :--- |
 | arXiv import fails | Confirm that the paper has downloadable TeX source and that arXiv is reachable. |
+| Conflicting subfigure packages | If a template has already loaded `subfigure` or `subfig` and the bundled subcaption refuses to load, TeXGlot retries with subcaption 1.6b. Choose Resume / Retry on a failed job. If the conflict persists, check for mixed commands on the same counter or an old project-provided `subcaption.sty`. |
 | EPS figures | Install optional Ghostscript and resume. Original EPS files are retained; PDF copies are generated for compilation. See the [desktop guide](desktop.md). |
 | minted requires shell-escape | The unused package load is removed only when no project use is detected. Used listings and frozen caches are retained; supply a complete cache matching the compilation environment or use listings. External command execution remains disabled. |
 | Frozen minted cache reports a missing style | When newer frozen caches conflict with the bundled package, TeXGlot tries pinned upstream minted 3 runtimes using their exact content-hash lookup. No Python highlighter is required. Incomplete or stale caches and project-provided package conflicts remain explicit errors; supply matching caches or TeX Live. Code is never assembled by filename order, and shell escape remains disabled. |

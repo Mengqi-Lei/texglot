@@ -1,0 +1,81 @@
+\def\batchfile{caption.ins}
+\input docstrip
+
+\askforoverwritefalse
+\keepsilent
+
+\preamble
+
+Copyright (C) 1994-2023 Axel Sommerfeldt (axel.sommerfeldt@f-m.fm)
+
+https://gitlab.com/axelsommerfeldt/caption
+
+--------------------------------------------------------------------------
+
+This work may be distributed and/or modified under the
+conditions of the LaTeX Project Public License, either version 1.3
+of this license or (at your option) any later version.
+The latest version of this license is in
+  http://www.latex-project.org/lppl.txt
+and version 1.3 or later is part of all distributions of LaTeX
+version 2003/12/01 or later.
+
+This work has the LPPL maintenance status "maintained".
+
+This Current Maintainer of this work is Axel Sommerfeldt.
+
+This work consists of the files
+  caption.ins, caption.dtx, caption-light.dtx, caption2.dtx, caption3.dtx,
+  caption-ams-smf.dtx, caption-beamer.dtx, caption-elsarticle.dtx,
+  caption-koma.dtx, caption-memoir.dtx, caption-ntg.dtx,
+  caption-thesis.dtx, bicaption.dtx, ltcaption.dtx, subcaption.dtx,
+the derived files
+  caption.sty, caption-light.sty, caption2.sty, caption3.sty,
+  caption-ams-smf.sto, caption-beamer.sto, caption-elsarticle.sto,
+  caption-koma.sto, caption-memoir.sto, caption-ntg.sto,
+  caption-thesis.sto, bicaption.sty, ltcaption.sty, subcaption.sty.
+
+\endpreamble
+
+\generate{\file{caption.sty}{\from{caption.dtx}{package}}}
+\generate{\file{caption-light.sty}{\from{caption-light.dtx}{package}}}
+\generate{\file{caption2.sty}{\from{caption2.dtx}{package}}}
+\generate{\file{caption3.sty}{\from{caption3.dtx}{package}}}
+
+\generate{\file{caption-ams-smf.sto}{\from{caption-ams-smf.dtx}{package}}}
+\generate{\file{caption-beamer.sto}{\from{caption-beamer.dtx}{package}}}
+\generate{\file{caption-elsarticle.sto}{\from{caption-elsarticle.dtx}{package}}}
+\generate{\file{caption-koma.sto}{\from{caption-koma.dtx}{package}}}
+\generate{\file{caption-memoir.sto}{\from{caption-memoir.dtx}{package}}}
+\generate{\file{caption-ntg.sto}{\from{caption-ntg.dtx}{package}}}
+\generate{\file{caption-thesis.sto}{\from{caption-thesis.dtx}{package}}}
+
+\generate{\file{bicaption.sty}{\from{bicaption.dtx}{package}}}
+\generate{\file{ltcaption.sty}{\from{ltcaption.dtx}{package}}}
+\generate{\file{subcaption.sty}{\from{subcaption.dtx}{package}}}
+
+\generate{\file{caption_1995-04-05.sty}{\from{fallback/v1/caption.dtx}{package}}}
+\generate{\file{caption2_1995-10-09.sty}{\from{fallback/v2.0/caption2.dtx}{package}}}
+\generate{\file{caption2_2005-10-03.sty}{\from{fallback/v2.1/caption2.dtx}{package}}}
+\generate{\file{caption_2007-04-16.sty}{\from{fallback/v3.0/caption.dtx}{package}}}
+\generate{\file{caption3_2007-04-11.sty}{\from{fallback/v3.0/caption.dtx}{kernel}}}
+\generate{\file{caption_2010-01-09.sty}{\from{fallback/v3.1/caption.dtx}{package}}}
+\generate{\file{caption3_2010-01-14.sty}{\from{fallback/v3.1/caption.dtx}{kernel}}}
+\generate{\file{caption_2011-11-10.sty}{\from{fallback/v3.2/caption.dtx}{package}}}
+\generate{\file{caption3_2011-11-01.sty}{\from{fallback/v3.2/caption3.dtx}{package}}}
+\generate{\file{caption_2019-09-01.sty}{\from{fallback/v3.3/caption.dtx}{package}}}
+\generate{\file{caption3_2019-09-01.sty}{\from{fallback/v3.3/caption3.dtx}{package}}}
+\generate{\file{caption_2020-07-29.sty}{\from{fallback/v3.4/caption.dtx}{package}}}
+\generate{\file{caption3_2020-07-29.sty}{\from{fallback/v3.4/caption3.dtx}{package}}}
+\generate{\file{caption_2020-10-26.sty}{\from{fallback/v3.5/caption.dtx}{package}}}
+\generate{\file{caption3_2020-10-26.sty}{\from{fallback/v3.5/caption3.dtx}{package}}}
+
+\Msg{***********************************************************}
+\Msg{*}
+\Msg{* To finish the installation you have to move the files}
+\Msg{* `*.sty' and `*.sto' into a directory searched by TeX.}
+\Msg{*}
+\Msg{* To produce the documentation run the files}
+\Msg{* `*.dtx' through LaTeX.}
+\Msg{*}
+\Msg{***********************************************************}

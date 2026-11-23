@@ -157,12 +157,12 @@ async def run(output, portable_compiler, engine=None, eps=False):
         zipped.writestr(
             "font-proof.cls",
             "\\ProvidesClass{font-proof}\n\\LoadClass{article}\n"
-            "\\RequirePackage{unicode-math}\n"
+            "\\RequirePackage{unicode-math,subfigure}\n"
             "\\setmathfont{libertinusmath-regular.otf}\n",
         )
         zipped.writestr(
             "listing.sty",
-            "\\RequirePackage{fancyvrb}\n"
+            "\\RequirePackage{fancyvrb,subcaption}\n"
             "\\DefineVerbatimEnvironment{ExampleCode}{Verbatim}{}\n",
         )
         zipped.writestr(
@@ -170,7 +170,13 @@ async def run(output, portable_compiler, engine=None, eps=False):
             "\\documentclass{font-proof}\n\\usepackage{amssymb}\n"
             "\\usepackage{listing}\n\\begin{document}\nNative description.\n"
             "\\begin{ExampleCode}\n\\usepackage{amssymb}\n\\end{ExampleCode}\n"
-            "$\\mathbb{R}+\\eth$\n\\end{document}\n",
+            "$\\mathbb{R}+\\eth$\n"
+            "\\begin{figure}\\centering\n"
+            "\\subfigure[A\\label{panel:a}]{\\fbox{A}}\n"
+            "\\subfigure[B\\label{panel:b}]{\\fbox{B}}\n"
+            "\\caption{Native description.}\\label{fig:pair}\\end{figure}\n"
+            "\\noindent\\ref{fig:pair}:\\ref{panel:a},\\ref{panel:b}.\\par\n"
+            "\\end{document}\n",
         )
     archive = folder / "多文件 paper.zip"
     section = SOURCE[SOURCE.index(r"\section") : SOURCE.index(r"\end{document}")]
@@ -390,8 +396,14 @@ $b$ & 2 \\
             font_text = "\n".join(page.extract_text() for page in font_pdf.pages)
             assert "本地说明" in re.sub(r"\s+", "", font_text)
             assert r"\usepackage{amssymb}" in font_text
+            for item in ("(a)A", "(b)B", "1:1(a),1(b)."):
+                assert item in re.sub(r"\s+", "", font_text), font_text
             assert not font_paper["warnings"]
             with zipfile.ZipFile(font_paper["files"]["source"]) as exported:
+                assert b"v1.6b" in exported.read("subcaption.sty")
+                assert (
+                    "texglot-runtime/subcaption/provenance.json" in exported.namelist()
+                )
                 assert b"LibertinusMath-Regular.otf" in exported.read("font-proof.cls")
                 assert b"\\IfPackageLoadedTF{unicode-math}" in exported.read("main.tex")
                 exported_main = (
@@ -456,6 +468,7 @@ $b$ & 2 \\
                 "unused_minted_recovery": True,
                 "pdf_figure_index_recovery": True,
                 "font_filename_recovery": True,
+                "subcaption_counter_recovery": True,
                 "unicode_math_package_recovery": True,
                 "literal_examples_retained": True,
                 "reasoning_outputs_clean": True,

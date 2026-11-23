@@ -1,0 +1,321 @@
+%%
+%% This is file `subcaption.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% subcaption.dtx  (with options: `package')
+%% 
+%% Copyright (C) 1994-2023 Axel Sommerfeldt (axel.sommerfeldt@f-m.fm)
+%% 
+%% https://gitlab.com/axelsommerfeldt/caption
+%% 
+%% --------------------------------------------------------------------------
+%% 
+%% This work may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%   http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2003/12/01 or later.
+%% 
+%% This work has the LPPL maintenance status "maintained".
+%% 
+%% This Current Maintainer of this work is Axel Sommerfeldt.
+%% 
+%% This work consists of the files
+%%   caption.ins, caption.dtx, caption-light.dtx, caption2.dtx, caption3.dtx,
+%%   caption-ams-smf.dtx, caption-beamer.dtx, caption-elsarticle.dtx,
+%%   caption-koma.dtx, caption-memoir.dtx, caption-ntg.dtx,
+%%   caption-thesis.dtx, bicaption.dtx, ltcaption.dtx, subcaption.dtx,
+%% the derived files
+%%   caption.sty, caption-light.sty, caption2.sty, caption3.sty,
+%%   caption-ams-smf.sto, caption-beamer.sto, caption-elsarticle.sto,
+%%   caption-koma.sto, caption-memoir.sto, caption-ntg.sto,
+%%   caption-thesis.sto, bicaption.sty, ltcaption.sty, subcaption.sty.
+%% 
+\NeedsTeXFormat{LaTeX2e}[1994/12/01]
+\providecommand\DeclareRelease[3]{}
+\providecommand\DeclareCurrentRelease[2]{}
+\DeclareCurrentRelease{v1}{2007/12/06}
+\ProvidesPackage{subcaption}[2023/07/28 v1.6b Sub-captions (AR)]
+\RequirePackage{caption}[2010/01/09] % we need at least v3.1m
+\newcommand*\subcaption@Info{%
+  \PackageInfo{subcaption}}
+\newcommand*\subcaption@Warning{%
+  \PackageWarning{subcaption}}
+\newcommand*\subcaption@Error[1]{%
+  \PackageError{subcaption}{#1}{\caption@@eh{subcaption}}}
+\providecommand*\caption@@eh[1]{%
+  If you do not understand this error, please take a closer look\MessageBreak
+  at the documentation of the `#1' package, especially the\MessageBreak
+  section about errors.\MessageBreak\@ehc}
+\newcommand*\subcaption@OutsideFloat[1]{%
+  \subcaption@Error{\string#1 outside float}}
+\providecommand\setcaptionsubtype{%
+  \caption@iftype
+    {\@ifstar{\captionsetup{subtype*}}{\captionsetup{subtype}}}%
+    {\subcaption@OutsideFloat\setcaptionsubtype}}
+\newenvironment{subcaptiongroup}
+  {\caption@iftype
+     {\setcaptionsubtype\relax}%
+     {\subcaption@OutsideFloat{subcaptiongroup}}}
+  {}
+\newenvironment{subcaptiongroup*}
+  {\caption@iftype
+     {\setcaptionsubtype*}%
+     {\subcaption@OutsideFloat{subcaptiongroup*}}}
+  {}
+\newcommand*\subcaption@minipage{%
+  \kernel@ifnextchar[%]
+    \subcaption@iminipage
+    {\caption@ifcaption{\subcaption@iminipage[t]}{\subcaption@iminipage[b]}}}
+\def\subcaption@iminipage[#1]{%
+  \def\subcaption@tempa{\subcaption@iiminipage{#1}}%
+  \caption@withoptargs\subcaption@tempa}
+\newcommand*\subcaption@iiminipage[3]{%
+  \let\subcaption@endminipage@hook\@empty
+  \if#1B%
+    \minipage[b]#2{#3}%
+    \def\subcaption@endminipage@hook{\vspace{0pt}}%
+  \else\if#1T%
+    \minipage[t]#2{#3}%
+    \vspace{0pt}%
+  \else
+    \minipage[#1]#2{#3}%
+  \fi\fi
+  \@subfloatboxreset
+  \setcaptionsubtype\relax}
+\newcommand*\subcaption@endminipage{%
+  \subcaption@endminipage@hook
+  \endminipage}
+\providecommand*\@subfloatboxreset{}
+\providecommand*\caption@ifcaption{\caption@ifflag2} % caption >= v3.3 < v3.6
+\providecommand*\caption@ifflag[1]{\@secondoftwo}    % caption < v3.3
+\newenvironment{subcaptionblock}{\subcaption@minipage}{\subcaption@endminipage}
+\newcommand*\subcaption@newminipage[1]{%
+  \newenvironment{#1}{\subcaption@minipage@{#1}}{\subcaption@endminipage}}
+\newcommand*\subcaption@minipage@[1]{%
+  \caption@iftype
+    {\edef\caption@tempa{#1}%
+     \edef\caption@tempb{sub\@captype}%
+     \ifx\caption@tempa\caption@tempb \else
+       \subcaption@Warning{%
+         `\caption@tempa' is treated as `\caption@tempb'\MessageBreak}%
+     \fi}%
+    {\subcaption@OutsideFloat{#1}}%
+  \subcaption@minipage}
+\@ifundefined{ForEachCaptionSubType}  % caption3 v1.13
+  {\caption@For{subtypelist}{\subcaption@newminipage{sub#1}}}
+  {\ForEachCaptionSubType{\subcaption@newminipage{#1}}}
+\@ifundefined{caption@ibox}{%
+  \newcommand*\subcaptionbox{%  caption v3.1
+    \def\subcaption@tempa{\caption@ibox\setcaptionsubtype\relax}%
+    \caption@withoptargs\subcaption@tempa}
+  \newcommand\caption@ibox[3]{%
+    \kernel@ifnextchar[%]
+      {\caption@iibox{#1}{#2}{#3}}%
+      {\caption@iibox@{#1}{#2}{#3}}}
+  \long\def\caption@iibox#1#2#3[#4]{%
+    \@testopt{\caption@iiibox{#1}{#2}{#3}[{#4}]}\captionbox@innerpos@default}
+  \long\def\caption@iibox@#1#2#3#4{%
+    \setbox\@tempboxa\hbox{#4}%
+    \caption@iiibox{#1}{#2}{#3}%
+      [\wd\@tempboxa]%
+      [\captionbox@innerpos@default]%
+      {\unhbox\@tempboxa}}
+  \long\def\caption@iiibox#1{%
+    \caption@iiiibox{#1}\vbox\vtop}
+  \long\def\caption@iiiibox#1#2#3#4#5[#6][#7]#8{%
+    \@ifundefined{caption@hj@#7}%
+      {\subcaption@Error{Undefined justification `#7'}\@gobble}%
+      {\@firstofone}%
+    {\begingroup
+     #1*% set \caption@position so \caption@iftop expands correctly
+     \caption@iftop{%
+       \endgroup
+       \parbox[t]{#6}{%
+         #1\relax
+         \caption@setposition t%
+         #2{\caption#4{#5}}%
+         \captionbox@hrule
+         \csname caption@hj@#7\endcsname
+         #8}%
+     }{%
+       \endgroup
+       \parbox[b]{#6}{%
+         #1\relax
+         \caption@setposition b%
+         \csname caption@hj@#7\endcsname
+         #8%
+         \captionbox@hrule
+         #3{\caption#4{#5}}}%
+     }}}
+  \newcommand*\captionbox@innerpos@default{c}
+  \newcommand*\captionbox@hrule{\hrule\@height\z@\relax}
+  \providecommand*\caption@hj@c{\centering}
+  \providecommand*\caption@hj@l{\raggedright}
+  \providecommand*\caption@hj@r{\raggedleft}
+  \providecommand*\caption@hj@s{}
+}{\@ifundefined{caption@iiibox}{%
+  \newcommand*\subcaptionbox{%  caption v3.2
+    \def\captionbox@type{subtype}%
+    \let\captionbox@settype\setcaptionsubtype
+    \caption@withoptargs\caption@box}
+}{%
+  \newcommand*\subcaptionbox{%  caption >= v3.3
+    \caption@withoptargs{\caption@ibox\setcaptionsubtype}}
+}}
+\g@addto@macro\caption@subtypehook{%
+  \ifx\label\subcaption@label \else
+    \let\subcaption@ORI@label\label
+    \let\label\subcaption@label
+  \fi}
+\newcommand*\subcaption@label{%
+  \caption@withoptargs\subcaption@@label}
+\newcommand*\subcaption@@label[2]{%
+  \@bsphack\begingroup
+    \let\@bsphack\relax
+    \let\@esphack\relax
+    \subcaption@ORI@label#1{#2}%
+    \subcaption@prepare@label
+    \protected@edef\@currentlabel{\csname thesub\@captype\endcsname}%
+    \subcaption@ORI@label{sub@#2}%
+  \endgroup\@esphack}
+\newcommand*\subcaption@prepare@label{%
+  \let\SK@\@gobbletwo
+  \def\SL@showlabels##1{\@nameuse{SL@orig##1}}}
+\DeclareRobustCommand*\subref{%
+  \@ifstar
+    {\caption@withoptargs\subcaption@ref*}%
+    {\caption@withoptargs\@subref}}
+\newcommand*\@subref[2]{%
+  \@ifundefined{hyperref}%
+    {\subcaption@ref{#1}{#2}}%
+    {\hyperref[{#2}]{\subcaption@ref{*#1}{#2}}}}
+\newcommand*\subcaption@ref[2]{%
+  \begingroup
+    \caption@setoptions{sub}%
+    \subcaption@reffmt\p@subref{\ref#1{sub@#2}}%
+  \endgroup}
+\newcommand*\p@subref{}
+\DeclareCaptionOption{subrefformat}{\subcaption@setrefformat{#1}}
+\newcommand*\subcaption@setrefformat[1]{%
+  \@ifundefined{caption@labelformat@#1}%  caption3 v2.x
+    {\@ifundefined{caption@lfmt@#1}%      caption3 v1.x
+       {\@ifundefined{caption@subreffmt@#1}{\subcaption@Error{Undefined label format `#1'}}{}}%
+       {\expandafter\let\expandafter\subcaption@reffmt\csname caption@lfmt@#1\endcsname}}%
+    {\expandafter\let\expandafter\subcaption@reffmt\csname caption@labelformat@#1\endcsname}%
+  \@ifundefined{caption@subreffmt@#1}{}{\caption@setsubrefformat{#1}}} % subfig v1.3
+\subcaption@setrefformat{simple}
+\DeclareCaptionLabelFormat{subsimple}{#2}
+\DeclareCaptionLabelFormat{subparens}{(#2)}
+\let\caption@setkeys@ORI\caption@setkeys
+\@ifundefined{caption@SetupOptions}  % caption3 v1.3
+  {\renewcommand\caption@setkeys[2]{\captionsetup[sub]{#2}}}
+  {\caption@SetupOptions{subcaption}{\captionsetup[sub]{#2}}}
+\@ifundefined{caption@smaller}       % caption3 v1.7-169
+  {\caption@ExecuteOptions{subcaption}{%
+     font+=small,labelformat=parens,labelsep=space,skip=6pt,list=0,hypcap=0}}
+  {\caption@ExecuteOptions{subcaption}{%
+     font+=smaller,labelformat=parens,labelsep=space,skip=6pt,list=0,hypcap=0}}
+\caption@ProcessOptions*{subcaption}
+\let\caption@setkeys\caption@setkeys@ORI
+\let\caption@setkeys@ORI\@undefined
+\newcommand*\subcaption@DeclareType[1]{%
+  \@ifundefined{c@sub#1}%
+    {\DeclareCaptionSubType{#1}}%
+    {\caption@subtypesource\caption@subtype@source{sub#1}%
+     \subcaption@Info{The counter `sub#1' was already defined by\MessageBreak\caption@subtype@source}}}
+\providecommand*\caption@subtypesource[2]{\def#1{a different package}} % caption3 v2.4
+\@ifundefined{ForEachCaptionType}      % caption3 v1.13
+  {\@ifundefined{caption@ForEachType}  % caption3 v1.4a
+     {\@ifundefined{c@figure}{}{\subcaption@DeclareType{figure}}%
+      \@ifundefined{c@table}{}{\subcaption@DeclareType{table}}%
+      \caption@For{typelist}{\subcaption@DeclareType{#1}}}
+     {\caption@ForEachType{\subcaption@DeclareType{#1}}}}
+  {\ForEachCaptionType{\subcaption@DeclareType{#1}}}
+\newcommand*\subcaption@newabbreviation[3]{%
+  \newcommand*{#1}{%
+    \caption@iftype
+      {\setcaptionsubtype*#2}%
+      {\subcaption@OutsideFloat#1#3}}%
+  \g@addto@macro\caption@subtypehook{\let#1#2}}% needed for caption < 3.6
+\@onlypreamble\subcaption@newabbreviation
+\@ifundefined{caption@gobble}{%
+  \DeclareRobustCommand*\caption@gobble{%  caption3 < v1.4
+    \caption@withoptargs\@gobbletwo}%
+}{}
+\@ifclassloaded{memoir}{\let\subcaption\undefined}{}
+\subcaption@newabbreviation\subcaption\caption\caption@gobble
+\subcaption@newabbreviation\phantomsubcaption\phantomcaption\relax
+\subcaption@newabbreviation\subcaptionlistentry\captionlistentry\caption@gobble
+\subcaption@newabbreviation\subcaptiontext\captiontext\caption@gobble
+\providecommand*\caption@subfloatrow@hook{} % caption < v3.7
+\g@addto@macro\caption@subfloatrow@hook{%
+  \let\caption\subcaption
+  \let\phantomcaption\phantomsubcaption
+  \let\captionlistentry\subcaptionlistentry
+  \let\captiontext\subcaptiontext}
+\caption@AtBeginDocument{%
+  \begingroup
+    \newenvironment{subcaption@memoir@subfloat}{}{}%
+    \ifx\subfloat\subcaption@memoir@subfloat
+      \endgroup
+      % "subfloat" = empty environment, defined by memoir
+      \renewcommand*\subfloat{%
+        \def\subcaption@currenvir{subfloat}%
+        \ifx\@currenvir\subcaption@currenvir
+          % emulate (empty) subfloat environment
+        \else
+          \expandafter\subcaption@subfloat
+        \fi}%
+    \else
+      \endgroup
+      \providecommand*\subfloat{\subcaption@subfloat}%
+    \fi}
+\newcommand*\subcaption@subfloat{%
+  \kernel@ifnextchar[%]
+    \subcaption@@subfloat
+    \subcaption@subfloat@}
+\long\def\subcaption@@subfloat[#1]{%
+  \kernel@ifnextchar[%]
+    {\subcaption@@@subfloat{#1}}%
+    {\subcaption@@subfloat@\subcaptionbox{#1}}}
+\long\def\subcaption@@@subfloat#1[#2]{%
+  \subcaption@@subfloat@{\subcaptionbox[{#1}]}{#2}}
+\long\def\subcaption@@subfloat@#1#2#3{%
+  \subcaption@getlabel{#3}%
+  #1{#2\caption@thelabel}{\let\label\caption@gobble#3}%
+  \subcaption@clrlabel
+  \ignorespaces}
+\def\subcaption@subfloat@#1{%
+  \setbox\@tempboxa\hbox{#1}%
+  \caption@iiiibox
+    \setcaptionsubtype
+    {\phantomcaption\@gobble}{\phantomcaption\@gobble}% no box with \caption
+    {}% no optional arguments for \caption
+    {}% no sub-caption
+    [\wd\@tempboxa][\captionbox@innerpos@default]%
+    {\unhbox\@tempboxa}%
+  \ignorespaces}
+\@ifundefined{caption@getlabel}{%
+  \newcommand\subcaption@getlabel[1]{%  caption3 < v1.7
+    \subcaption@Error{\noexpand\subfloat needs at least caption v3.4}%
+    \let\caption@thelabel\relax}
+}{\@ifundefined{caption@@@@getlabel}{%
+  \newcommand\subcaption@getlabel[1]{%  caption3 >= v1.7
+    \caption@getlabel#1\label{}\@nil}
+}{%
+  \newcommand*\subcaption@getlabel{%    caption3 >= v2.0
+    \caption@getlabel}
+}}
+\@ifundefined{caption@clrlabel}{%
+  \newcommand*\subcaption@clrlabel{\let\caption@thelabel\relax} %  caption3 < v2.3
+}{%
+  \newcommand*\subcaption@clrlabel{\caption@clrlabel}           %  caption3 >= v2.3
+}
+\endinput
+%%
+%% End of file `subcaption.sty'.

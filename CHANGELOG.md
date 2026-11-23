@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.9 — 2026-11-23
+
+- Recover the bundled subcaption load error when a template already provides subfigure or subfig counters. Preserve the author's package declarations, panel numbering and cross-references. / 修复模板先加载 subfigure 或 subfig 时旧版 subcaption 引起的编译失败，保留作者的宏包声明、子图编号和交叉引用。
+
+[Release notes](docs/releases/v1.2.9.md) · [中文版本说明](docs/releases/v1.2.9_CN.md)
+
 ## 1.2.8 — 2026-11-14
 
 - Preserve authored prompt fences and reserved marker glyphs, and protect emergency-stretch dimensions from translation. / 保留作者提示词中的代码围栏与标记字符，保护应急伸展排版参数不被翻译。

@@ -1696,7 +1696,7 @@ async def _compile_with_recovery(root, main, out, engine, notify, **options):
     from .bibliography import rebuild_bibliography
     from .minted import remove_unused_minted
     from .pdf_graphics import graphic_failure, recover_pdf_graphic
-    from .tex_runtime import RuntimeOverlay
+    from .tex_runtime import RuntimeOverlay, subcaption_clash
 
     overlay = RuntimeOverlay(root, main)
     biber_pending = biber_rebuilt = False
@@ -1721,6 +1721,17 @@ async def _compile_with_recovery(root, main, out, engine, notify, **options):
                 if "Running external tool biber" in exc.log and not biber_rebuilt:
                     biber_pending = True
                     continue
+            if legacy := subcaption_clash(exc):
+                hint = (
+                    f"子图宏包 subcaption 与 {legacy} 冲突。请统一子图命令，"
+                    f"或先加载 {legacy} 再加载 subcaption 1.6 及以上版本。"
+                )
+                raise CompilationError(
+                    hint + "\n" + str(exc),
+                    exc.log,
+                    tex_log=exc.tex_log,
+                    bundle=exc.bundle,
+                ) from exc
             if engine == "tectonic" and re.search(
                 r"File [`'](?:pstricks|pstricks-add)\.sty' not found", exc.log
             ):
